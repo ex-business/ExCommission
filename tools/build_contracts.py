@@ -98,6 +98,7 @@ endpoint('/v1/plans/{id}/publication-requests','post',obj({**rev,'draft_hash':id
 endpoint('/v1/approvals/{id}/decisions','post',obj({'decision':enum('APPROVE','REJECT'),**rev,'object_hash':identifier,**reason}))
 endpoint('/v1/plans/{id}/rollback-requests','post',obj({'target_version_id':identifier,'effective_from':time,**reason,**rev}))
 endpoint('/v1/statement-runs','post',obj({'period':identifier,'calendar_version':identifier,'agent_ids':{'type':'array','items':identifier,'uniqueItems':True}},['period','calendar_version']),202)
+endpoint('/v1/statements/{id}','get')
 endpoint('/v1/statements/{id}/submission','post',obj({**rev,'content_hash':identifier}))
 endpoint('/v1/payments','post',obj({'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision}))
 endpoint('/v1/payments/{id}/verification','post',obj({}))
