@@ -77,7 +77,11 @@ func (s Service) RequestMove(ctx context.Context, p identity.Principal, input do
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
-		sum := sha256.Sum256(body)
+		hashBody, err := foundation.BusinessCanonicalJSON(body)
+		if err != nil {
+			return foundation.CommandResult{}, err
+		}
+		sum := sha256.Sum256(hashBody)
 		id := s.ID()
 		approval := workflow.Request{ID: id, Type: "RELATIONSHIP", Applicant: p.Subject, ObjectRef: input.AgentID, ObjectHash: hex.EncodeToString(sum[:]), Payload: body}
 		if err = s.Workflow.Create(ctx, tx, scope, approval, input.Reason, s.Now()); err != nil {

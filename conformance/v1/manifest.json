@@ -2462,6 +2462,11 @@
       "id": "C02",
       "decision": "confirmed使用BOOLEAN且允许EQ/NE；product_code和scene使用ENUM且允许EQ/NE/IN；business_time使用UTC并允许有序比较；金额允许有序比较",
       "authorized_by": "用户本次对话确认"
+    },
+    {
+      "id": "I01",
+      "decision": "WEIGHTED显式受益人不必在祖先链中；快照单独冻结候选事实，非祖先输出depth=0，不改写物理链；资格事实可携带status和grade_id",
+      "basis": "V1 EXPLICIT受益人配置及资格冻结要求的实现补全"
     }
   ]
 }

@@ -16,3 +16,6 @@ channel回调以原始字节由适配器验签，不能由公共接口虚构验�
 未提供真实身份源、渠道、容量与RPO/RTO时，只验收本地/沙箱。
 
 C02（用户确认）：confirmed 条件单位 BOOLEAN，只允许 EQ/NE；product_code、scene 单位 ENUM，允许 EQ/NE/IN；business_time 单位 UTC，金额与时间允许 EQ/NE/GT/GTE/LT/LTE。未知条件指标拒绝发布。
+
+I01（实现补全）：WEIGHTED的EXPLICIT受益人可不在祖先链；独立冻结候选状态和资格，非祖先depth=0，不虚构物理层级。资格事实可携带status/grade_id；模拟合同事实从服务端历史合同解析，不增加客户端费率覆盖入口。
+I02（标准区分）：rate_ppm单费率上限1000000；funding_limit_ppm为明示合计资金上限，可大于1000000。所有规则仍统一受方案事件预算检查，不因此自动换汇或部分截断。

@@ -15,7 +15,7 @@ import (
 type Repository struct{}
 
 func Hash(body []byte) string {
-	canonical, err := foundation.CanonicalJSON(body)
+	canonical, err := foundation.BusinessCanonicalJSON(body)
 	if err != nil {
 		return ""
 	}

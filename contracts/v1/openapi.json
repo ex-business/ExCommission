@@ -3952,6 +3952,20 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "ACTIVE",
+                                "FROZEN",
+                                "DISABLED",
+                                "CLOSED"
+                              ]
+                            },
+                            "grade_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
                             }
                           },
                           "required": [
@@ -4017,6 +4031,20 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "ACTIVE",
+                                "FROZEN",
+                                "DISABLED",
+                                "CLOSED"
+                              ]
+                            },
+                            "grade_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
                             }
                           },
                           "required": [
@@ -8817,7 +8845,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -9206,7 +9234,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -9345,7 +9373,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -9489,7 +9517,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -9633,7 +9661,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -10052,7 +10080,7 @@
                 },
                 "depth": {
                   "type": "integer",
-                  "minimum": 1,
+                  "minimum": 0,
                   "maximum": 64
                 },
                 "currency": {
@@ -10283,6 +10311,20 @@
                       "type": "null"
                     }
                   ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "FROZEN",
+                    "DISABLED",
+                    "CLOSED"
+                  ]
+                },
+                "grade_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
                 }
               },
               "required": [
@@ -10342,6 +10384,43 @@
               "enum": [
                 "1"
               ]
+            }
+          },
+          "recipient_facts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "agent_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "eligible": {
+                  "type": "boolean"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "FROZEN",
+                    "DISABLED",
+                    "CLOSED"
+                  ]
+                },
+                "depth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64
+                }
+              },
+              "required": [
+                "agent_id",
+                "eligible",
+                "status",
+                "depth"
+              ],
+              "additionalProperties": false
             }
           }
         },
@@ -10693,7 +10772,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -11082,7 +11161,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -11221,7 +11300,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -11365,7 +11444,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [
@@ -11509,7 +11588,7 @@
                     },
                     "funding_limit_ppm": {
                       "type": "string",
-                      "pattern": "^(1000000|[0-9]{1,6})$"
+                      "pattern": "^[0-9]+$"
                     },
                     "per_beneficiary_cap_minor": {
                       "anyOf": [

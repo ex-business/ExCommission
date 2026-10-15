@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -56,7 +57,7 @@ func installPlans(mux *http.ServeMux, require func(string, authhttp.AuthorizedHa
 	if err != nil {
 		return err
 	}
-	service := plans.Service{Commands: store, Query: store.DB, Repo: planrepo.Repository{}, Validator: validator, Simulations: planrepo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: validator.Exponents, Now: time.Now, ID: newID}
+	service := plans.Service{Commands: store, Contracts: agentrepo.Repository{}, Participants: agentrepo.Repository{}, Query: store.DB, Repo: planrepo.Repository{}, Validator: validator, Simulations: planrepo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: validator.Exponents, Now: time.Now, ID: newID}
 	grades := plans.GradeService{Service: service, Grades: agentrepo.Repository{}, Subjects: agentrepo.Repository{}, Evaluations: planrepo.Evaluations{}, Statistics: planrepo.SandboxStatisticsFile{Path: os.Getenv("LOCAL_GRADE_STATISTICS_FILE")}}
 	publish := func(ctx context.Context, tx db.Executor, s foundation.Scope, r approval.Request, at time.Time) error {
 		var input plans.PublicationPayload
@@ -156,6 +157,16 @@ func installPlans(mux *http.ServeMux, require func(string, authhttp.AuthorizedHa
 		httpapi.Write(w, result)
 	}))
 	mux.Handle("POST /v1/simulations", require("plans:simulate", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
+		body, err := raw(w, r)
+		if err != nil {
+			httpapi.Error(w, id, foundation.ErrValidation)
+			return
+		}
+		if err = validator.ValidateSimulation(body); err != nil {
+			httpapi.Error(w, id, err)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
 		var input plans.SimulationRequest
 		if err := httpapi.Decode(w, r, &input); err != nil {
 			httpapi.Error(w, id, err)

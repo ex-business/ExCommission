@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"bytes"
+	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"testing"
 )
 
@@ -30,5 +31,19 @@ func TestCanonicalJSONAndKey(t *testing.T) {
 	}
 	if !ValidKey("valid key-1") {
 		t.Fatal("valid key rejected")
+	}
+}
+
+func TestBusinessCanonicalProjection(t *testing.T) {
+	first, err := foundation.BusinessCanonicalJSON([]byte(`{"basis_amount":"1.0","business_time":"2026-10-01T08:00:00+08:00","rate_ppm":"000001","request_id":"one"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := foundation.BusinessCanonicalJSON([]byte(`{"basis_amount":"1.00000000","business_time":"2026-10-01T00:00:00Z","rate_ppm":"1","request_id":"two"}`))
+	if err != nil || !bytes.Equal(first, second) {
+		t.Fatalf("semantic canonical mismatch %s %s %v", first, second, err)
+	}
+	if string(first) != `{"basis_amount":"100000000","business_time":"2026-10-01T00:00:00.000000Z","rate_ppm":"1"}` {
+		t.Fatalf("not atoms projection: %s", first)
 	}
 }

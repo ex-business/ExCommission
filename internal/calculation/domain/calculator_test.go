@@ -49,17 +49,14 @@ func TestPercentTrialExactnessAndTaskBudget(t *testing.T) {
 	if result.Status != "SUSPENDED" || len(result.Items) != 0 || result.Reasons[0] != "BUDGET_EXCEEDED" {
 		t.Fatalf("partial budget result %+v", result)
 	}
+
 	input = sampleInput(t)
 	unknown := input.Plan.Rules[0]
 	unknown.ID = "R2"
-	unknown.Algorithm = "FIXED"
-	unknown.Parameters = plan.Parameters{AmountMinor: "1", RewardCurrency: "USD"}
-	unknown.Funding = nil
-	budget = "100000"
-	input.Plan.EventBudget = &budget
+	unknown.Condition = plan.Condition{Metric: "quantity", Operator: "GTE", Value: json.RawMessage(`"1"`), Unit: "LOT"}
 	input.Plan.Rules = append(input.Plan.Rules, unknown)
 	result = Calculate(input)
-	if result.Status != "SUSPENDED" || len(result.Items) != 0 || result.Reasons[0] != "UNSUPPORTED_CAPABILITY" {
-		t.Fatalf("unsupported capability must not partially succeed %+v", result)
+	if result.Status != "SUSPENDED" || len(result.Items) != 0 || result.Reasons[0] != "UNKNOWN_FACT" {
+		t.Fatalf("unknown fact must prevent partial earning %+v", result)
 	}
 }

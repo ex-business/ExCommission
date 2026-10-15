@@ -17,3 +17,8 @@ type Grades interface {
 type GradeSubjects interface {
 	SubjectsAt(context.Context, db.Executor, foundation.Scope, time.Time) ([]string, error)
 }
+
+type PlanParticipants interface {
+	Revision(context.Context, db.Executor, foundation.Scope, string) (uint64, error)
+	EligibleGrades(context.Context, db.Executor, foundation.Scope, string, time.Time) ([]string, error)
+}

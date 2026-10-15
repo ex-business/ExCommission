@@ -15,9 +15,10 @@ import (
 var planSchema []byte
 
 type Validator struct {
-	schema    *jsonschema.Schema
-	Exponents map[string]int
-	Calendars map[string]bool
+	schema     *jsonschema.Schema
+	simulation *jsonschema.Schema
+	Exponents  map[string]int
+	Calendars  map[string]bool
 }
 
 func NewValidator(exponents map[string]int, calendars map[string]bool) (*Validator, error) {
@@ -34,7 +35,18 @@ func NewValidator(exponents map[string]int, calendars map[string]bool) (*Validat
 	if err != nil {
 		return nil, err
 	}
-	return &Validator{schema: schema, Exponents: exponents, Calendars: calendars}, nil
+	simulationDocument, err := jsonschema.UnmarshalJSON(bytes.NewReader(simulationSchema))
+	if err != nil {
+		return nil, err
+	}
+	if err = compiler.AddResource("urn:excommission:v1:simulation", simulationDocument); err != nil {
+		return nil, err
+	}
+	simulation, err := compiler.Compile("urn:excommission:v1:simulation")
+	if err != nil {
+		return nil, err
+	}
+	return &Validator{schema: schema, simulation: simulation, Exponents: exponents, Calendars: calendars}, nil
 }
 func (v *Validator) Decode(body []byte) (domain.Config, []byte, error) {
 	if _, err := foundation.CanonicalJSON(body); err != nil {
@@ -58,10 +70,30 @@ func (v *Validator) Decode(body []byte) (domain.Config, []byte, error) {
 	if err = domain.Validate(config, exponent); err != nil {
 		return config, nil, err
 	}
+	if err = domain.Normalize(&config); err != nil {
+		return config, nil, err
+	}
 	encoded, err := json.Marshal(config)
 	if err != nil {
 		return config, nil, err
 	}
 	canonical, err := foundation.CanonicalJSON(encoded)
 	return config, canonical, err
+}
+
+//go:embed schema/simulation.schema.json
+var simulationSchema []byte
+
+func (v *Validator) ValidateSimulation(body []byte) error {
+	if _, err := foundation.CanonicalJSON(body); err != nil {
+		return err
+	}
+	instance, err := jsonschema.UnmarshalJSON(bytes.NewReader(body))
+	if err != nil {
+		return foundation.ErrValidation
+	}
+	if err = v.simulation.Validate(instance); err != nil {
+		return foundation.ErrValidation
+	}
+	return nil
 }

@@ -159,6 +159,20 @@
                 "type": "null"
               }
             ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "FROZEN",
+              "DISABLED",
+              "CLOSED"
+            ]
+          },
+          "grade_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
           }
         },
         "required": [
@@ -218,6 +232,43 @@
         "enum": [
           "1"
         ]
+      }
+    },
+    "recipient_facts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "FROZEN",
+              "DISABLED",
+              "CLOSED"
+            ]
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 64
+          }
+        },
+        "required": [
+          "agent_id",
+          "eligible",
+          "status",
+          "depth"
+        ],
+        "additionalProperties": false
       }
     }
   },

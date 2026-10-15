@@ -149,4 +149,33 @@ func TestPlanHTTPPublicationRejectionAndRollback(t *testing.T) {
 	config["route"].(map[string]any)["product_code"] = "ETH-USDT"
 	status, out = call("PUT", "/v1/plans/P2/draft", token, "repair-p2", map[string]any{"draft": config, "expected_revision": 0})
 	must(status, out)
+	// 显式非祖先加权候选冻结资格，失格份额保留给平台。
+	config["plan_id"] = "W1"
+	config["revision"] = 0
+	config["route"].(map[string]any)["product_code"] = "BTC-USDT"
+	config["event_budget_minor"] = "100"
+	config["rules"] = []any{map[string]any{"id": "W", "algorithm_id": "WEIGHTED", "algorithm_version": "1", "recipient": "EXPLICIT", "condition": map[string]any{"logic": "AND", "children": []any{}}, "parameters": map[string]any{"pool_minor": "100", "reward_currency": "USD", "beneficiaries": []any{map[string]any{"beneficiary_id": "A", "weight": "1"}, map[string]any{"beneficiary_id": "B", "weight": "1"}, map[string]any{"beneficiary_id": "C", "weight": "1"}}}, "funding_limit_ppm": nil, "per_beneficiary_cap_minor": nil, "per_event_total_cap_minor": nil, "frequency": "ONCE_PER_BUSINESS_RULE"}}
+	status, out = call("POST", "/v1/plans", token, "weighted-create", config)
+	weightedHash := must(status, out)["draft_hash"].(string)
+	qualification := map[string]any{}
+	for _, id := range []string{"A", "B", "C"} {
+		eligible := "ELIGIBLE"
+		if id == "A" {
+			eligible = "INELIGIBLE"
+		}
+		qualification[id] = map[string]any{"eligibility": eligible, "effective_from": at.Add(-time.Hour), "effective_to": nil, "status": "ACTIVE"}
+	}
+	status, out = call("POST", "/v1/simulations", token, "weighted-sim", map[string]any{"draft_hash": weightedHash, "business_facts": map[string]any{"basis_amount": "1000", "basis_currency": "USD", "product_code": "BTC-USDT", "scene": "SPOT", "confirmed": true, "business_time": at}, "ancestors": []any{}, "qualification_facts": qualification})
+	weighted := must(status, out)
+	weightedResult := weighted["result"].(map[string]any)
+	items := weightedResult["items"].([]any)
+	if weightedResult["status"] != "SUCCEEDED" || len(items) != 2 || items[0].(map[string]any)["minor_units"] != "33" || items[1].(map[string]any)["minor_units"] != "33" || items[0].(map[string]any)["depth"] != float64(0) {
+		t.Fatalf("weighted HTTP result %+v", weightedResult)
+	}
+	// 模拟允许虚构事实，但正式发布仍要求显式代理在作用域内存在。
+	status, _ = call("POST", "/v1/plans/W1/publication-requests", token, "weighted-publish-missing-agents", map[string]any{"expected_revision": 0, "draft_hash": weightedHash, "simulation_id": weighted["simulation_id"], "effective_from": at.Add(time.Hour), "reason": "候选存在性门禁"})
+	if status != 404 {
+		t.Fatalf("published nonexistent explicit beneficiaries: %d", status)
+	}
+
 }

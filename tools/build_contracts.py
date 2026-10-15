@@ -216,3 +216,27 @@ plan['$defs']['condition']=condition
 write('plan.schema.json',plan)
 components['Condition']=json.loads(json.dumps(condition).replace('#/$defs/condition','#/components/schemas/Condition'))
 write('openapi.json',api)
+# EXPLICIT 候选不伪装祖先；资格快照允许补充状态，非祖先深度为0。
+for definition in (qualification,):
+    definition['additionalProperties']['properties'].update({'status':enum('ACTIVE','FROZEN','DISABLED','CLOSED'),'grade_id':identifier})
+snapshot['properties']['qualification_facts']=qualification
+snapshot['properties']['recipient_facts']={'type':'object','additionalProperties':obj({'agent_id':identifier,'eligible':boolean,'status':enum('ACTIVE','FROZEN','DISABLED','CLOSED'),'depth':{'type':'integer','minimum':0,'maximum':64}},['agent_id','eligible','status','depth'])}
+write('snapshot.schema.json',snapshot)
+item['properties']['depth']['minimum']=0
+components['Snapshot']={k:v for k,v in snapshot.items() if k not in ('$schema','$id')}
+for variant in api['paths']['/v1/simulations']['post']['requestBody']['content']['application/json']['schema']['oneOf']:
+    variant['properties']['qualification_facts']=qualification
+write('openapi.json',api)
+# 单费率最多100%；资金上限是合计预算，可显式高于100%，仍受方案总预算约束。
+for algorithm,variant in zip(parameters,variants):
+    if algorithm not in ('FIXED','UNIT_PRICE','WEIGHTED'):
+        variant['properties']['funding_limit_ppm']=minor
+write('plan.schema.json',plan)
+plan_api=json.loads(json.dumps(plan).replace('#/$defs/condition','#/components/schemas/Condition'))
+components['PlanDraft']={k:v for k,v in plan_api.items() if k not in ('$schema','$id','$defs')}
+components['PlanDocument']['properties']['rules']=components['PlanDraft']['properties']['rules']
+write('openapi.json',api)
+# 模拟命令独立可校验Schema，供Go入口直接执行相同契约。
+simulation_schema=schema('simulation',json.loads(json.dumps(api['paths']['/v1/simulations']['post']['requestBody']['content']['application/json']['schema']).replace('#/components/schemas/','#/$defs/')))
+simulation_schema['$defs']={name:components[name] for name in ('Facts','ActorRef')}
+write('simulation.schema.json',simulation_schema)

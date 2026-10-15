@@ -15,7 +15,14 @@ import (
 
 type Repository struct{}
 
-func Hash(body []byte) string { sum := sha256.Sum256(body); return hex.EncodeToString(sum[:]) }
+func Hash(body []byte) string {
+	projected, err := foundation.BusinessCanonicalJSON(body)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(projected)
+	return hex.EncodeToString(sum[:])
+}
 func (Repository) Create(ctx context.Context, tx ports.Executor, s foundation.Scope, c domain.Config, body []byte, hash string, at time.Time) error {
 	if !s.Valid() || c.Revision != 0 || hash != Hash(body) {
 		return foundation.ErrValidation

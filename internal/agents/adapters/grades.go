@@ -102,3 +102,20 @@ func (Repository) SubjectsAt(ctx context.Context, tx ports.Executor, s foundatio
 	}
 	return ids, rows.Err()
 }
+
+func (Repository) EligibleGrades(ctx context.Context, tx ports.Executor, s foundation.Scope, planID string, at time.Time) ([]string, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT DISTINCT h.grade_id FROM agent_grade_history h JOIN agent_accounts a ON a.tenant_id=h.tenant_id AND a.app_id=h.app_id AND a.agent_id=h.agent_id WHERE h.tenant_id=? AND h.app_id=? AND h.plan_id=? AND h.eligibility='ELIGIBLE' AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?) AND a.status IN ('ACTIVE','FROZEN')`, s.Tenant, s.App, planID, at.UTC(), at.UTC())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	grades := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		grades = append(grades, id)
+	}
+	return grades, rows.Err()
+}

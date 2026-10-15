@@ -95,7 +95,7 @@ func (s *Store) Execute(ctx context.Context, scope Scope, operation, key string,
 	if err != nil {
 		return Result{}, ErrValidation
 	}
-	canonical, err := CanonicalJSON(body)
+	canonical, err := domain.BusinessCanonicalJSON(body)
 	if err != nil {
 		return Result{}, err
 	}
@@ -149,7 +149,7 @@ func (s *Store) Lookup(ctx context.Context, scope Scope, operation, key string, 
 	if err != nil {
 		return Result{}, false, ErrValidation
 	}
-	canonical, err := CanonicalJSON(body)
+	canonical, err := domain.BusinessCanonicalJSON(body)
 	if err != nil {
 		return Result{}, false, err
 	}

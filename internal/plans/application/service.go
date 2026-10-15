@@ -3,9 +3,11 @@ package application
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	agents "github.com/ex-business/ExCommission/internal/agents/ports"
 	calculation "github.com/ex-business/ExCommission/internal/calculation/domain"
 	identity "github.com/ex-business/ExCommission/internal/identity/domain"
 	"github.com/ex-business/ExCommission/internal/plans/domain"
@@ -18,18 +20,27 @@ import (
 	"time"
 )
 
-func hash(body []byte) string { sum := sha256.Sum256(body); return hex.EncodeToString(sum[:]) }
+func hash(body []byte) string {
+	projected, err := foundation.BusinessCanonicalJSON(body)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(projected)
+	return hex.EncodeToString(sum[:])
+}
 
 type Service struct {
-	Commands    db.Commands
-	Query       db.Executor
-	Repo        ports.Repository
-	Validator   ports.Validator
-	Simulations ports.Simulations
-	Workflow    workflow.Repository
-	Exponents   map[string]int
-	Now         func() time.Time
-	ID          func() string
+	Commands     db.Commands
+	Contracts    agents.Contracts
+	Participants agents.PlanParticipants
+	Query        db.Executor
+	Repo         ports.Repository
+	Validator    ports.Validator
+	Simulations  ports.Simulations
+	Workflow     workflow.Repository
+	Exponents    map[string]int
+	Now          func() time.Time
+	ID           func() string
 }
 
 func (s Service) Create(ctx context.Context, p identity.Principal, body []byte, key, request string) (foundation.CommandResult, error) {
@@ -89,9 +100,28 @@ type Qualification struct {
 	Eligibility string     `json:"eligibility"`
 	From        time.Time  `json:"effective_from"`
 	To          *time.Time `json:"effective_to"`
+	Status      string     `json:"status,omitempty"`
+	GradeID     string     `json:"grade_id,omitempty"`
 }
 
 func (s Service) Simulate(ctx context.Context, p identity.Principal, input SimulationRequest, key, request string) (foundation.CommandResult, error) {
+	input.Facts.BusinessTime = input.Facts.BusinessTime.UTC()
+	for id, q := range input.Qualification {
+		q.From = q.From.UTC()
+		if q.To != nil {
+			at := q.To.UTC()
+			q.To = &at
+		}
+		input.Qualification[id] = q
+	}
+	if value, err := foundation.ParseDecimal(input.Facts.Basis); err == nil {
+		input.Facts.Basis = value.String()
+	}
+	if input.Facts.Quantity != "" {
+		if value, err := foundation.ParseDecimal(input.Facts.Quantity); err == nil {
+			input.Facts.Quantity = value.String()
+		}
+	}
 	if (input.DraftHash == nil) == (input.VersionID == nil) {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
@@ -121,6 +151,47 @@ func (s Service) Simulate(ctx context.Context, p identity.Principal, input Simul
 			qualification, ok := input.Qualification[actor.ID]
 			if !ok || actor.Eligible == nil || qualification.From.IsZero() || (qualification.Eligibility != "ELIGIBLE" && qualification.Eligibility != "INELIGIBLE") || input.Facts.BusinessTime.Before(qualification.From) || (qualification.To != nil && !input.Facts.BusinessTime.Before(*qualification.To)) || (*actor.Eligible != (qualification.Eligibility == "ELIGIBLE")) {
 				return foundation.CommandResult{}, errors.New("UNKNOWN_FACT")
+			}
+		}
+		known := map[string]bool{}
+		for _, actor := range input.Ancestors {
+			known[actor.ID] = true
+		}
+		for _, rule := range config.Rules {
+			if rule.Algorithm != "WEIGHTED" {
+				continue
+			}
+			for _, candidate := range rule.Parameters.Beneficiaries {
+				if known[candidate.BeneficiaryID] {
+					continue
+				}
+				q, ok := input.Qualification[candidate.BeneficiaryID]
+				if !ok || q.Status == "" || q.From.IsZero() || input.Facts.BusinessTime.Before(q.From) || (q.To != nil && !input.Facts.BusinessTime.Before(*q.To)) {
+					return foundation.CommandResult{}, errors.New("UNKNOWN_FACT")
+				}
+				if q.Eligibility != "ELIGIBLE" && q.Eligibility != "INELIGIBLE" {
+					return foundation.CommandResult{}, foundation.ErrValidation
+				}
+				eligible := q.Eligibility == "ELIGIBLE"
+				snapshot.Recipients = append(snapshot.Recipients, calculation.Actor{ID: candidate.BeneficiaryID, Eligible: &eligible, Status: q.Status, Grade: q.GradeID, Depth: 0})
+				known[candidate.BeneficiaryID] = true
+			}
+		}
+		if config.AgentPolicy.RequireContract {
+			if s.Contracts == nil {
+				return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
+			}
+			contractActors := append(append([]calculation.Actor(nil), snapshot.Ancestors...), snapshot.Recipients...)
+			for _, actor := range contractActors {
+				contract, err := s.Contracts.ContractAt(ctx, tx, scope, actor.ID, config.PlanID, input.Facts.BusinessTime)
+				if errors.Is(err, sql.ErrNoRows) {
+					snapshot.Contracts[actor.ID] = calculation.ContractFact{}
+					continue
+				}
+				if err != nil {
+					return foundation.CommandResult{}, err
+				}
+				snapshot.Contracts[actor.ID] = calculation.ContractFact{PlanID: contract.PlanID, From: contract.From, To: contract.To}
 			}
 		}
 		result := calculation.Calculate(snapshot)
@@ -182,6 +253,10 @@ func (s Service) RequestPublication(ctx context.Context, p identity.Principal, i
 				return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
 			}
 		}
+		if err := s.validateParticipants(ctx, tx, scope, draft.Config, input.EffectiveFrom); err != nil {
+			return foundation.CommandResult{}, err
+		}
+
 		proof, err := s.Simulations.Proof(ctx, tx, scope, input.SimulationID)
 		if err != nil {
 			return foundation.CommandResult{}, err
@@ -209,4 +284,35 @@ func (s Service) RequestPublication(ctx context.Context, p identity.Principal, i
 		}
 		return response.Result(200, approvalID, request, map[string]string{"approval_id": approvalID})
 	})
+}
+
+func (s Service) validateParticipants(ctx context.Context, tx db.Executor, scope foundation.Scope, config domain.Config, at time.Time) error {
+	if s.Participants == nil {
+		return errors.New("UNSUPPORTED_CAPABILITY")
+	}
+	ids := append([]string(nil), config.Scope.AgentIDs...)
+	for _, rule := range config.Rules {
+		for _, beneficiary := range rule.Parameters.Beneficiaries {
+			ids = append(ids, beneficiary.BeneficiaryID)
+		}
+	}
+	for _, id := range ids {
+		if _, err := s.Participants.Revision(ctx, tx, scope, id); err != nil {
+			return err
+		}
+	}
+	current, err := s.Participants.EligibleGrades(ctx, tx, scope, config.PlanID, at)
+	if err != nil {
+		return err
+	}
+	definitions := map[string]bool{}
+	for _, grade := range config.Grades {
+		definitions[grade.ID] = true
+	}
+	for _, grade := range current {
+		if !definitions[grade] {
+			return foundation.ErrValidation
+		}
+	}
+	return nil
 }

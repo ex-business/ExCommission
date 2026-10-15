@@ -24,6 +24,13 @@ func PPM(value string) (int64, error) {
 	}
 	return n, nil
 }
+func Unsigned(value string) (*big.Int, error) {
+	if !integer.MatchString(value) {
+		return nil, invalid("unsigned integer")
+	}
+	n, _ := new(big.Int).SetString(value, 10)
+	return n, nil
+}
 func Minor(value string) (*big.Int, error) {
 	if !integer.MatchString(value) {
 		return nil, invalid("minor units")
@@ -37,6 +44,9 @@ func Minor(value string) (*big.Int, error) {
 func Validate(config Config, exponent int) error {
 	if config.StandardVersion != "1" || config.PlanID == "" || config.Name == "" || exponent < 0 || exponent > 8 {
 		return invalid("version or currency")
+	}
+	if config.Route.Product == "" || config.Route.Scene == "" || (config.Route.EventType != "FEE_CONFIRMED" && config.Route.EventType != "TRADE_CLOSED" && config.Route.EventType != "ORDER_CONFIRMED") {
+		return invalid("route")
 	}
 	policy := config.AgentPolicy
 	if policy.MaxDepth < 1 || policy.MaxDepth > 64 || policy.SelfReward || !policy.EligibilityRequired || policy.GradeWindow != "PREVIOUS_CALENDAR_MONTH" || policy.GradeEvaluation != "DAILY" {
@@ -118,7 +128,11 @@ func Validate(config Config, exponent int) error {
 		}
 		seen[rule.ID] = true
 		leaves := 0
-		if err := validateCondition(rule.Condition, config.Currency, 1, &leaves, true); err != nil {
+		conditionCurrency := config.Currency
+		if rule.Algorithm == "FIXED" || rule.Algorithm == "WEIGHTED" {
+			conditionCurrency = ""
+		}
+		if err := validateCondition(rule.Condition, conditionCurrency, 1, &leaves, true); err != nil {
 			return err
 		}
 		for _, cap := range []*string{rule.BeneficiaryCap, rule.EventCap} {
@@ -174,7 +188,7 @@ func Validate(config Config, exponent int) error {
 				}
 				ids := map[string]bool{}
 				for _, beneficiary := range p.Beneficiaries {
-					weight, err := Minor(beneficiary.Weight)
+					weight, err := Unsigned(beneficiary.Weight)
 					if err != nil || weight.Sign() <= 0 || beneficiary.BeneficiaryID == "" || ids[beneficiary.BeneficiaryID] {
 						return invalid("weights")
 					}
@@ -262,8 +276,8 @@ func Validate(config Config, exponent int) error {
 			if rule.Funding == nil {
 				return invalid("funding missing")
 			}
-			limit, err := PPM(*rule.Funding)
-			if err != nil || maxSpend > limit {
+			limit, err := Unsigned(*rule.Funding)
+			if err != nil || big.NewInt(maxSpend).Cmp(limit) > 0 {
 				return invalid("funding limit")
 			}
 		}
@@ -320,7 +334,7 @@ func validateCondition(c Condition, currency string, depth int, leaves *int, top
 		if _, err := calculation.ParseDecimal(value); err != nil {
 			return err
 		}
-		if c.Operator == "IN" || c.Unit == "" || c.Metric == "basis_amount" && c.Unit != currency {
+		if c.Operator == "IN" || c.Unit == "" || c.Metric == "basis_amount" && currency != "" && c.Unit != currency {
 			return invalid("metric unit")
 		}
 	case "confirmed":

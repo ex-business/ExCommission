@@ -39,3 +39,16 @@ func (d Decimal) Minor(exponent int) (*big.Int, error) {
 	divisor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(8-exponent)), nil)
 	return new(big.Int).Quo(d.Atoms(), divisor), nil
 }
+
+func DecimalFromAtoms(atoms *big.Int) (Decimal, error) {
+	if atoms == nil || atoms.Sign() < 0 || len(atoms.String()) > 26 {
+		return Decimal{}, ErrDecimal
+	}
+	return Decimal{atoms: *new(big.Int).Set(atoms)}, nil
+}
+func (d Decimal) String() string {
+	whole, fraction := new(big.Int), new(big.Int)
+	whole.QuoRem(d.Atoms(), big.NewInt(100000000), fraction)
+	digits := fraction.String()
+	return whole.String() + "." + strings.Repeat("0", 8-len(digits)) + digits
+}

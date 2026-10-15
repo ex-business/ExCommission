@@ -89,6 +89,9 @@ func (s GradeService) Evaluate(ctx context.Context, p identity.Principal, input 
 	if input.Period != period || input.Cutoff.After(effective) || input.Cutoff.IsZero() {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
+	if s.Statistics == nil {
+		return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
+	}
 	frozen, err := s.Statistics.Freeze(ctx, scope, input.PlanID, input.Period, input.Cutoff)
 	if err != nil {
 		return foundation.CommandResult{}, err

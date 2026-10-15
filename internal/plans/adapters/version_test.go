@@ -53,7 +53,7 @@ func TestPlanLifecycleAndGrades(t *testing.T) {
 	clock := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
 	nextID := 0
 	id := func() string { nextID++; return time.Unix(int64(nextID), 0).UTC().Format("150405") }
-	plans := service.Service{Commands: store, Query: store.DB, Repo: repo.Repository{}, Validator: validator, Simulations: repo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: map[string]int{"USD": 2}, Now: func() time.Time { return clock }, ID: id}
+	plans := service.Service{Commands: store, Participants: agents.Repository{}, Query: store.DB, Repo: repo.Repository{}, Validator: validator, Simulations: repo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: map[string]int{"USD": 2}, Now: func() time.Time { return clock }, ID: id}
 	operator := identity.Principal{Tenant: scope.Tenant, App: scope.App, Subject: "operator"}
 	approver := operator
 	approver.Subject = "reviewer"

@@ -248,7 +248,7 @@
               },
               "funding_limit_ppm": {
                 "type": "string",
-                "pattern": "^(1000000|[0-9]{1,6})$"
+                "pattern": "^[0-9]+$"
               },
               "per_beneficiary_cap_minor": {
                 "anyOf": [
@@ -637,7 +637,7 @@
               },
               "funding_limit_ppm": {
                 "type": "string",
-                "pattern": "^(1000000|[0-9]{1,6})$"
+                "pattern": "^[0-9]+$"
               },
               "per_beneficiary_cap_minor": {
                 "anyOf": [
@@ -776,7 +776,7 @@
               },
               "funding_limit_ppm": {
                 "type": "string",
-                "pattern": "^(1000000|[0-9]{1,6})$"
+                "pattern": "^[0-9]+$"
               },
               "per_beneficiary_cap_minor": {
                 "anyOf": [
@@ -920,7 +920,7 @@
               },
               "funding_limit_ppm": {
                 "type": "string",
-                "pattern": "^(1000000|[0-9]{1,6})$"
+                "pattern": "^[0-9]+$"
               },
               "per_beneficiary_cap_minor": {
                 "anyOf": [
@@ -1064,7 +1064,7 @@
               },
               "funding_limit_ppm": {
                 "type": "string",
-                "pattern": "^(1000000|[0-9]{1,6})$"
+                "pattern": "^[0-9]+$"
               },
               "per_beneficiary_cap_minor": {
                 "anyOf": [
