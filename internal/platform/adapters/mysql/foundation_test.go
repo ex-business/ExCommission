@@ -47,7 +47,7 @@ func scope(t *testing.T, store *db.Store) db.Scope {
 	}
 	s := db.Scope{Tenant: "test-" + hex.EncodeToString(bytes), App: "app"}
 	t.Cleanup(func() {
-		for _, table := range []string{"command_results", "integration_inbox", "transaction_outbox", "identity_grants", "audit_entries", "platform_revisions"} {
+		for _, table := range []string{"command_results", "integration_event_keys", "integration_inbox", "transaction_outbox", "identity_grants", "audit_entries", "platform_revisions"} {
 			_, err := store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", s.Tenant)
 			if err != nil {
 				t.Error(err)

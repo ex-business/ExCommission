@@ -24,3 +24,8 @@ type Repository interface {
 type UserLookup interface {
 	Exists(context.Context, db.Executor, foundation.Scope, string) error
 }
+
+type BusinessUsers interface {
+	Resolve(context.Context, db.Executor, foundation.Scope, string, string) (string, error)
+	BoundAgent(context.Context, db.Executor, foundation.Scope, string, time.Time) (string, error)
+}

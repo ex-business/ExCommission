@@ -31,7 +31,10 @@ type ContractFact struct {
 	To     *time.Time
 }
 type Input struct {
-	Recipients []Actor
+	StandardVersion, PlanVersionID, ConfigHash, CurrencyCatalogVersion, CalendarVersion string
+	AlgorithmVersions                                                                   map[string]string
+	DepthLimitReached                                                                   bool
+	Recipients                                                                          []Actor
 
 	TaskID     string
 	SnapshotID string
@@ -171,6 +174,9 @@ func Calculate(input Input) Result {
 				}
 				candidates = append(candidates, actor)
 			}
+		}
+		if input.DepthLimitReached && rule.Recipient != "EXPLICIT" {
+			result.Trace = append(result.Trace, Trace{RuleID: rule.ID, Depth: input.Plan.AgentPolicy.MaxDepth + 1, Reason: "DEPTH_LIMIT_REACHED"})
 		}
 		ruleTotal := new(big.Int)
 		covered := int64(0)

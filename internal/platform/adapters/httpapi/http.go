@@ -76,7 +76,7 @@ func Error(w http.ResponseWriter, request string, err error) {
 		switch strings.Split(err.Error(), ":")[0] {
 		case "VALIDATION_FAILED", "UNIT_MISMATCH":
 			status, code, retry = 400, "VALIDATION_FAILED", false
-		case "PERMISSION_DENIED", "SELF_APPROVAL_FORBIDDEN":
+		case "PERMISSION_DENIED", "SELF_APPROVAL_FORBIDDEN", "SOURCE_SIGNATURE_INVALID":
 			status, code, retry = 403, strings.Split(err.Error(), ":")[0], false
 		case "NOT_FOUND", "USER_NOT_FOUND":
 			status, code, retry = 404, "NOT_FOUND", false

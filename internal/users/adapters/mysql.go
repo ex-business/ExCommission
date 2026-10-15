@@ -62,3 +62,40 @@ func (Repository) GetJob(ctx context.Context, tx ports.Executor, s domain.Scope,
 	err = json.Unmarshal(body, &job.ErrorRefs)
 	return job, err
 }
+
+func (Repository) Resolve(ctx context.Context, tx ports.Executor, s domain.Scope, source, external string) (string, error) {
+	var id string
+	err := tx.QueryRowContext(ctx, `SELECT user_id FROM users_external WHERE tenant_id=? AND app_id=? AND source_id=? AND external_user_id=?`, s.Tenant, s.App, source, external).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", errors.New("UNKNOWN_FACT")
+	}
+	return id, err
+}
+func (Repository) BoundAgent(ctx context.Context, tx ports.Executor, s domain.Scope, user string, at time.Time) (string, error) {
+	var id string
+	err := tx.QueryRowContext(ctx, `SELECT agent_id FROM user_agent_bindings WHERE tenant_id=? AND app_id=? AND user_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>?)`, s.Tenant, s.App, user, at.UTC(), at.UTC()).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", errors.New("RELATION_HISTORY_MISSING")
+	}
+	return id, err
+}
+
+// BindInitial 供受控来源或审批执行器首次绑定；已有历史不能通过同步覆盖。
+func (Repository) BindInitial(ctx context.Context, tx ports.Executor, s domain.Scope, user, agent, evidence string, at time.Time) error {
+	if user == "" || agent == "" || evidence == "" || at.IsZero() {
+		return domain.ErrValidation
+	}
+	var id string
+	if err := tx.QueryRowContext(ctx, `SELECT user_id FROM users_external WHERE tenant_id=? AND app_id=? AND user_id=? FOR UPDATE`, s.Tenant, s.App, user).Scan(&id); err != nil {
+		return err
+	}
+	var count int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM user_agent_bindings WHERE tenant_id=? AND app_id=? AND user_id=?`, s.Tenant, s.App, user).Scan(&count); err != nil {
+		return err
+	}
+	if count != 0 {
+		return domain.ErrConflict
+	}
+	_, err := tx.ExecContext(ctx, `INSERT INTO user_agent_bindings VALUES(?,?,?,?,?,NULL,?)`, s.Tenant, s.App, user, agent, at.UTC(), evidence)
+	return err
+}

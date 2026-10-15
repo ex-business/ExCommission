@@ -69,6 +69,26 @@ func Run(service string) error {
 	server := &http.Server{Addr: address, Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if service == "worker" {
+		worker := buildWorker(store)
+		go func() {
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					jobCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+					_, err := worker.RunOnce(jobCtx, localScope())
+					cancel()
+					if err != nil && ctx.Err() == nil {
+						slog.Error("任务处理失败，保留原任务等待恢复", "service", service)
+					}
+				}
+			}
+		}()
+	}
 	failure := make(chan error, 1)
 	go func() { failure <- server.ListenAndServe() }()
 	slog.Info("服务启动", "service", service, "address", address)

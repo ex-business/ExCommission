@@ -174,3 +174,20 @@ func (Repository) ContractAt(ctx context.Context, tx ports.Executor, s foundatio
 	err := tx.QueryRowContext(ctx, `SELECT contract_id,agent_id,plan_id,effective_from,effective_to,evidence_ref FROM agent_contracts WHERE tenant_id=? AND app_id=? AND agent_id=? AND plan_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>?)`, s.Tenant, s.App, agentID, planID, at.UTC(), at.UTC()).Scan(&c.ID, &c.AgentID, &c.PlanID, &c.From, &c.To, &c.Evidence)
 	return c, err
 }
+
+func (Repository) AccountAt(ctx context.Context, tx ports.Executor, s foundation.Scope, id string, at time.Time) (agent.Account, error) {
+	var account agent.Account
+	err := tx.QueryRowContext(ctx, `SELECT agent_id,user_id,status,created_at FROM agent_accounts WHERE tenant_id=? AND app_id=? AND agent_id=? AND created_at<=?`, s.Tenant, s.App, id, at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
+	if errors.Is(err, sql.ErrNoRows) {
+		return account, agent.ErrHistory
+	}
+	return account, err
+}
+func (Repository) ByUserAt(ctx context.Context, tx ports.Executor, s foundation.Scope, user string, at time.Time) (agent.Account, bool, error) {
+	var account agent.Account
+	err := tx.QueryRowContext(ctx, `SELECT agent_id,user_id,status,created_at FROM agent_accounts WHERE tenant_id=? AND app_id=? AND user_id=? AND created_at<=?`, s.Tenant, s.App, user, at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
+	if errors.Is(err, sql.ErrNoRows) {
+		return account, false, nil
+	}
+	return account, err == nil, err
+}

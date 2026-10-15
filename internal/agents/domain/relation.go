@@ -22,3 +22,8 @@ type Ancestor struct {
 	EffectiveFrom time.Time  `json:"effective_from"`
 	EffectiveTo   *time.Time `json:"effective_to"`
 }
+
+type Account struct {
+	ID, UserID, Status string
+	Created            time.Time
+}

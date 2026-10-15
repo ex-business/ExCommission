@@ -19,3 +19,8 @@ type Contracts interface {
 	AddContract(context.Context, db.Executor, foundation.Scope, domain.Contract) error
 	ContractAt(context.Context, db.Executor, foundation.Scope, string, string, time.Time) (domain.Contract, error)
 }
+
+type HistoricalAccounts interface {
+	AccountAt(context.Context, db.Executor, foundation.Scope, string, time.Time) (domain.Account, error)
+	ByUserAt(context.Context, db.Executor, foundation.Scope, string, time.Time) (domain.Account, bool, error)
+}

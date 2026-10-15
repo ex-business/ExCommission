@@ -240,3 +240,11 @@ write('openapi.json',api)
 simulation_schema=schema('simulation',json.loads(json.dumps(api['paths']['/v1/simulations']['post']['requestBody']['content']['application/json']['schema']).replace('#/components/schemas/','#/$defs/')))
 simulation_schema['$defs']={name:components[name] for name in ('Facts','ActorRef')}
 write('simulation.schema.json',simulation_schema)
+# 恢复入口落实既有“人工恢复原任务、必须留依据”的能力。
+endpoint('/v1/calculation-tasks/{id}/resume','post',obj({'expected_revision':revision,'evidence_ref':identifier,'reason':identifier}),202)
+api['paths']['/v1/calculation-tasks/{id}/resume']['post']['responses']['202']['content']['application/json']['schema']=obj({'data':obj({'task_id':identifier,'status':enum('QUEUED')}),'request_id':identifier})
+api['paths']['/v1/events']['post']['parameters'].append({'name':'X-Source-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[0-9a-fA-F]{64}$'},'description':'本地来源适配器以原始请求字节作HMAC-SHA256；生产来源使用自己的受信适配器'})
+api['paths']['/v1/events']['post']['description']='输入event_id为来源事件ID；返回event_id为作用域内不透明接收资源ID，source_event_id保留原来源标识。'
+write('openapi.json',api)
+errors += ['STATE_CONFLICT','UNAUTHENTICATED','SELF_APPROVAL_FORBIDDEN','NOT_FOUND','RELATION_CYCLE','AMOUNT_OUT_OF_RANGE','REFUND_EXCEEDS_ORIGINAL','NON_MONOTONIC_REFUND','CONSERVATION_VIOLATION','SOURCE_SIGNATURE_INVALID','SNAPSHOT_INTEGRITY_FAILED','LEDGER_NOT_READY']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})

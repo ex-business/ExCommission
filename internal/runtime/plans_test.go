@@ -34,6 +34,7 @@ func TestPlanHTTPPublicationRejectionAndRollback(t *testing.T) {
 	for key, value := range map[string]string{"APP_MODE": "local", "LOCAL_TENANT": tenant, "LOCAL_APP": "app", "LOCAL_OPERATOR_TOKEN": token, "LOCAL_APPROVER_TOKEN": reviewer, "LOCAL_CURSOR_KEY": strings.Repeat("f", 32), "LOCAL_USERS_FILE": ""} {
 		t.Setenv(key, value)
 	}
+	t.Setenv("LOCAL_SOURCE_KEY", strings.Repeat("s", 32))
 	handler, err := businessHandler(context.Background(), store)
 	if err != nil {
 		t.Fatal(err)
