@@ -70,7 +70,7 @@ func TestPaymentUnknownOriginalIDCallbacksAndConservation(t *testing.T) {
 	}
 	scope := foundation.Scope{Tenant: fmt.Sprint("test-payment-", time.Now().UnixNano()), App: "app"}
 	defer func() {
-		for _, table := range []string{"payment_callbacks", "payment_allocations", "payment_orders", "settlement_claims", "settlement_payout_policies", "settlement_items", "settlement_statements", "settlement_runs", "settlement_spaces", "workflow_requests", "command_results", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
+		for _, table := range []string{"payment_callbacks", "payment_allocations", "payment_orders", "settlement_claims", "settlement_item_targets", "settlement_payout_policies", "settlement_items", "settlement_statements", "settlement_runs", "settlement_spaces", "workflow_requests", "command_results", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant)
 		}
 	}()

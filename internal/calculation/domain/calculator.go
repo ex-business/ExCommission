@@ -39,9 +39,11 @@ type Actor struct {
 	Status        string                 `json:"status"`
 }
 type ContractFact struct {
-	PlanID string
-	From   time.Time
-	To     *time.Time
+	ID       string
+	Evidence string
+	PlanID   string
+	From     time.Time
+	To       *time.Time
 }
 type Input struct {
 	QualificationFacts                                                                  map[string]QualificationEvidence

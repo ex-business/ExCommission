@@ -1449,7 +1449,7 @@
                             {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 128
+                              "maxLength": 4096
                             },
                             {
                               "type": "null"
@@ -1538,7 +1538,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 128
+              "maxLength": 4096
             }
           }
         ]
@@ -2469,7 +2469,7 @@
                             {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 128
+                              "maxLength": 4096
                             },
                             {
                               "type": "null"
@@ -2538,7 +2538,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 128
+              "maxLength": 4096
             }
           },
           {
@@ -5264,10 +5264,93 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "period": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "statements": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "statement_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "agent_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "currency": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "period": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "DRAFT",
+                                  "PENDING_APPROVAL",
+                                  "APPROVED",
+                                  "PARTIALLY_PAID",
+                                  "PAID",
+                                  "CANCELLED"
+                                ]
+                              },
+                              "revision": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "content_hash": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "total_minor": {
+                                "type": "string",
+                                "pattern": "^[0-9]+$"
+                              },
+                              "items": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                },
+                                "minItems": 0
+                              },
+                              "approval_valid": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "statement_id",
+                              "agent_id",
+                              "currency",
+                              "period",
+                              "status",
+                              "revision",
+                              "content_hash",
+                              "total_minor",
+                              "items",
+                              "approval_valid"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "minItems": 0
                         }
                       },
                       "required": [
-                        "run_id"
+                        "run_id",
+                        "period",
+                        "statements"
                       ],
                       "additionalProperties": true
                     },
@@ -5462,14 +5545,72 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "statement_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "agent_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "period": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "PENDING_APPROVAL",
+                            "APPROVED",
+                            "PARTIALLY_PAID",
+                            "PAID",
+                            "CANCELLED"
+                          ]
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "content_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "total_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "minItems": 0
+                        },
+                        "approval_valid": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "statement_id",
+                        "agent_id",
+                        "currency",
+                        "period",
+                        "status",
+                        "revision",
+                        "content_hash",
+                        "total_minor",
+                        "items",
+                        "approval_valid"
                       ],
                       "additionalProperties": true
                     },
@@ -5619,7 +5760,7 @@
               }
             }
           },
-          "200": {
+          "202": {
             "description": "成功；异步接收不代表业务执行成功",
             "content": {
               "application/json": {
@@ -6245,19 +6386,14 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "payment_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128
-                        },
                         "status": {
                           "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128
+                          "enum": [
+                            "ACCEPTED"
+                          ]
                         }
                       },
                       "required": [
-                        "payment_id",
                         "status"
                       ],
                       "additionalProperties": true
@@ -6420,10 +6556,17 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "COMPLETED"
+                          ]
                         }
                       },
                       "required": [
-                        "run_id"
+                        "run_id",
+                        "status"
                       ],
                       "additionalProperties": true
                     },
@@ -6821,14 +6964,37 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "refund_task_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "refund": {
+                          "$ref": "#/components/schemas/Refund"
+                        },
+                        "status": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "reason_code": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "refund_task_id",
+                        "refund",
+                        "status",
+                        "reason_code"
                       ],
                       "additionalProperties": true
                     },
@@ -6988,14 +7154,63 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "entitlement_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "target_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "pending_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "available_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "reserved_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "paid_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "debt_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "recovered_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "frozen": {
+                          "type": "boolean"
+                        },
+                        "payment_hold": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "entitlement_id",
+                        "currency",
+                        "target_minor",
+                        "pending_minor",
+                        "available_minor",
+                        "reserved_minor",
+                        "paid_minor",
+                        "debt_minor",
+                        "recovered_minor",
+                        "frozen",
+                        "payment_hold"
                       ],
                       "additionalProperties": true
                     },
@@ -7155,14 +7370,63 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "entitlement_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "target_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "pending_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "available_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "reserved_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "paid_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "debt_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "recovered_minor": {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        "frozen": {
+                          "type": "boolean"
+                        },
+                        "payment_hold": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "entitlement_id",
+                        "currency",
+                        "target_minor",
+                        "pending_minor",
+                        "available_minor",
+                        "reserved_minor",
+                        "paid_minor",
+                        "debt_minor",
+                        "recovered_minor",
+                        "frozen",
+                        "payment_hold"
                       ],
                       "additionalProperties": true
                     },
@@ -7322,14 +7586,36 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "original_task_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "effective_snapshot": {
+                          "$ref": "#/components/schemas/Snapshot"
+                        },
+                        "original_snapshot_hash": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "original_task_id",
+                        "revision",
+                        "effective_snapshot",
+                        "original_snapshot_hash"
                       ],
                       "additionalProperties": true
                     },
@@ -8112,14 +8398,33 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "risk_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "status": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "restrictions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "minItems": 0
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "risk_id",
+                        "revision",
+                        "status",
+                        "restrictions"
                       ],
                       "additionalProperties": true
                     },
@@ -8279,14 +8584,20 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "appeal_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "risk_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "appeal_id",
+                        "risk_id"
                       ],
                       "additionalProperties": true
                     },
@@ -8482,14 +8793,35 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "agent_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "user_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ACTIVE",
+                            "FROZEN",
+                            "DISABLED",
+                            "CLOSED"
+                          ]
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "agent_id",
+                        "user_id",
+                        "status",
+                        "revision"
                       ],
                       "additionalProperties": true
                     },
@@ -8853,7 +9185,7 @@
               }
             }
           },
-          "200": {
+          "202": {
             "description": "成功；异步接收不代表业务执行成功",
             "content": {
               "application/json": {
@@ -9295,14 +9627,29 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "subject_id": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "permissions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "minItems": 0
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "subject_id",
+                        "permissions",
+                        "revision"
                       ],
                       "additionalProperties": true
                     },
@@ -9452,7 +9799,7 @@
               }
             }
           },
-          "200": {
+          "201": {
             "description": "成功；异步接收不代表业务执行成功",
             "content": {
               "application/json": {
@@ -9466,10 +9813,24 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OPEN",
+                            "ACKNOWLEDGED",
+                            "RESOLVED"
+                          ]
                         }
                       },
                       "required": [
-                        "record_id"
+                        "record_id",
+                        "revision",
+                        "status"
                       ],
                       "additionalProperties": true
                     },
@@ -9673,19 +10034,24 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "items": {
+                        "rows": {
                           "type": "array",
                           "items": {
                             "type": "object"
                           },
                           "minItems": 0
                         },
+                        "as_of": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
                         "next_cursor": {
                           "anyOf": [
                             {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 128
+                              "maxLength": 4096
                             },
                             {
                               "type": "null"
@@ -9694,7 +10060,8 @@
                         }
                       },
                       "required": [
-                        "items",
+                        "rows",
+                        "as_of",
                         "next_cursor"
                       ],
                       "additionalProperties": true
@@ -9806,7 +10173,17 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 128
+              "maxLength": 4096
+            }
+          },
+          {
+            "name": "as_of",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
             }
           }
         ]
@@ -10234,14 +10611,16 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128
+                        "versions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "minItems": 0
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "versions"
                       ],
                       "additionalProperties": true
                     },
@@ -10391,14 +10770,16 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "minItems": 0
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "components"
                       ],
                       "additionalProperties": true
                     },
@@ -10548,14 +10929,22 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "approval_id": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "minItems": 0
+                        },
+                        "as_of": {
                           "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
                         }
                       },
                       "required": [
-                        "approval_id"
+                        "rows",
+                        "as_of"
                       ],
                       "additionalProperties": true
                     },
@@ -11189,7 +11578,14 @@
             }
           },
           "410": {
-            "description": "快照过期，不重新生成原文件"
+            "description": "快照过期，不重新生成原文件",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -11543,6 +11939,163 @@
             }
           }
         }
+      }
+    },
+    "/v1/users/lookup": {
+      "get": {
+        "operationId": "get_v1_users_lookup",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "source_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "external_user_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "required": [
+                        "user_id",
+                        "source_id",
+                        "external_user_id"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "external_user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ]
       }
     }
   },
@@ -13550,6 +14103,43 @@
               "type": "object"
             },
             "minItems": 0
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recovery_url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "retry_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "snapshot_hash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -13560,7 +14150,7 @@
           "reason_codes",
           "trace"
         ],
-        "additionalProperties": false
+        "additionalProperties": true
       },
       "Snapshot": {
         "type": "object",
@@ -13735,37 +14325,30 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 128
-                }
-              },
-              "required": [
-                "eligibility",
-                "effective_from",
-                "effective_to"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "contract_facts": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "contract_id": {
+                },
+                "joined": {
+                  "type": "boolean"
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "source_kind": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 128
                 },
-                "plan_id": {
+                "evidence_ref": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 128
                 },
-                "effective_from": {
+                "status_effective_from": {
                   "type": "string",
                   "format": "date-time",
                   "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
                 },
-                "effective_to": {
+                "status_effective_to": {
                   "anyOf": [
                     {
                       "type": "string",
@@ -13779,12 +14362,83 @@
                 }
               },
               "required": [
-                "contract_id",
-                "plan_id",
+                "eligibility",
                 "effective_from",
                 "effective_to"
               ],
               "additionalProperties": false
+            }
+          },
+          "contract_facts": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ABSENT"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PRESENT"
+                      ]
+                    },
+                    "contract_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "plan_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "effective_from": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                    },
+                    "effective_to": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "evidence_ref": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "plan_id",
+                    "effective_from",
+                    "effective_to"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             }
           },
           "algorithm_versions": {
@@ -13832,6 +14486,62 @@
               ],
               "additionalProperties": false
             }
+          },
+          "relationship_facts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agent_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "depth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "effective_from": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                },
+                "effective_to": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "AGENT_RELATION",
+                    "USER_BINDING"
+                  ]
+                },
+                "evidence_ref": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "agent_id",
+                "depth",
+                "effective_from",
+                "effective_to",
+                "kind"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
           }
         },
         "required": [

@@ -140,7 +140,7 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 			if err != nil {
 				return snapshot, err
 			}
-			snapshot.Contracts[actor.ID] = domain.ContractFact{PlanID: contract.PlanID, From: contract.From, To: contract.To}
+			snapshot.Contracts[actor.ID] = domain.ContractFact{ID: contract.ID, Evidence: contract.Evidence, PlanID: contract.PlanID, From: contract.From, To: contract.To}
 		}
 	}
 	return snapshot, nil

@@ -34,7 +34,7 @@ func TestMinimumPayoutCarriesPendingAndSmallAvailableForward(t *testing.T) {
 	}
 	s := foundation.Scope{Tenant: fmt.Sprint("test-minimum-", time.Now().UnixNano()), App: "app"}
 	defer func() {
-		for _, table := range []string{"settlement_claims", "settlement_payout_policies", "settlement_items", "settlement_statements", "settlement_runs", "settlement_spaces", "workflow_requests", "command_results", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
+		for _, table := range []string{"settlement_claims", "settlement_item_targets", "settlement_payout_policies", "settlement_items", "settlement_statements", "settlement_runs", "settlement_spaces", "workflow_requests", "command_results", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", s.Tenant)
 		}
 	}()
@@ -116,5 +116,9 @@ func TestMinimumPayoutCarriesPendingAndSmallAvailableForward(t *testing.T) {
 	next := run("2026-10-04")
 	if len(next) != 1 || next[0].Total != "200" || len(next[0].Items) != 2 {
 		t.Fatal("small available not carried forward", next)
+	}
+	store.DB.Exec(`DELETE FROM settlement_item_targets WHERE tenant_id=? AND statement_id=?`, s.Tenant, next[0].ID)
+	if _, err = service.Repo.Get(ctx, store.DB, s, next[0].ID, false); err == nil || err.Error() != "UNKNOWN_FACT" {
+		t.Fatal("missing approval snapshot was treated as empty approved collection", err)
 	}
 }

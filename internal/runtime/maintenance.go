@@ -17,12 +17,7 @@ func startMaintenance(ctx context.Context, store *mysql.Store) {
 		name string
 		run  func(context.Context) error
 	}{{"payment.recovery", func(job context.Context) error { return payments.Recover(job, localScope()) }}, {"refund.recovery", func(job context.Context) error { return refunds.Recover(job, localScope()) }}, {"outbox.delivery", func(job context.Context) error {
-		return store.DeliverOutbox(job, localScope(), func(event mysql.OutboxEvent) error {
-			if err := audit.Deliver(job, store.DB, event.Scope, event.ID, event.Topic, event.Payload, event.CreatedAt); err != nil {
-				return err
-			}
-			return (catalog.Repository{}).Send(job, store.DB, event.Scope, event.ID, event.Topic, event.Payload, event.CreatedAt)
-		})
+		return deliverOutbox(job, store, localScope())
 	}}}
 	for _, job := range jobs {
 		go func() {
@@ -43,4 +38,13 @@ func startMaintenance(ctx context.Context, store *mysql.Store) {
 			}
 		}()
 	}
+}
+
+func deliverOutbox(ctx context.Context, store *mysql.Store, scope foundation.Scope) error {
+	return store.DeliverOutbox(ctx, scope, func(event mysql.OutboxEvent) error {
+		if err := audit.Deliver(ctx, store.DB, event.Scope, event.ID, event.Topic, event.Payload, event.CreatedAt); err != nil {
+			return err
+		}
+		return (catalog.Repository{}).Send(ctx, store.DB, event.Scope, event.ID, event.Topic, event.Payload, event.CreatedAt)
+	})
 }

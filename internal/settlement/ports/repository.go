@@ -11,10 +11,12 @@ import (
 
 type Ledger interface {
 	Get(context.Context, db.Executor, foundation.Scope, string, bool) (money.Entitlement, error)
-	PendingBefore(context.Context, db.Executor, foundation.Scope, time.Time) ([]money.Entitlement, error)
+	PendingBefore(context.Context, db.Executor, foundation.Scope, time.Time, time.Time) ([]money.Entitlement, error)
 	Transfer(context.Context, db.Executor, foundation.Scope, string, string, string, string, string, time.Time) error
 }
 type Repository interface {
+	RunID(context.Context, db.Executor, foundation.Scope, string) (string, error)
+	Owns(context.Context, db.Executor, foundation.Scope, string, string) (bool, error)
 	Lock(context.Context, db.Executor, foundation.Scope) error
 	ExistingRun(context.Context, db.Executor, foundation.Scope, string, string) ([]model.Statement, bool, error)
 	CreateRun(context.Context, db.Executor, foundation.Scope, string, string, string, string, time.Time) error

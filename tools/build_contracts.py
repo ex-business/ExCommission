@@ -101,7 +101,7 @@ endpoint('/v1/approvals/{id}/decisions','post',obj({'decision':enum('APPROVE','R
 endpoint('/v1/plans/{id}/rollback-requests','post',obj({'target_version_id':identifier,'effective_from':time,**reason,**rev}))
 endpoint('/v1/statement-runs','post',obj({'period':identifier,'calendar_version':identifier,'agent_ids':{'type':'array','items':identifier,'uniqueItems':True}},['period','calendar_version']),202)
 endpoint('/v1/statements/{id}','get')
-endpoint('/v1/statements/{id}/submission','post',obj({**rev,'content_hash':identifier}))
+endpoint('/v1/statements/{id}/submission','post',obj({**rev,'content_hash':identifier}),202)
 endpoint('/v1/payments','post',obj({'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision}),202)
 endpoint('/v1/payments/{id}/verification','post',obj({}))
 endpoint('/v1/payment-callbacks/{channel_id}','post',{'description':'渠道原始字节，由适配器验签，不使用公共身份或幂等头；渠道回调ID去重。'})
@@ -121,7 +121,7 @@ endpoint('/v1/risk-holds/{id}','get')
 endpoint('/v1/risk-holds/{id}/appeals','post',obj({'reason':identifier,'evidence_ref':identifier}),201)
 endpoint('/v1/agents/{id}','get')
 endpoint('/v1/agent-status-change-requests','post',obj({'agent_id':identifier,'status':enum('ACTIVE','FROZEN','DISABLED','CLOSED'),**rev,**reason,'evidence_ref':identifier}),202)
-endpoint('/v1/risk-holds/{id}/release-requests','post',obj({**rev,**reason,'evidence_ref':identifier}))
+endpoint('/v1/risk-holds/{id}/release-requests','post',obj({**rev,**reason,'evidence_ref':identifier}),202)
 endpoint('/v1/permission-change-requests','post',obj({'subject_id':identifier,'grant':arr(identifier),'revoke':arr(identifier),**rev,**reason,'evidence_ref':identifier}),202)
 endpoint('/v1/identity/subjects/{id}/permissions','get')
 endpoint('/v1/security-events/{id}/handling-records','post',obj({**rev,'status':enum('OPEN','ACKNOWLEDGED','RESOLVED'),**reason}))
@@ -269,3 +269,59 @@ api['paths']['/v1/events']['post']['description']='输入event_id为来源事件
 write('openapi.json',api)
 errors += ['STATE_CONFLICT','UNAUTHENTICATED','SELF_APPROVAL_FORBIDDEN','NOT_FOUND','RELATION_CYCLE','AMOUNT_OUT_OF_RANGE','REFUND_EXCEEDS_ORIGINAL','NON_MONOTONIC_REFUND','CONSERVATION_VIOLATION','SOURCE_SIGNATURE_INVALID','SNAPSHOT_INTEGRITY_FAILED','LEDGER_NOT_READY']
 write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+# 最终HTTP验收：冻结实际资源响应，禁止新增接口误用“approval_id”占位响应。
+def actual_response(path,method,code,data):
+    op=api['paths'][path][method]
+    if str(code) not in op['responses']:
+        op['responses'][str(code)]=op['responses'].pop('200')
+    op['responses'][str(code)]['content']={'application/json':{'schema':obj({'data':data,'request_id':identifier})}}
+actual_response('/v1/audit-logs','get',200,response_obj({'rows':arr({'type':'object'}),'as_of':time,'next_cursor':nullable(identifier)}))
+actual_response('/v1/payment-callbacks/{channel_id}','post',200,response_obj({'status':enum('ACCEPTED')}))
+actual_response('/v1/platform/catalogs','get',200,response_obj({'versions':arr({'type':'object'})}))
+actual_response('/v1/platform/components','get',200,response_obj({'components':arr({'type':'object'})}))
+actual_response('/v1/notifications','get',200,response_obj({'rows':arr({'type':'object'}),'as_of':time}))
+actual_response('/v1/identity/subjects/{id}/permissions','get',200,response_obj({'subject_id':identifier,'permissions':arr(identifier),'revision':revision}))
+actual_response('/v1/agents/{id}','get',200,response_obj({'agent_id':identifier,'user_id':identifier,'status':enum('ACTIVE','FROZEN','DISABLED','CLOSED'),'revision':revision}))
+actual_response('/v1/risk-holds/{id}','get',200,response_obj({'risk_id':identifier,'revision':revision,'status':identifier,'restrictions':arr({'type':'object'})}))
+actual_response('/v1/risk-holds/{id}/appeals','post',201,response_obj({'appeal_id':identifier,'risk_id':identifier}))
+actual_response('/v1/security-events/{id}/handling-records','post',201,response_obj({'record_id':identifier,'revision':revision,'status':enum('OPEN','ACKNOWLEDGED','RESOLVED')}))
+statement_response=response_obj({'statement_id':identifier,'agent_id':identifier,'currency':currency,'period':identifier,'status':enum('DRAFT','PENDING_APPROVAL','APPROVED','PARTIALLY_PAID','PAID','CANCELLED'),'revision':revision,'content_hash':identifier,'total_minor':minor,'items':arr({'type':'object'}),'approval_valid':boolean})
+actual_response('/v1/statements/{id}','get',200,statement_response)
+actual_response('/v1/statement-runs','post',202,response_obj({'run_id':identifier,'period':identifier,'statements':arr(statement_response)}))
+actual_response('/v1/reconciliation-runs','post',200,response_obj({'run_id':identifier,'status':enum('COMPLETED')}))
+for path in ('/v1/entitlements/{id}','/v1/debts/{id}'):
+    actual_response(path,'get',200,response_obj({'entitlement_id':identifier,'currency':currency,'target_minor':minor,'pending_minor':minor,'available_minor':minor,'reserved_minor':minor,'paid_minor':minor,'debt_minor':minor,'recovered_minor':minor,'frozen':boolean,'payment_hold':boolean}))
+actual_response('/v1/refunds/{id}','get',200,response_obj({'refund_task_id':identifier,'refund':ref('Refund'),'status':identifier,'reason_code':nullable(identifier)}))
+# 历史资格保留来源及区间；已知无合同与缺未知事实不能混为一谈。
+snapshot['properties']['qualification_facts']=json.loads(json.dumps(snapshot['properties']['qualification_facts']))
+qualified=snapshot['properties']['qualification_facts']['additionalProperties']
+qualified['properties'].update({'joined':boolean,'grade_id':identifier,'revision':revision,'source_kind':identifier,'evidence_ref':identifier,'status_effective_from':time,'status_effective_to':nullable(time)})
+snapshot['properties']['contract_facts']={'type':'object','additionalProperties':{'oneOf':[obj({'status':enum('ABSENT')}),obj({'status':enum('PRESENT'),'contract_id':identifier,'plan_id':identifier,'effective_from':time,'effective_to':nullable(time),'evidence_ref':identifier},['status','plan_id','effective_from','effective_to'])]}}
+snapshot['properties']['relationship_facts']=arr(obj({'agent_id':identifier,'depth':{'type':'integer','minimum':1,'maximum':64},'effective_from':time,'effective_to':nullable(time),'kind':enum('AGENT_RELATION','USER_BINDING'),'evidence_ref':identifier},['agent_id','depth','effective_from','effective_to','kind']))
+components['Snapshot']={k:v for k,v in snapshot.items() if k not in ('$schema','$id')}
+actual_response('/v1/calculation-tasks/{id}/adjustments','get',200,response_obj({'original_task_id':identifier,'revision':revision,'effective_snapshot':ref('Snapshot'),'original_snapshot_hash':nullable(identifier)}))
+# 导出过期与已落地的稳定业务拒绝码。
+errors+=['REPORT_EXPIRED','REPORT_TOO_LARGE','REPORT_INCOMPLETE_LINEAGE','INSUFFICIENT_BALANCE','FUNDS_FROZEN','PAYMENT_RESULT_UNKNOWN','PAYMENT_BELOW_MINIMUM','PAYMENT_LIMIT_EXCEEDED','REFUND_QUANTITY_MISSING','REFUND_TARGET_INCREASE','FIFO_DEBT_REQUIRED','EVIDENCE_NOT_CONFIRMED']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('snapshot.schema.json',snapshot)
+write('openapi.json',api)
+
+endpoint('/v1/users/lookup','get',query=[('source_id',identifier,True),('external_user_id',identifier,True)])
+actual_response('/v1/users/lookup','get',200,response_obj({'user_id':identifier,'source_id':identifier,'external_user_id':identifier}))
+write('openapi.json',api)
+
+api['paths']['/v1/report-exports/{id}/download']['get']['responses']['410']['content']={'application/json':{'schema':ref('Error')}}
+write('openapi.json',api)
+components['CalculationResult']['additionalProperties']=True
+components['CalculationResult']['properties'].update({'reason_code':nullable(identifier),'recovery_url':identifier,'retry_count':{'type':'integer','minimum':0},'revision':revision,'snapshot_hash':nullable(identifier)})
+cursor_token={'type':'string','minLength':1,'maxLength':4096}
+for path,operations in api['paths'].items():
+    for method,operation in operations.items():
+        for parameter in operation.get('parameters',[]):
+            if parameter['name']=='cursor': parameter['schema']=cursor_token
+        for response in operation['responses'].values():
+            schema=response.get('content',{}).get('application/json',{}).get('schema',{})
+            data=schema.get('properties',{}).get('data',{})
+            if 'next_cursor' in data.get('properties',{}): data['properties']['next_cursor']=nullable(cursor_token)
+api['paths']['/v1/audit-logs']['get']['parameters'].append({'name':'as_of','in':'query','required':False,'schema':time})
+write('openapi.json',api)

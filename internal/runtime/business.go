@@ -87,9 +87,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 		}
 		sources[users.SourceKey{Source: "sandbox", Version: "1"}] = userrepo.SandboxSource{Records: records}
 	}
-	userService := users.Service{Commands: store, Repo: userrepo.Repository{}, Query: store.DB, Sources: sources, Now: time.Now, ID: newID}
-	agentService := agents.Service{Commands: store, Repo: agentrepo.Repository{}, Users: userrepo.Repository{}, Workflow: workflowrepo.Repository{}, Query: store.DB, Now: time.Now, ID: newID}
-	workflowService := workflow.Service{Commands: store, Repo: workflowrepo.Repository{}, Query: store.DB, Now: time.Now, Authorize: func(ctx context.Context, tx db.Executor, p principal.Principal, permission string) error {
+	userService := users.Service{Commands: store, Repo: userrepo.Repository{}, Query: store.DB, Sources: sources, Now: clockUTC, ID: newID}
+	agentService := agents.Service{Commands: store, Repo: agentrepo.Repository{}, Users: userrepo.Repository{}, Workflow: workflowrepo.Repository{}, Query: store.DB, Now: clockUTC, ID: newID}
+	workflowService := workflow.Service{Commands: store, Repo: workflowrepo.Repository{}, Query: store.DB, Now: clockUTC, Authorize: func(ctx context.Context, tx db.Executor, p principal.Principal, permission string) error {
 		return identity.Authorize(ctx, tx, p, p.Tenant, p.App, permission)
 	}, Executors: map[string]workflow.Executor{
 		"RELATIONSHIP": func(ctx context.Context, tx db.Executor, s foundation.Scope, r approval.Request, at time.Time) error {
@@ -101,6 +101,21 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 		},
 	}}
 	mux := http.NewServeMux()
+	mux.Handle("GET /v1/users/lookup", require("users:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
+		sourceID, externalID := r.URL.Query().Get("source_id"), r.URL.Query().Get("external_user_id")
+		if !foundation.ValidID(sourceID) || !foundation.ValidID(externalID) {
+			httpapi.Error(w, id, foundation.ErrValidation)
+			return
+		}
+		userID, err := (userrepo.Repository{}).Resolve(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, sourceID, externalID)
+		if err != nil {
+			httpapi.Error(w, id, err)
+			return
+		}
+		result, _ := response.Result(200, userID, id, map[string]string{"user_id": userID, "source_id": sourceID, "external_user_id": externalID})
+		httpapi.Write(w, result)
+	}))
+
 	if err := installWorkflowRecovery(mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}

@@ -173,37 +173,30 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128
-          }
-        },
-        "required": [
-          "eligibility",
-          "effective_from",
-          "effective_to"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "contract_facts": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "contract_id": {
+          },
+          "joined": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_kind": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           },
-          "plan_id": {
+          "evidence_ref": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           },
-          "effective_from": {
+          "status_effective_from": {
             "type": "string",
             "format": "date-time",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
           },
-          "effective_to": {
+          "status_effective_to": {
             "anyOf": [
               {
                 "type": "string",
@@ -217,12 +210,83 @@
           }
         },
         "required": [
-          "contract_id",
-          "plan_id",
+          "eligibility",
           "effective_from",
           "effective_to"
         ],
         "additionalProperties": false
+      }
+    },
+    "contract_facts": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ABSENT"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PRESENT"
+                ]
+              },
+              "contract_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "plan_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "effective_from": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+              },
+              "effective_to": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "status",
+              "plan_id",
+              "effective_from",
+              "effective_to"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     "algorithm_versions": {
@@ -270,6 +334,62 @@
         ],
         "additionalProperties": false
       }
+    },
+    "relationship_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "AGENT_RELATION",
+              "USER_BINDING"
+            ]
+          },
+          "evidence_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "agent_id",
+          "depth",
+          "effective_from",
+          "effective_to",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
     }
   },
   "required": [

@@ -63,7 +63,7 @@ func installSettlement(mux *http.ServeMux, require func(string, authhttp.Authori
 		httpapi.Write(w, result)
 	}))
 	mux.Handle("GET /v1/statements/{id}", require("statements:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
-		v, err := service.Repo.Get(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, r.PathValue("id"), false)
+		v, err := service.Get(r.Context(), foundation.Scope{Tenant: p.Tenant, App: p.App}, r.PathValue("id"))
 		if err != nil {
 			httpapi.Error(w, id, err)
 			return

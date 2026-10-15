@@ -76,12 +76,16 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 			return foundation.CommandResult{}, err
 		}
 		if exists {
-			return response.Result(202, "period-"+input.Period, request, map[string]any{"period": input.Period, "statements": statements})
+			runID, err := s.Repo.RunID(ctx, tx, scope, input.Period)
+			if err != nil {
+				return foundation.CommandResult{}, err
+			}
+			return response.Result(202, runID, request, map[string]any{"run_id": runID, "period": input.Period, "statements": statements})
 		}
 		if err = s.Repo.CreateRun(ctx, tx, scope, s.ID(), input.Period, input.Calendar, filterHash, s.Now()); err != nil {
 			return foundation.CommandResult{}, err
 		}
-		candidates, err := s.Ledger.PendingBefore(ctx, tx, scope, period.Add(24*time.Hour))
+		candidates, err := s.Ledger.PendingBefore(ctx, tx, scope, period.Add(24*time.Hour), s.Now())
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
@@ -130,7 +134,7 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 					}
 				}
 			}
-			v.Items = append(v.Items, model.Item{ID: e.ID, Amount: e.Pending, Revision: e.Revision})
+			v.Items = append(v.Items, model.Item{ID: e.ID, Amount: e.Pending, Revision: e.Revision, Target: e.Target, PaidBefore: e.Paid})
 			a, _ := new(big.Int).SetString(v.Total, 10)
 			b, _ := new(big.Int).SetString(e.Pending, 10)
 			a.Add(a, b)
@@ -161,7 +165,11 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 			}
 			statements = append(statements, *v)
 		}
-		return response.Result(202, "period-"+input.Period, request, map[string]any{"period": input.Period, "statements": statements})
+		runID, err := s.Repo.RunID(ctx, tx, scope, input.Period)
+		if err != nil {
+			return foundation.CommandResult{}, err
+		}
+		return response.Result(202, runID, request, map[string]any{"run_id": runID, "period": input.Period, "statements": statements})
 	})
 }
 func (s Service) validate(ctx context.Context, tx db.Executor, scope foundation.Scope, v model.Statement) error {
@@ -170,7 +178,7 @@ func (s Service) validate(ctx context.Context, tx db.Executor, scope foundation.
 		if err != nil {
 			return err
 		}
-		if e.Frozen || e.Revision != item.Revision || e.Pending != item.Amount || e.AgentID != v.AgentID || e.Currency != v.Currency {
+		if e.Frozen || e.Revision != item.Revision || e.Pending != item.Amount || e.Target != item.Target || e.AgentID != v.AgentID || e.Currency != v.Currency {
 			return errors.New("STALE_APPROVAL")
 		}
 	}
@@ -250,4 +258,52 @@ func (s Service) Reject(ctx context.Context, tx db.Executor, scope foundation.Sc
 		return errors.New("STATE_CONFLICT")
 	}
 	return s.Repo.State(ctx, tx, scope, v, "DRAFT")
+}
+
+func (s Service) Get(ctx context.Context, scope foundation.Scope, id string) (model.Statement, error) {
+	v, err := s.Repo.Get(ctx, s.Query, scope, id, false)
+	if err != nil {
+		return v, err
+	}
+	v.ApprovalValid = v.Status == "APPROVED" || v.Status == "PARTIALLY_PAID" || v.Status == "PAID"
+	paidCycle := new(big.Int)
+	if v.ApprovalValid {
+		for _, item := range v.Items {
+			e, err := s.Ledger.Get(ctx, s.Query, scope, item.ID, false)
+			if err != nil {
+				return v, err
+			}
+			owns, err := s.Repo.Owns(ctx, s.Query, scope, v.ID, item.ID)
+			if err != nil {
+				return v, err
+			}
+			paid, _ := new(big.Int).SetString(e.Paid, 10)
+			before, _ := new(big.Int).SetString(item.PaidBefore, 10)
+			if before == nil {
+				return v, errors.New("UNKNOWN_FACT")
+			}
+			paid.Sub(paid, before)
+			if paid.Sign() < 0 {
+				v.ApprovalValid = false
+			} else {
+				paidCycle.Add(paidCycle, paid)
+			}
+			if !owns || e.Frozen || e.Pending != "0" || e.Target != item.Target {
+				v.ApprovalValid = false
+			}
+		}
+	}
+	if v.ApprovalValid {
+		total, _ := new(big.Int).SetString(v.Total, 10)
+		if paidCycle.Cmp(total) > 0 {
+			v.ApprovalValid = false
+		} else if paidCycle.Cmp(total) == 0 {
+			v.Status = "PAID"
+		} else if paidCycle.Sign() > 0 {
+			v.Status = "PARTIALLY_PAID"
+		} else {
+			v.Status = "APPROVED"
+		}
+	}
+	return v, nil
 }

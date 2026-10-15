@@ -218,7 +218,7 @@ func (s Service) Simulate(ctx context.Context, p identity.Principal, input Simul
 				if err != nil {
 					return foundation.CommandResult{}, err
 				}
-				snapshot.Contracts[actor.ID] = calculation.ContractFact{PlanID: contract.PlanID, From: contract.From, To: contract.To}
+				snapshot.Contracts[actor.ID] = calculation.ContractFact{ID: contract.ID, Evidence: contract.Evidence, PlanID: contract.PlanID, From: contract.From, To: contract.To}
 			}
 		}
 		result := calculation.Calculate(snapshot)

@@ -1,0 +1,133 @@
+{
+  "scope": "V1本地Docker/MySQL沙箱",
+  "http": {
+    "operations": 59,
+    "requests": 176,
+    "schema_checked_request_bodies": 77,
+    "schema_checked_responses": 176
+  },
+  "cases": [
+    {
+      "id": "S01",
+      "requirement": "版本半开区间与回退新版本",
+      "evidence": "TestPlanLifecycleAndGrades; TestPlanHTTPPublicationRejectionAndRollback",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S02",
+      "requirement": "关系历史与签名快照",
+      "evidence": "TestBusinessUsersRelationsAndApproval; TestSignedEventsIdempotencySnapshotAndLedgerGate",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S03",
+      "requirement": "历史资格与状态证据",
+      "evidence": "TestRiskReasonsHistoricalStatusAndAtomicAudit; TestCompleteHTTPCommissionLifecycleAndContracts",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S04",
+      "requirement": "来源并发100与别名防重",
+      "evidence": "TestSignedEventsIdempotencySnapshotAndLedgerGate",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S05",
+      "requirement": "规范幂等及冲突",
+      "evidence": "TestCommandConcurrentReplayAndConflict; TestBusinessCanonicalProjection",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S06",
+      "requirement": "租约隔离与重试上限",
+      "evidence": "TestTaskLeaseFencingAndRetryLimit; TestAtomicLedgerReplayIsolationAndFencing",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S07",
+      "requirement": "账簿提交前后真实进程退出",
+      "evidence": "TestProcessExitBeforeAndAfterLedgerCommit",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S08",
+      "requirement": "结算占用与并发余额",
+      "evidence": "TestSettlementIndependentApprovalClaimsAndStaleFreeze",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S09",
+      "requirement": "未知付款原资金号恢复",
+      "evidence": "TestPaymentUnknownOriginalIDCallbacksAndConservation",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S10",
+      "requirement": "重复回调与终态冲突对账",
+      "evidence": "TestCompleteHTTPCommissionLifecycleAndContracts",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S11",
+      "requirement": "累计退款与八算法目标",
+      "evidence": "TestRefundFrozenTargetsAndCumulativeRounding; TestRefundTargetsEveryRateAlgorithmAndWeightedPool",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S12",
+      "requirement": "FIFO追回与凭证唯一",
+      "evidence": "TestRecoveryFIFOProofUniquenessAndAgentCurrencyIsolation",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S13",
+      "requirement": "多原因冻结及付款竞态",
+      "evidence": "TestRiskReasonsHistoricalStatusAndAtomicAudit; TestFreezeVersusPaymentReservationUsesOneLockOrder",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S14",
+      "requirement": "租户与当前权限隔离",
+      "evidence": "TestAuthorizationAndTenantIsolation; TestRequestAuthenticationAndScope",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S15",
+      "requirement": "独立审批与对象修订",
+      "evidence": "TestSettlementIndependentApprovalClaimsAndStaleFreeze; TestApprovedFailedExecutionRecoveryPreservesDecisionAndCancel",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S16",
+      "requirement": "目录日历边界",
+      "evidence": "TestReportsFrozenExportsCatalogsAndNotifications; TestSettingsRejectSecretsPrecisionChangesAndPartialPeriod",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S17",
+      "requirement": "预算原子性及三值条件",
+      "evidence": "TestPercentTrialExactnessAndTaskBudget; TestThreeValuedConditions",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S18",
+      "requirement": "权益与账簿资金守恒",
+      "evidence": "TestAtomicLedgerReplayIsolationAndFencing; TestCompleteHTTPCommissionLifecycleAndContracts",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S19",
+      "requirement": "Go及Python独立22向量",
+      "evidence": "conformance/v1 Go vectors; original independent verify-vectors.py",
+      "result": "LOCAL_PASS"
+    },
+    {
+      "id": "S20",
+      "requirement": "隔离恢复与生产容量边界",
+      "evidence": "tools/verify_local_restore.py; TestLocalRestoreDrill (explicit isolated mode)",
+      "result": "LOCAL_PASS_PRODUCTION_TARGETS_MISSING"
+    }
+  ],
+  "production_readiness": "BLOCKED; see production-readiness.json",
+  "note": "测试名为定位索引；专用恢复演练独立执行，普通套件跳过恢复入口不代表未演练。并发100不是吞吐承诺。"
+}

@@ -43,7 +43,7 @@ func installPlans(mux *http.ServeMux, require func(string, authhttp.AuthorizedHa
 		}
 	}
 	validator := catalogValidator{Query: store.DB, Scope: foundation.Scope{Tenant: tenant, App: app}}
-	service := plans.Service{Catalog: catalog.Repository{}, Commands: store, Contracts: agentrepo.Repository{}, Participants: agentrepo.Repository{}, Query: store.DB, Repo: planrepo.Repository{}, Validator: validator, Simulations: planrepo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: foundation.CurrencyExponents(), Now: time.Now, ID: newID}
+	service := plans.Service{Catalog: catalog.Repository{}, Commands: store, Contracts: agentrepo.Repository{}, Participants: agentrepo.Repository{}, Query: store.DB, Repo: planrepo.Repository{}, Validator: validator, Simulations: planrepo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: foundation.CurrencyExponents(), Now: clockUTC, ID: newID}
 	grades := plans.GradeService{Service: service, Grades: agentrepo.Repository{}, Subjects: agentrepo.Repository{}, Evaluations: planrepo.Evaluations{}, Statistics: planrepo.SandboxStatisticsFile{Path: os.Getenv("LOCAL_GRADE_STATISTICS_FILE")}}
 	publish := func(ctx context.Context, tx db.Executor, s foundation.Scope, r approval.Request, at time.Time) error {
 		var input plans.PublicationPayload

@@ -147,7 +147,7 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 			return
 		}
 		result, err := store.Execute(r.Context(), scope, "payment-reconcile", r.Header.Get("Idempotency-Key"), input, func(db.Executor) (foundation.CommandResult, error) {
-			return response.Result(200, id, id, map[string]string{"reconciliation_id": id, "status": "COMPLETED"})
+			return response.Result(200, id, id, map[string]string{"run_id": id, "reconciliation_id": id, "status": "COMPLETED"})
 		})
 		if err != nil {
 			httpapi.Error(w, id, err)

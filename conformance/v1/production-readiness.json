@@ -21,7 +21,7 @@
     "idempotency_reliability_concurrency": 100,
     "physical_process_exit_before_after_ledger_commit": "PASS",
     "isolated_database_restore_and_unknown_payment_recovery": "PASS",
-    "restored_tables": 58
+    "restored_tables": 59
   },
   "note": "并发100为防重可靠性场景，不是生产容量承诺；恢复耗时为本机演练观察，不是已验收的生产RPO/RTO。"
 }

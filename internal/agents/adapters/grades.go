@@ -42,7 +42,7 @@ func (r Repository) GradeAt(ctx context.Context, tx ports.Executor, s foundation
 		if first != nil && !at.Before(*first) {
 			return state, false, domain.ErrHistory
 		}
-		return domain.GradeState{Eligibility: "INELIGIBLE"}, false, nil
+		return domain.GradeState{Eligibility: "INELIGIBLE", From: created, To: first, Source: "NOT_JOINED", Evidence: "default-ineligible"}, false, nil
 	}
 	if err != nil {
 		return state, false, err
@@ -87,7 +87,7 @@ func (r Repository) ApplyGrade(ctx context.Context, tx ports.Executor, s foundat
 }
 
 func (Repository) SubjectsAt(ctx context.Context, tx ports.Executor, s foundation.Scope, at time.Time) ([]string, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT agent_id FROM agent_accounts WHERE tenant_id=? AND app_id=? AND created_at<=? AND status IN ('ACTIVE','FROZEN') ORDER BY agent_id`, s.Tenant, s.App, at.UTC())
+	rows, err := tx.QueryContext(ctx, `SELECT a.agent_id FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?) AND h.status IN ('ACTIVE','FROZEN') ORDER BY a.agent_id`, s.Tenant, s.App, at.UTC(), at.UTC(), at.UTC())
 	if err != nil {
 		return nil, err
 	}

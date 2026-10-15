@@ -37,6 +37,15 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
+	if s.Authorize != nil {
+		preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
+		if err != nil {
+			return foundation.CommandResult{}, err
+		}
+		if err = s.Authorize(ctx, s.Query, p, ApprovalPermission(preview.Type)); err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
 	// 资源ID纳入命令内容，避免同键跨审批对象错误重放。
 	payload := struct {
 		ID       string   `json:"approval_id"`

@@ -97,7 +97,7 @@ func (s Service) Create(ctx context.Context, p identity.Principal, input CreateI
 			if err != nil {
 				return foundation.CommandResult{}, err
 			}
-			if e.Frozen || e.Pending != "0" || !owns {
+			if e.Frozen || e.Pending != "0" || !owns || e.Target != item.Target {
 				return foundation.CommandResult{}, errors.New("STALE_APPROVAL")
 			}
 			available, _ := new(big.Int).SetString(e.Available, 10)
@@ -179,6 +179,9 @@ func (s Service) Verify(ctx context.Context, scope foundation.Scope, id string) 
 	return s.Apply(ctx, scope, p.ChannelID, outcome)
 }
 func (s Service) Apply(ctx context.Context, scope foundation.Scope, channel string, outcome model.Outcome) error {
+	return s.apply(ctx, scope, channel, outcome, false)
+}
+func (s Service) apply(ctx context.Context, scope foundation.Scope, channel string, outcome model.Outcome, reconciliation bool) error {
 	if outcome.Status != "UNKNOWN" && !model.Terminal(outcome.Status) {
 		return foundation.ErrValidation
 	}
@@ -213,7 +216,7 @@ func (s Service) Apply(ctx context.Context, scope foundation.Scope, channel stri
 				} else {
 					return e
 				}
-			} else if !fresh {
+			} else if !fresh && !reconciliation {
 				return nil
 			}
 		}
@@ -226,6 +229,9 @@ func (s Service) Apply(ctx context.Context, scope foundation.Scope, channel stri
 			return s.Repo.State(ctx, tx, scope, p, p.Status, "RECONCILIATION_EXCEPTION", outcome.Receipt, s.Now())
 		}
 		if model.Terminal(p.Status) {
+			if reconciliation && p.Reconciliation == "RECONCILIATION_EXCEPTION" && outcome.Status == p.Status {
+				return s.Repo.State(ctx, tx, scope, p, p.Status, "MATCHED", outcome.Receipt, s.Now())
+			}
 			return nil
 		}
 		if outcome.Status == "UNKNOWN" {
@@ -288,7 +294,7 @@ func (s Service) Reconcile(ctx context.Context, scope foundation.Scope, channel,
 		return err
 	}
 	for _, outcome := range rows {
-		if err = s.Apply(ctx, scope, channel, outcome); err != nil {
+		if err = s.apply(ctx, scope, channel, outcome, true); err != nil {
 			return err
 		}
 	}

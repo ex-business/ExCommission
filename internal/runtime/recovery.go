@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	calcadapter "github.com/ex-business/ExCommission/internal/calculation/adapters"
 	calculation "github.com/ex-business/ExCommission/internal/calculation/application"
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
@@ -74,12 +75,16 @@ func installRecovery(mux *http.ServeMux, require func(string, authhttp.Authorize
 			httpapi.Error(w, id, err)
 			return
 		}
+		if len(task.Snapshot) == 0 {
+			httpapi.Error(w, id, errors.New("STATE_CONFLICT"))
+			return
+		}
 		snapshot, revision, err := adjustment.Repo.Latest(r.Context(), store.DB, scope, task)
 		if err != nil {
 			httpapi.Error(w, id, err)
 			return
 		}
-		result, _ := response.Result(200, task.ID, id, map[string]any{"original_task_id": task.ID, "revision": revision, "effective_snapshot": snapshot, "original_snapshot_hash": task.SnapshotHash})
+		result, _ := response.Result(200, task.ID, id, map[string]any{"original_task_id": task.ID, "revision": revision, "effective_snapshot": publicSnapshot(snapshot), "original_snapshot_hash": task.SnapshotHash})
 		httpapi.Write(w, result)
 	}))
 	return nil

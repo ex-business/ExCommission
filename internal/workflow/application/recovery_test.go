@@ -73,6 +73,11 @@ func TestApprovedFailedExecutionRecoveryPreservesDecisionAndCancel(t *testing.T)
 	if err != nil || a.Status != "APPROVED" || a.Execution != "FAILED" {
 		t.Fatal(a, err)
 	}
+	service.Authorize = func(context.Context, db.Executor, identity.Principal, string) error { return identity.ErrPermission }
+	if cached, err := service.Decide(ctx, checker, "recover", Decision{Decision: "APPROVE", Revision: 0, ObjectHash: hash, Reason: "independent review"}, "decide", "r"); err == nil || !errors.Is(err, identity.ErrPermission) || cached.Replayed {
+		t.Fatal("revoked domain permission replayed cached approval", cached, err)
+	}
+	service.Authorize = nil
 	var count int
 	store.DB.QueryRow(`SELECT COUNT(*) FROM platform_revisions WHERE tenant_id=?`, s.Tenant).Scan(&count)
 	if count != 0 {
@@ -101,6 +106,11 @@ func TestApprovedFailedExecutionRecoveryPreservesDecisionAndCancel(t *testing.T)
 	if _, err = service.RetryExecution(ctx, checker, "recover", input, "retry", "r"); err != nil {
 		t.Fatal(err)
 	}
+	service.Authorize = func(context.Context, db.Executor, identity.Principal, string) error { return identity.ErrPermission }
+	if cached, err := service.RetryExecution(ctx, checker, "recover", input, "retry", "r"); err == nil || !errors.Is(err, identity.ErrPermission) || cached.Replayed {
+		t.Fatal("revoked permission replayed cached execution", cached, err)
+	}
+	service.Authorize = nil
 	if calls != 2 {
 		t.Fatal("execution replayed", calls)
 	}

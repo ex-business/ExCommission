@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	agents "github.com/ex-business/ExCommission/internal/agents/adapters"
 	audit "github.com/ex-business/ExCommission/internal/audit/adapters"
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
@@ -94,13 +95,25 @@ func installRiskAudit(mux *http.ServeMux, require func(string, authhttp.Authoriz
 			return
 		}
 		if len(rows) == 0 {
-			http.NotFound(w, r)
+			httpapi.Error(w, id, errors.New("NOT_FOUND"))
 			return
 		}
 		v, err := service.Repo.Get(r.Context(), store.DB, scope, r.PathValue("id"), false)
 		if err != nil && err.Error() != "NOT_FOUND" {
 			httpapi.Error(w, id, err)
 			return
+		}
+		if v.Status == "" {
+			v.Status = "OPEN"
+			closed := true
+			for _, r := range rows {
+				if r.Closed == nil {
+					closed = false
+				}
+			}
+			if closed {
+				v.Status = "RELEASED"
+			}
 		}
 		result, _ := response.Result(200, r.PathValue("id"), id, map[string]any{"risk_id": r.PathValue("id"), "revision": v.Revision, "status": v.Status, "restrictions": rows})
 		httpapi.Write(w, result)

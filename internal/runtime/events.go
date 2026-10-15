@@ -27,7 +27,9 @@ import (
 	"time"
 )
 
-func clockUTC() time.Time { return time.Now().UTC().Truncate(time.Microsecond) }
+var timeSource = time.Now
+
+func clockUTC() time.Time { return timeSource().UTC().Truncate(time.Microsecond) }
 func taskRepository(store *mysql.Store) tasks.Tasks {
 	return tasks.Tasks{DB: store.DB, Within: store.Within}
 }

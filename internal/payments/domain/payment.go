@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Money struct {
 	Currency string `json:"currency"`
@@ -34,3 +37,16 @@ type Outcome struct {
 }
 
 func Terminal(status string) bool { return status == "SUCCEEDED" || status == "FAILED_FINAL" }
+
+func (p Payment) MarshalJSON() ([]byte, error) {
+	type plain Payment
+	var receipt map[string]string
+	if p.Receipt != nil {
+		receipt = map[string]string{"receipt_ref": *p.Receipt}
+	}
+	return json.Marshal(struct {
+		plain
+		Money   Money             `json:"amount"`
+		Receipt map[string]string `json:"receipt"`
+	}{plain(p), Money{Currency: p.Currency, Minor: p.Amount}, receipt})
+}

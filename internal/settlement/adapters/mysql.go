@@ -85,7 +85,7 @@ func (Repository) Get(ctx context.Context, tx db.Executor, s foundation.Scope, i
 	if err = tx.QueryRowContext(ctx, `SELECT CAST(minimum AS CHAR),CAST(maximum AS CHAR) FROM settlement_payout_policies WHERE tenant_id=? AND app_id=? AND statement_id=?`, s.Tenant, s.App, id).Scan(&v.Minimum, &v.Maximum); err != nil {
 		return v, err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT entitlement_id,CAST(amount AS CHAR),entitlement_revision FROM settlement_items WHERE tenant_id=? AND app_id=? AND statement_id=? ORDER BY entitlement_id`, s.Tenant, s.App, id)
+	rows, err := tx.QueryContext(ctx, `SELECT i.entitlement_id,CAST(i.amount AS CHAR),i.entitlement_revision,CAST(t.target AS CHAR),CAST(t.paid_before AS CHAR) FROM settlement_items i LEFT JOIN settlement_item_targets t ON t.tenant_id=i.tenant_id AND t.app_id=i.app_id AND t.statement_id=i.statement_id AND t.entitlement_id=i.entitlement_id WHERE i.tenant_id=? AND i.app_id=? AND i.statement_id=? ORDER BY i.entitlement_id`, s.Tenant, s.App, id)
 	if err != nil {
 		return v, err
 	}
@@ -93,9 +93,15 @@ func (Repository) Get(ctx context.Context, tx db.Executor, s foundation.Scope, i
 	v.Items = []model.Item{}
 	for rows.Next() {
 		var item model.Item
-		if err = rows.Scan(&item.ID, &item.Amount, &item.Revision); err != nil {
+		var target, paidBefore *string
+		if err = rows.Scan(&item.ID, &item.Amount, &item.Revision, &target, &paidBefore); err != nil {
 			return v, err
 		}
+		if target == nil || paidBefore == nil {
+			return v, errors.New("UNKNOWN_FACT")
+		}
+		item.Target = *target
+		item.PaidBefore = *paidBefore
 		v.Items = append(v.Items, item)
 	}
 	return v, rows.Err()
@@ -112,6 +118,15 @@ func (Repository) Create(ctx context.Context, tx db.Executor, s foundation.Scope
 		return err
 	}
 	for _, item := range v.Items {
+		if item.PaidBefore == "" {
+			item.PaidBefore = "0"
+		}
+		if item.Target == "" {
+			item.Target = item.Amount
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO settlement_item_targets VALUES(?,?,?,?,?,?)`, s.Tenant, s.App, v.ID, item.ID, item.Target, item.PaidBefore); err != nil {
+			return err
+		}
 		if _, err = tx.ExecContext(ctx, `INSERT INTO settlement_items VALUES(?,?,?,?,?,?)`, s.Tenant, s.App, v.ID, item.ID, item.Amount, item.Revision); err != nil {
 			return err
 		}
@@ -163,4 +178,10 @@ func (Repository) Owns(ctx context.Context, tx db.Executor, s foundation.Scope, 
 	var n int
 	err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM settlement_claims WHERE tenant_id=? AND app_id=? AND statement_id=? AND entitlement_id=?`, s.Tenant, s.App, statement, id).Scan(&n)
 	return n == 1, err
+}
+
+func (Repository) RunID(ctx context.Context, tx db.Executor, s foundation.Scope, period string) (string, error) {
+	var id string
+	err := tx.QueryRowContext(ctx, `SELECT run_id FROM settlement_runs WHERE tenant_id=? AND app_id=? AND period=?`, s.Tenant, s.App, period).Scan(&id)
+	return id, err
 }

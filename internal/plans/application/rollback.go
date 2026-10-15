@@ -78,6 +78,8 @@ func (s Service) Rollback(ctx context.Context, p identity.Principal, id string, 
 			return foundation.CommandResult{}, foundation.ErrValidation
 		}
 		configHash := hash(canonical)
+		snapshot.ConfigHash = configHash
+		snapshot.PlanVersionID = "draft:" + config.PlanID
 		if err = s.Repo.Update(ctx, tx, scope, config, canonical, configHash, current.Revision, s.Now()); err != nil {
 			return foundation.CommandResult{}, err
 		}
