@@ -45,3 +45,19 @@ func (Repository) Finish(ctx context.Context, tx ports.Executor, s foundation.Sc
 	_, err := tx.ExecContext(ctx, `UPDATE workflow_requests SET status=?,execution_status=?,decision_by=?,decision_reason=?,decided_at=?,revision=revision+1 WHERE tenant_id=? AND app_id=? AND approval_id=?`, status, execution, subject, reason, at.UTC(), s.Tenant, s.App, id)
 	return err
 }
+
+func (Repository) Execution(ctx context.Context, tx ports.Executor, s foundation.Scope, id string, revision uint64, status, execution, actor, reason, evidence, attempt string, at time.Time) error {
+	result, err := tx.ExecContext(ctx, `UPDATE workflow_requests SET status=?,execution_status=?,revision=revision+1 WHERE tenant_id=? AND app_id=? AND approval_id=? AND revision=?`, status, execution, s.Tenant, s.App, id, revision)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return errors.New("STALE_APPROVAL")
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO workflow_execution_attempts VALUES(?,?,?,?,?,?,?,?,?,?)`, s.Tenant, s.App, attempt, id, revision, actor, reason, evidence, execution, at)
+	return err
+}

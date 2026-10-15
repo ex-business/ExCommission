@@ -99,3 +99,12 @@ func (Repository) BindInitial(ctx context.Context, tx ports.Executor, s domain.S
 	_, err := tx.ExecContext(ctx, `INSERT INTO user_agent_bindings VALUES(?,?,?,?,?,NULL,?)`, s.Tenant, s.App, user, agent, at.UTC(), evidence)
 	return err
 }
+
+func (Repository) BindingAt(ctx context.Context, tx ports.Executor, s domain.Scope, userID string, at time.Time) (user.Binding, error) {
+	var b user.Binding
+	err := tx.QueryRowContext(ctx, `SELECT agent_id,effective_from,effective_to,evidence_ref FROM user_agent_bindings WHERE tenant_id=? AND app_id=? AND user_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>?)`, s.Tenant, s.App, userID, at, at).Scan(&b.AgentID, &b.From, &b.To, &b.Evidence)
+	if errors.Is(err, sql.ErrNoRows) {
+		return b, errors.New("RELATION_HISTORY_MISSING")
+	}
+	return b, err
+}

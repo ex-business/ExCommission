@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	agents "github.com/ex-business/ExCommission/internal/agents/adapters"
+	agent "github.com/ex-business/ExCommission/internal/agents/domain"
 	calc "github.com/ex-business/ExCommission/internal/calculation/domain"
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
@@ -33,7 +34,7 @@ func TestRiskReasonsHistoricalStatusAndAtomicAudit(t *testing.T) {
 	}
 	scope := foundation.Scope{Tenant: "test-risk-" + newID(), App: "app"}
 	defer func() {
-		for _, table := range []string{"identity_subject_revisions", "risk_appeals", "risk_requests", "audit_handling_records", "audit_security_states", "audit_entries", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "agent_status_history", "agent_accounts", "agent_relations", "workflow_requests", "platform_catalog_versions", "platform_component_states", "platform_notifications", "reporting_exports", "identity_subject_revisions", "identity_bootstraps", "identity_grants", "command_results"} {
+		for _, table := range []string{"agent_plan_states", "agent_grade_history", "identity_subject_revisions", "risk_appeals", "risk_requests", "audit_handling_records", "audit_security_states", "audit_entries", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "agent_status_history", "agent_accounts", "agent_relations", "workflow_requests", "platform_catalog_versions", "platform_component_states", "platform_notifications", "reporting_exports", "identity_subject_revisions", "identity_bootstraps", "identity_grants", "command_results"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant)
 		}
 	}()
@@ -215,6 +216,29 @@ func TestRiskReasonsHistoricalStatusAndAtomicAudit(t *testing.T) {
 	status, _ = call("GET", "/v1/payments/missing", token, nil)
 	if status != 404 {
 		t.Fatal("approved permission not effective", status)
+	}
+
+	if err = store.Within(ctx, func(tx db.Executor) error {
+		r := agents.Repository{}
+		if err := r.ApplyGrade(ctx, tx, scope, agent.GradeChange{AgentID: "a", PlanID: "history-plan", GradeID: "G0", Eligibility: "ELIGIBLE", Revision: 0}, "MANUAL", "first-proof", at.Add(time.Minute)); err != nil {
+			return err
+		}
+		return r.ApplyGrade(ctx, tx, scope, agent.GradeChange{AgentID: "a", PlanID: "history-plan", GradeID: "G1", Eligibility: "ELIGIBLE", Revision: 1}, "AUTOMATIC", "second-proof", at.Add(2*time.Minute))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	historical, found, err := (agents.Repository{}).GradeAt(ctx, store.DB, scope, "a", "history-plan", at.Add(90*time.Second))
+	if err != nil || !found || historical.Revision != 1 || historical.Grade != "G0" || historical.Evidence != "first-proof" {
+		t.Fatal("historical grade used current revision", historical, err)
+	}
+	if err = store.Within(ctx, func(tx db.Executor) error {
+		return (agents.Repository{}).Create(ctx, tx, scope, "broken", "broken-user", "broken", at)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	store.DB.Exec(`DELETE FROM agent_status_history WHERE tenant_id=? AND agent_id='broken'`, scope.Tenant)
+	if _, _, err = (agents.Repository{}).ByUserAt(ctx, store.DB, scope, "broken-user", clockUTC()); err == nil || err.Error() != "RELATION_HISTORY_MISSING" {
+		t.Fatal("missing history was treated as a customer", err)
 	}
 	// Audit write failure rolls back the business approval request and command result.
 	savedAudit := store.Audit

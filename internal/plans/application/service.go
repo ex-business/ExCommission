@@ -167,6 +167,12 @@ func (s Service) Simulate(ctx context.Context, p identity.Principal, input Simul
 			snapshot.CurrencyCatalogVersion = version
 			snapshot.Exponent = exponent
 		}
+		snapshot.Recipients = []calculation.Actor{}
+		snapshot.RelationshipFacts = []calculation.RelationshipEvidence{}
+		snapshot.QualificationFacts = map[string]calculation.QualificationEvidence{}
+		for id, q := range input.Qualification {
+			snapshot.QualificationFacts[id] = calculation.QualificationEvidence{Joined: true, GradeID: q.GradeID, Eligibility: q.Eligibility, From: q.From, To: q.To, Source: "SIMULATION_INPUT", Evidence: "simulation:" + snapshot.SnapshotID}
+		}
 		// 模拟也要求显式资格历史；不把缺失事实补成当前状态。
 		for _, actor := range input.Ancestors {
 			qualification, ok := input.Qualification[actor.ID]

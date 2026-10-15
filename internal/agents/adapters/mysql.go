@@ -180,7 +180,7 @@ func (Repository) ContractAt(ctx context.Context, tx ports.Executor, s foundatio
 
 func (Repository) AccountAt(ctx context.Context, tx ports.Executor, s foundation.Scope, id string, at time.Time) (agent.Account, error) {
 	var account agent.Account
-	err := tx.QueryRowContext(ctx, `SELECT a.agent_id,a.user_id,h.status,a.created_at FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.agent_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?)`, s.Tenant, s.App, id, at.UTC(), at.UTC(), at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
+	err := tx.QueryRowContext(ctx, `SELECT a.agent_id,a.user_id,h.status,a.created_at,h.effective_from,h.effective_to FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.agent_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?)`, s.Tenant, s.App, id, at.UTC(), at.UTC(), at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created, &account.StatusFrom, &account.StatusTo)
 	if errors.Is(err, sql.ErrNoRows) {
 		return account, agent.ErrHistory
 	}
@@ -188,8 +188,15 @@ func (Repository) AccountAt(ctx context.Context, tx ports.Executor, s foundation
 }
 func (Repository) ByUserAt(ctx context.Context, tx ports.Executor, s foundation.Scope, user string, at time.Time) (agent.Account, bool, error) {
 	var account agent.Account
-	err := tx.QueryRowContext(ctx, `SELECT a.agent_id,a.user_id,h.status,a.created_at FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.user_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?)`, s.Tenant, s.App, user, at.UTC(), at.UTC(), at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
+	err := tx.QueryRowContext(ctx, `SELECT a.agent_id,a.user_id,h.status,a.created_at,h.effective_from,h.effective_to FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.user_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?)`, s.Tenant, s.App, user, at.UTC(), at.UTC(), at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created, &account.StatusFrom, &account.StatusTo)
 	if errors.Is(err, sql.ErrNoRows) {
+		var exists int
+		if e := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM agent_accounts WHERE tenant_id=? AND app_id=? AND user_id=? AND created_at<=?`, s.Tenant, s.App, user, at).Scan(&exists); e != nil {
+			return account, false, e
+		}
+		if exists > 0 {
+			return account, false, agent.ErrHistory
+		}
 		return account, false, nil
 	}
 	return account, err == nil, err

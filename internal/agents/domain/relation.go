@@ -26,4 +26,6 @@ type Ancestor struct {
 type Account struct {
 	ID, UserID, Status string
 	Created            time.Time
+	StatusFrom         time.Time
+	StatusTo           *time.Time
 }

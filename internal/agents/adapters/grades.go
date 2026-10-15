@@ -33,7 +33,7 @@ func (r Repository) GradeAt(ctx context.Context, tx ports.Executor, s foundation
 		return domain.GradeState{}, false, domain.ErrHistory
 	}
 	var state domain.GradeState
-	err := tx.QueryRowContext(ctx, `SELECT grade_id,eligibility,effective_from,effective_to FROM agent_grade_history WHERE tenant_id=? AND app_id=? AND agent_id=? AND plan_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>?)`, s.Tenant, s.App, agentID, planID, at.UTC(), at.UTC()).Scan(&state.Grade, &state.Eligibility, &state.From, &state.To)
+	err := tx.QueryRowContext(ctx, `SELECT grade_id,eligibility,effective_from,effective_to,source_kind,evidence_ref FROM agent_grade_history WHERE tenant_id=? AND app_id=? AND agent_id=? AND plan_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>?)`, s.Tenant, s.App, agentID, planID, at.UTC(), at.UTC()).Scan(&state.Grade, &state.Eligibility, &state.From, &state.To, &state.Source, &state.Evidence)
 	if errors.Is(err, sql.ErrNoRows) {
 		var first *time.Time
 		if err = tx.QueryRowContext(ctx, `SELECT MIN(effective_from) FROM agent_grade_history WHERE tenant_id=? AND app_id=? AND agent_id=? AND plan_id=?`, s.Tenant, s.App, agentID, planID).Scan(&first); err != nil {
@@ -47,7 +47,7 @@ func (r Repository) GradeAt(ctx context.Context, tx ports.Executor, s foundation
 	if err != nil {
 		return state, false, err
 	}
-	state.Revision, err = r.GradeRevision(ctx, tx, s, agentID, planID)
+	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM agent_grade_history WHERE tenant_id=? AND app_id=? AND agent_id=? AND plan_id=? AND effective_from<=?`, s.Tenant, s.App, agentID, planID, state.From).Scan(&state.Revision)
 	return state, true, err
 }
 func (r Repository) ApplyGrade(ctx context.Context, tx ports.Executor, s foundation.Scope, change domain.GradeChange, source, evidence string, at time.Time) error {

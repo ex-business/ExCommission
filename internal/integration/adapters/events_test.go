@@ -219,6 +219,10 @@ func TestSignedEventsIdempotencySnapshotAndLedgerGate(t *testing.T) {
 	if calculated.Status != "SUCCEEDED" || len(calculated.Items) != 1 || calculated.Items[0].BeneficiaryID != "parent" || calculated.Items[0].Minor != "10000" || snapshot.PlanVersionID != "PV1" {
 		t.Fatalf("wrong frozen snapshot %+v", calculated)
 	}
+	q := snapshot.QualificationFacts["parent"]
+	if !q.Joined || q.Revision != 1 || q.Source != "MANUAL" || q.Evidence != "evidence" || q.From.IsZero() || len(snapshot.RelationshipFacts) != 1 || snapshot.RelationshipFacts[0].Depth != 1 {
+		t.Fatal("missing frozen historical evidence", snapshot.QualificationFacts, snapshot.RelationshipFacts)
+	}
 	before := string(task.Snapshot)
 	if err = store.Within(ctx, func(tx db.Executor) error {
 		return tasks.Resume(ctx, tx, s, task.ID, task.Revision, "verified-source-evidence", at.Add(time.Second))

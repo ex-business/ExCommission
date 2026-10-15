@@ -3,6 +3,8 @@ package domain
 import "time"
 
 type GradeState struct {
+	Source      string     `json:"source_kind"`
+	Evidence    string     `json:"evidence_ref"`
 	Grade       string     `json:"grade_id"`
 	Eligibility string     `json:"eligibility"`
 	Revision    uint64     `json:"revision"`

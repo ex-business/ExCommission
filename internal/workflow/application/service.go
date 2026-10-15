@@ -48,31 +48,7 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 			return foundation.CommandResult{}, err
 		}
 		if s.Authorize != nil {
-			permission := "relations:approve"
-			if approval.Type == "PLATFORM_SETTING" {
-				permission = "platform:approve"
-			}
-			if approval.Type == "IDENTITY_GRANT" {
-				permission = "identity:approve"
-			}
-			if approval.Type == "RISK_RELEASE" {
-				permission = "risk:approve"
-			}
-			if approval.Type == "AGENT_STATUS" {
-				permission = "agents:status:approve"
-			}
-			if approval.Type == "RECOVERY" {
-				permission = "recoveries:approve"
-			}
-			if approval.Type == "ADJUSTMENT" {
-				permission = "adjustments:approve"
-			}
-			if approval.Type == "STATEMENT" {
-				permission = "statements:approve"
-			}
-			if approval.Type == "PLAN_PUBLISH" || approval.Type == "PLAN_ROLLBACK" {
-				permission = "plans:approve"
-			}
+			permission := ApprovalPermission(approval.Type)
 			if err = s.Authorize(ctx, tx, p, permission); err != nil {
 				return foundation.CommandResult{}, err
 			}
@@ -123,4 +99,27 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 }
 func (s Service) Get(ctx context.Context, p identity.Principal, id string) (domain.Request, error) {
 	return s.Repo.Get(ctx, s.Query, foundation.Scope{Tenant: p.Tenant, App: p.App}, id, false)
+}
+
+func ApprovalPermission(kind string) string {
+	switch kind {
+	case "PLAN_PUBLISH", "PLAN_ROLLBACK":
+		return "plans:approve"
+	case "STATEMENT":
+		return "statements:approve"
+	case "RECOVERY":
+		return "recoveries:approve"
+	case "ADJUSTMENT":
+		return "adjustments:approve"
+	case "RISK_RELEASE":
+		return "risk:approve"
+	case "AGENT_STATUS":
+		return "agents:status:approve"
+	case "IDENTITY_GRANT":
+		return "identity:approve"
+	case "PLATFORM_SETTING":
+		return "platform:approve"
+	default:
+		return "relations:approve"
+	}
 }

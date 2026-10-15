@@ -48,7 +48,7 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 			return domain.Input{}, err
 		}
 	}
-	snapshot := domain.Input{TaskID: task.ID, SnapshotID: "snapshot_" + task.ID, StandardVersion: "1", PlanVersionID: version.ID, ConfigHash: version.Hash, CurrencyCatalogVersion: catalogVersion, CalendarVersion: version.Config.CalendarVersion, AlgorithmVersions: map[string]string{}, Plan: version.Config, Facts: domain.Facts{Basis: source.Payload.Basis, Currency: source.Payload.Currency, Quantity: source.Payload.Quantity, QuantityUnit: source.Payload.QuantityUnit, Product: source.Product, Scene: source.Scene, Confirmed: source.Payload.Confirmed, BusinessTime: source.Time}, Ancestors: []domain.Actor{}, Recipients: []domain.Actor{}, Contracts: map[string]domain.ContractFact{}, Exponent: exponent}
+	snapshot := domain.Input{RelationshipFacts: []domain.RelationshipEvidence{}, TaskID: task.ID, SnapshotID: "snapshot_" + task.ID, StandardVersion: "1", PlanVersionID: version.ID, ConfigHash: version.Hash, CurrencyCatalogVersion: catalogVersion, CalendarVersion: version.Config.CalendarVersion, AlgorithmVersions: map[string]string{}, Plan: version.Config, Facts: domain.Facts{Basis: source.Payload.Basis, Currency: source.Payload.Currency, Quantity: source.Payload.Quantity, QuantityUnit: source.Payload.QuantityUnit, Product: source.Product, Scene: source.Scene, Confirmed: source.Payload.Confirmed, BusinessTime: source.Time}, Ancestors: []domain.Actor{}, Recipients: []domain.Actor{}, Contracts: map[string]domain.ContractFact{}, Exponent: exponent}
 	for _, rule := range version.Config.Rules {
 		snapshot.AlgorithmVersions[rule.Algorithm] = rule.Version
 	}
@@ -67,6 +67,7 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 		}
 		snapshot.DepthLimitReached = more
 		for _, ancestor := range ancestors {
+			snapshot.RelationshipFacts = append(snapshot.RelationshipFacts, domain.RelationshipEvidence{AgentID: ancestor.AgentID, Depth: ancestor.Depth, From: ancestor.EffectiveFrom, To: ancestor.EffectiveTo, Kind: "AGENT_RELATION"})
 			actor, err := r.actor(ctx, tx, s, version.Config, ancestor.AgentID, ancestor.Depth, source.Time)
 			if err != nil {
 				return snapshot, err
@@ -74,10 +75,12 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 			snapshot.Ancestors = append(snapshot.Ancestors, actor)
 		}
 	} else {
-		direct, err := r.Users.BoundAgent(ctx, tx, s, user, source.Time)
+		binding, err := r.Users.BindingAt(ctx, tx, s, user, source.Time)
 		if err != nil {
 			return snapshot, err
 		}
+		direct := binding.AgentID
+		snapshot.RelationshipFacts = append(snapshot.RelationshipFacts, domain.RelationshipEvidence{AgentID: direct, Depth: 1, From: binding.From, To: binding.To, Kind: "USER_BINDING", Evidence: binding.Evidence})
 		actor, err := r.actor(ctx, tx, s, version.Config, direct, 1, source.Time)
 		if err != nil {
 			return snapshot, err
@@ -92,6 +95,7 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 			if parent.Depth+1 > version.Config.AgentPolicy.MaxDepth {
 				break
 			}
+			snapshot.RelationshipFacts = append(snapshot.RelationshipFacts, domain.RelationshipEvidence{AgentID: parent.AgentID, Depth: parent.Depth + 1, From: parent.EffectiveFrom, To: parent.EffectiveTo, Kind: "AGENT_RELATION"})
 			actor, err := r.actor(ctx, tx, s, version.Config, parent.AgentID, parent.Depth+1, source.Time)
 			if err != nil {
 				return snapshot, err
@@ -117,6 +121,12 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 			}
 			snapshot.Recipients = append(snapshot.Recipients, actor)
 			known[actor.ID] = true
+		}
+	}
+	snapshot.QualificationFacts = map[string]domain.QualificationEvidence{}
+	for _, a := range append(append([]domain.Actor{}, snapshot.Ancestors...), snapshot.Recipients...) {
+		if a.Qualification != nil {
+			snapshot.QualificationFacts[a.ID] = *a.Qualification
 		}
 	}
 	if version.Config.AgentPolicy.RequireContract {
@@ -152,5 +162,5 @@ func (r Resolver) actor(ctx context.Context, tx db.Executor, s foundation.Scope,
 		}
 	}
 	eligible := grade.Eligibility == "ELIGIBLE"
-	return domain.Actor{ID: id, Depth: depth, Grade: grade.Grade, Eligible: &eligible, Status: account.Status}, nil
+	return domain.Actor{ID: id, Depth: depth, Grade: grade.Grade, Eligible: &eligible, Status: account.Status, Qualification: &domain.QualificationEvidence{Joined: found, GradeID: grade.Grade, Eligibility: grade.Eligibility, Revision: grade.Revision, From: grade.From, To: grade.To, Source: grade.Source, Evidence: grade.Evidence, StatusFrom: account.StatusFrom, StatusTo: account.StatusTo}}, nil
 }

@@ -1,0 +1,27 @@
+{
+  "scope": "本地Docker与MySQL沙箱验收",
+  "commercial_readiness": "BLOCKED",
+  "required_before_production": {
+    "identity_provider": null,
+    "trusted_business_source": null,
+    "real_payment_channel": null,
+    "machine_specification": null,
+    "agent_count": null,
+    "maximum_chain_length": null,
+    "orders_per_second": null,
+    "peak_concurrency": null,
+    "retention_period": null,
+    "availability_slo": null,
+    "latency_slo": null,
+    "rpo_seconds": null,
+    "rto_seconds": null
+  },
+  "verified_local_boundaries": {
+    "standard_maximum_calculation_depth": 64,
+    "idempotency_reliability_concurrency": 100,
+    "physical_process_exit_before_after_ledger_commit": "PASS",
+    "isolated_database_restore_and_unknown_payment_recovery": "PASS",
+    "restored_tables": 58
+  },
+  "note": "并发100为防重可靠性场景，不是生产容量承诺；恢复耗时为本机演练观察，不是已验收的生产RPO/RTO。"
+}

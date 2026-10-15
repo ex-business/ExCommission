@@ -26,6 +26,7 @@ type UserLookup interface {
 }
 
 type BusinessUsers interface {
+	BindingAt(context.Context, db.Executor, foundation.Scope, string, time.Time) (domain.Binding, error)
 	Resolve(context.Context, db.Executor, foundation.Scope, string, string) (string, error)
 	BoundAgent(context.Context, db.Executor, foundation.Scope, string, time.Time) (string, error)
 }

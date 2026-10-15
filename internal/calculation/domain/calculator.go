@@ -18,12 +18,25 @@ type Facts struct {
 	Confirmed    *bool     `json:"confirmed"`
 	BusinessTime time.Time `json:"business_time"`
 }
+type QualificationEvidence struct {
+	Joined      bool       `json:"joined"`
+	GradeID     string     `json:"grade_id"`
+	Eligibility string     `json:"eligibility"`
+	Revision    uint64     `json:"revision"`
+	From        time.Time  `json:"effective_from"`
+	To          *time.Time `json:"effective_to"`
+	Source      string     `json:"source_kind"`
+	Evidence    string     `json:"evidence_ref"`
+	StatusFrom  time.Time  `json:"status_effective_from"`
+	StatusTo    *time.Time `json:"status_effective_to"`
+}
 type Actor struct {
-	ID       string `json:"agent_id"`
-	Depth    int    `json:"depth"`
-	Grade    string `json:"grade_id"`
-	Eligible *bool  `json:"eligible"`
-	Status   string `json:"status"`
+	Qualification *QualificationEvidence `json:"-"`
+	ID            string                 `json:"agent_id"`
+	Depth         int                    `json:"depth"`
+	Grade         string                 `json:"grade_id"`
+	Eligible      *bool                  `json:"eligible"`
+	Status        string                 `json:"status"`
 }
 type ContractFact struct {
 	PlanID string
@@ -31,6 +44,8 @@ type ContractFact struct {
 	To     *time.Time
 }
 type Input struct {
+	QualificationFacts                                                                  map[string]QualificationEvidence
+	RelationshipFacts                                                                   []RelationshipEvidence
 	StandardVersion, PlanVersionID, ConfigHash, CurrencyCatalogVersion, CalendarVersion string
 	AlgorithmVersions                                                                   map[string]string
 	DepthLimitReached                                                                   bool
@@ -43,6 +58,14 @@ type Input struct {
 	Ancestors  []Actor
 	Contracts  map[string]ContractFact
 	Exponent   int
+}
+type RelationshipEvidence struct {
+	Kind     string
+	Evidence string
+	AgentID  string
+	Depth    int
+	From     time.Time
+	To       *time.Time
 }
 type Item struct {
 	OriginalMinor string `json:"-"`
