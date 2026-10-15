@@ -20,12 +20,14 @@ type Decision struct {
 }
 type Executor func(context.Context, db.Executor, foundation.Scope, domain.Request, time.Time) error
 type Service struct {
-	Commands  db.Commands
-	Repo      ports.Repository
-	Query     db.Executor
-	Now       func() time.Time
-	Executors map[string]Executor
-	Authorize func(context.Context, db.Executor, identity.Principal, string) error
+	Commands   db.Commands
+	Repo       ports.Repository
+	Query      db.Executor
+	Now        func() time.Time
+	Executors  map[string]Executor
+	Rejections map[string]Executor
+	Failures   map[string]Executor
+	Authorize  func(context.Context, db.Executor, identity.Principal, string) error
 }
 
 func (s Service) Decide(ctx context.Context, p identity.Principal, id string, input Decision, key, request string) (foundation.CommandResult, error) {
@@ -46,7 +48,11 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 			return foundation.CommandResult{}, err
 		}
 		if s.Authorize != nil {
-			if err = s.Authorize(ctx, tx, p, "relations:approve"); err != nil {
+			permission := "relations:approve"
+			if approval.Type == "PLAN_PUBLISH" || approval.Type == "PLAN_ROLLBACK" {
+				permission = "plans:approve"
+			}
+			if err = s.Authorize(ctx, tx, p, permission); err != nil {
 				return foundation.CommandResult{}, err
 			}
 		}
@@ -71,8 +77,20 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 					return foundation.CommandResult{}, rollbackErr
 				}
 				execution = "FAILED"
+				if failed, ok := s.Failures[approval.Type]; ok {
+					if failureErr := failed(ctx, tx, scope, approval, s.Now()); failureErr != nil {
+						return foundation.CommandResult{}, failureErr
+					}
+				}
 				if err.Error() == "STALE_APPROVAL" {
 					status = "STALE"
+				}
+			}
+		}
+		if input.Decision == "REJECT" {
+			if reject, ok := s.Rejections[approval.Type]; ok {
+				if err = reject(ctx, tx, scope, approval, s.Now()); err != nil {
+					return foundation.CommandResult{}, err
 				}
 			}
 		}

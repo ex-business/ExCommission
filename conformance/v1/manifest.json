@@ -2457,6 +2457,11 @@
       "id": "C01",
       "decision": "scope={type,agent_ids}；ALL_ACTIVE_AGENTS要求空集合；EXPLICIT_AGENT_IDS要求非空唯一集合",
       "authorized_by": "用户本次对话确认"
+    },
+    {
+      "id": "C02",
+      "decision": "confirmed使用BOOLEAN且允许EQ/NE；product_code和scene使用ENUM且允许EQ/NE/IN；business_time使用UTC并允许有序比较；金额允许有序比较",
+      "authorized_by": "用户本次对话确认"
     }
   ]
 }

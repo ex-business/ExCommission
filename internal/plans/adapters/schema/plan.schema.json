@@ -1,0 +1,1639 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:plan",
+  "type": "object",
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "standard_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "route": {
+      "type": "object",
+      "properties": {
+        "product_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "event_type": {
+          "type": "string",
+          "enum": [
+            "FEE_CONFIRMED",
+            "TRADE_CLOSED",
+            "ORDER_CONFIRMED"
+          ]
+        },
+        "scene": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "product_code",
+        "event_type",
+        "scene"
+      ],
+      "additionalProperties": false
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "calendar_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "agent_policy": {
+      "type": "object",
+      "properties": {
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 3
+        },
+        "self_reward": {
+          "const": false
+        },
+        "earn_while_frozen": {
+          "type": "boolean"
+        },
+        "require_contract": {
+          "type": "boolean"
+        },
+        "grade_window": {
+          "type": "string",
+          "enum": [
+            "PREVIOUS_CALENDAR_MONTH"
+          ]
+        },
+        "grade_evaluation": {
+          "type": "string",
+          "enum": [
+            "DAILY"
+          ]
+        },
+        "eligibility_required": {
+          "const": true
+        }
+      },
+      "required": [
+        "max_depth",
+        "self_reward",
+        "earn_while_frozen",
+        "require_contract",
+        "grade_window",
+        "grade_evaluation",
+        "eligibility_required"
+      ],
+      "additionalProperties": false
+    },
+    "grade_definitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "PERSONAL_NET_BASIS",
+                    "TEAM_NET_BASIS",
+                    "ACTIVE_DIRECT_COUNT"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE",
+                    "GT",
+                    "GTE",
+                    "LT",
+                    "LTE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "id",
+          "rank",
+          "conditions"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "PERCENT"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "rate_ppm": {
+                    "type": "string",
+                    "pattern": "^(1000000|[0-9]{1,6})$"
+                  }
+                },
+                "required": [
+                  "rate_ppm"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "string",
+                "pattern": "^(1000000|[0-9]{1,6})$"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "FIXED"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "amount_minor": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  "reward_currency": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "amount_minor",
+                  "reward_currency"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "null"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "UNIT_PRICE"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "unit_price": {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                  },
+                  "quantity_unit": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "reward_currency": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "unit_price",
+                  "quantity_unit",
+                  "reward_currency"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "null"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "INDEPENDENT"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "rates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "product_code": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "grade_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "depth": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "rate_ppm": {
+                          "type": "string",
+                          "pattern": "^(1000000|[0-9]{1,6})$"
+                        }
+                      },
+                      "required": [
+                        "product_code",
+                        "grade_id",
+                        "depth",
+                        "rate_ppm"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "rates"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "string",
+                "pattern": "^(1000000|[0-9]{1,6})$"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "DIFFERENTIAL"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "rates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "product_code": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "grade_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "rate_ppm": {
+                          "type": "string",
+                          "pattern": "^(1000000|[0-9]{1,6})$"
+                        }
+                      },
+                      "required": [
+                        "product_code",
+                        "grade_id",
+                        "rate_ppm"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "rates"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "string",
+                "pattern": "^(1000000|[0-9]{1,6})$"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "MARGINAL"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "lower": {
+                          "type": "string",
+                          "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                        },
+                        "upper": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rate_ppm": {
+                          "type": "string",
+                          "pattern": "^(1000000|[0-9]{1,6})$"
+                        }
+                      },
+                      "required": [
+                        "lower",
+                        "upper",
+                        "rate_ppm"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "tiers"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "string",
+                "pattern": "^(1000000|[0-9]{1,6})$"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "HIGHEST_RATE"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "DIRECT",
+                  "ANCESTORS"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "lower": {
+                          "type": "string",
+                          "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                        },
+                        "upper": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rate_ppm": {
+                          "type": "string",
+                          "pattern": "^(1000000|[0-9]{1,6})$"
+                        }
+                      },
+                      "required": [
+                        "lower",
+                        "upper",
+                        "rate_ppm"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "tiers"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "string",
+                "pattern": "^(1000000|[0-9]{1,6})$"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "algorithm_id": {
+                "type": "string",
+                "enum": [
+                  "WEIGHTED"
+                ]
+              },
+              "algorithm_version": {
+                "type": "string",
+                "enum": [
+                  "1"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "enum": [
+                  "EXPLICIT"
+                ]
+              },
+              "condition": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/condition"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "logic": {
+                        "type": "string",
+                        "enum": [
+                          "AND"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "logic",
+                      "children"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "pool_minor": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  "reward_currency": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "beneficiaries": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "beneficiary_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "weight": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        }
+                      },
+                      "required": [
+                        "beneficiary_id",
+                        "weight"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "pool_minor",
+                  "reward_currency",
+                  "beneficiaries"
+                ],
+                "additionalProperties": false
+              },
+              "funding_limit_ppm": {
+                "type": "null"
+              },
+              "per_beneficiary_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "per_event_total_cap_minor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "type": "string",
+                "enum": [
+                  "ONCE_PER_BUSINESS_RULE"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "algorithm_id",
+              "algorithm_version",
+              "recipient",
+              "condition",
+              "parameters",
+              "funding_limit_ppm",
+              "per_beneficiary_cap_minor",
+              "per_event_total_cap_minor",
+              "frequency"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "minItems": 1
+    },
+    "event_budget_minor": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "settlement_policy": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string",
+          "enum": [
+            "DAILY"
+          ]
+        },
+        "minimum_payout_minor": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "max_payment_minor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "late_policy": {
+          "type": "string",
+          "enum": [
+            "NEXT_OPEN_PERIOD"
+          ]
+        },
+        "channel_fee_bearer": {
+          "type": "string",
+          "enum": [
+            "PLATFORM"
+          ]
+        }
+      },
+      "required": [
+        "period",
+        "minimum_payout_minor",
+        "max_payment_minor",
+        "late_policy",
+        "channel_fee_bearer"
+      ],
+      "additionalProperties": false
+    },
+    "scope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "ALL_ACTIVE_AGENTS"
+              ]
+            },
+            "agent_ids": {
+              "type": "array",
+              "maxItems": 0
+            }
+          },
+          "required": [
+            "type",
+            "agent_ids"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "EXPLICIT_AGENT_IDS"
+              ]
+            },
+            "agent_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "type",
+            "agent_ids"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "plan_id",
+    "name",
+    "revision",
+    "standard_version",
+    "route",
+    "currency",
+    "calendar_version",
+    "agent_policy",
+    "grade_definitions",
+    "rules",
+    "event_budget_minor",
+    "settlement_policy",
+    "scope"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "condition": {
+      "oneOf": [
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "basis_amount",
+                    "quantity"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE",
+                    "GT",
+                    "GTE",
+                    "LT",
+                    "LTE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "confirmed"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE"
+                  ]
+                },
+                "value": {
+                  "type": "boolean"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "BOOLEAN"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "product_code",
+                    "scene"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "ENUM"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "product_code",
+                    "scene"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "IN"
+                  ]
+                },
+                "value": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "minItems": 1
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "ENUM"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "business_time"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE",
+                    "GT",
+                    "GTE",
+                    "LT",
+                    "LTE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "UTC"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "logic": {
+              "type": "string",
+              "enum": [
+                "AND",
+                "OR"
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "logic",
+            "children"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "logic": {
+              "type": "string",
+              "enum": [
+                "NOT"
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              },
+              "minItems": 1,
+              "maxItems": 1
+            }
+          },
+          "required": [
+            "logic",
+            "children"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "x-domain-validation": [
+    "条件深度<=8且叶子<=100；指标类型及单位匹配",
+    "等级rank唯一且存在rank0空条件；费率可达维度完整",
+    "阶梯从0连续且费率非递减，末档upper=null",
+    "固定、单价、加权要求显式方案预算",
+    "各规则预算和方案预算；禁止部分入账",
+    "范围、资格、合同、关系必须按业务时点冻结",
+    "发布摘要绑定试算与独立审批；版本区间不可重叠"
+  ]
+}

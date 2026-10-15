@@ -116,9 +116,9 @@ func (s *Store) Execute(ctx context.Context, scope Scope, operation, key string,
 			status = 403
 		case "NOT_FOUND", "USER_NOT_FOUND":
 			status = 404
-		case "REVISION_CONFLICT", "STALE_APPROVAL", "STATE_CONFLICT":
+		case "IDEMPOTENCY_CONFLICT", "REVISION_CONFLICT", "STALE_APPROVAL", "STATE_CONFLICT":
 			status = 409
-		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY":
+		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY", "UNKNOWN_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RATE_MISSING":
 			status = 422
 		}
 		var sqlError *driver.MySQLError

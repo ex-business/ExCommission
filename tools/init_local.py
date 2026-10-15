@@ -16,4 +16,7 @@ local.mkdir(exist_ok=True)
 users = local / 'users.json'
 if not users.exists():
     users.write_text('[]\n')
+statistics = local / 'grade-statistics.json'
+if not statistics.exists():
+    statistics.write_text('{}\n')
 print('本地配置已就绪；凭据仅保存在被忽略的 .env，未输出。')

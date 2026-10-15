@@ -1383,61 +1383,198 @@
     "condition": {
       "oneOf": [
         {
-          "type": "object",
-          "properties": {
-            "metric": {
-              "type": "string",
-              "enum": [
-                "basis_amount",
-                "quantity",
-                "product_code",
-                "scene",
-                "confirmed",
-                "business_time"
-              ]
-            },
-            "operator": {
-              "type": "string",
-              "enum": [
-                "EQ",
-                "NE",
-                "GT",
-                "GTE",
-                "LT",
-                "LTE",
-                "IN"
-              ]
-            },
-            "value": {
-              "oneOf": [
-                {
-                  "type": "string"
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "basis_amount",
+                    "quantity"
+                  ]
                 },
-                {
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE",
+                    "GT",
+                    "GTE",
+                    "LT",
+                    "LTE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "confirmed"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE"
+                  ]
+                },
+                "value": {
                   "type": "boolean"
                 },
-                {
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "BOOLEAN"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "product_code",
+                    "scene"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "ENUM"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "product_code",
+                    "scene"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "IN"
+                  ]
+                },
+                "value": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
                   },
                   "minItems": 1
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "ENUM"
+                  ]
                 }
-              ]
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
             },
-            "unit": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "business_time"
+                  ]
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "EQ",
+                    "NE",
+                    "GT",
+                    "GTE",
+                    "LT",
+                    "LTE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "UTC"
+                  ]
+                }
+              },
+              "required": [
+                "metric",
+                "operator",
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
             }
-          },
-          "required": [
-            "metric",
-            "operator",
-            "value",
-            "unit"
-          ],
-          "additionalProperties": false
+          ]
         },
         {
           "type": "object",

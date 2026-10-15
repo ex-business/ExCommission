@@ -116,6 +116,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 		},
 	}}
 	mux := http.NewServeMux()
+	if err := installPlans(mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
 	mux.Handle("POST /v1/user-sync-jobs", require("users:sync", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		var input users.SyncRequest
 		if err := httpapi.Decode(w, r, &input); err != nil {
@@ -215,7 +218,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 		result, _ := response.Result(200, r.PathValue("id"), id, data)
 		httpapi.Write(w, result)
 	}))
-	mux.Handle("POST /v1/approvals/{id}/decisions", require("relations:approve", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
+	mux.Handle("POST /v1/approvals/{id}/decisions", require("workflow:decide", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		var input workflow.Decision
 		if err := httpapi.Decode(w, r, &input); err != nil {
 			httpapi.Error(w, id, err)

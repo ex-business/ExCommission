@@ -194,3 +194,25 @@ write('openapi.json',api)
 endpoint('/v1/plans/{id}','get')
 api['paths']['/v1/plans/{id}']['get']['responses']['200']['content']['application/json']['schema']=obj({'data':ref('PlanDraft'),'request_id':identifier})
 write('openapi.json',api)
+# 方案资源响应在配置字段之外提供摘要与状态；命令配置仍拒绝未知字段。
+plan_response=json.loads(json.dumps(components['PlanDraft']))
+plan_response['additionalProperties']=True
+plan_response['properties'].update({'draft_hash':identifier,'status':enum('DRAFT','PENDING_APPROVAL','APPROVED','PUBLISHED','RETIRED')})
+components['PlanDocument']=plan_response
+for path in ('/v1/plans','/v1/plans/{id}','/v1/plans/{id}/draft'):
+    for operation in api['paths'][path].values():
+        for code,response in operation['responses'].items():
+            if code.startswith('2'):
+                response['content']['application/json']['schema']=obj({'data':ref('PlanDocument'),'request_id':identifier})
+write('openapi.json',api)
+# C02：经用户确认的条件类型、单位与比较符。
+condition['oneOf'][0]={'oneOf':[
+    obj({'metric':enum('basis_amount','quantity'),'operator':enum('EQ','NE','GT','GTE','LT','LTE'),'value':decimal,'unit':identifier}),
+    obj({'metric':enum('confirmed'),'operator':enum('EQ','NE'),'value':boolean,'unit':enum('BOOLEAN')}),
+    obj({'metric':enum('product_code','scene'),'operator':enum('EQ','NE'),'value':identifier,'unit':enum('ENUM')}),
+    obj({'metric':enum('product_code','scene'),'operator':enum('IN'),'value':arr(identifier,1),'unit':enum('ENUM')}),
+    obj({'metric':enum('business_time'),'operator':enum('EQ','NE','GT','GTE','LT','LTE'),'value':time,'unit':enum('UTC')})]}
+plan['$defs']['condition']=condition
+write('plan.schema.json',plan)
+components['Condition']=json.loads(json.dumps(condition).replace('#/$defs/condition','#/components/schemas/Condition'))
+write('openapi.json',api)

@@ -34,7 +34,11 @@ func Decode(w http.ResponseWriter, r *http.Request, target any) error {
 	}
 	for i := 0; i < value.Elem().NumField(); i++ {
 		field := value.Elem().Field(i)
-		name := strings.Split(field.Tag.Get("json"), ",")[0]
+		tag := field.Tag.Get("json")
+		if strings.Contains(tag, ",omitempty") {
+			continue
+		}
+		name := strings.Split(tag, ",")[0]
 		if name != "-" && name != "" {
 			raw, ok := fields[name]
 			if !ok {
@@ -78,7 +82,7 @@ func Error(w http.ResponseWriter, request string, err error) {
 			status, code, retry = 404, "NOT_FOUND", false
 		case "IDEMPOTENCY_CONFLICT", "REVISION_CONFLICT", "STALE_APPROVAL", "STATE_CONFLICT":
 			status, code, retry = 409, strings.Split(err.Error(), ":")[0], false
-		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY":
+		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY", "UNKNOWN_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RATE_MISSING":
 			status, code, retry = 422, strings.Split(err.Error(), ":")[0], false
 		}
 	}

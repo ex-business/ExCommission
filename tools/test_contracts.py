@@ -89,6 +89,14 @@ class PlanContracts(unittest.TestCase):
                 if method=='get':
                     self.assertFalse(any(p['name']=='Idempotency-Key' for p in operation['parameters']))
         self.assertGreaterEqual(count,40)
+    def test_condition_metric_types(self):
+        cases=[{'metric':'confirmed','operator':'EQ','value':'true','unit':'BOOLEAN'},
+               {'metric':'confirmed','operator':'GT','value':True,'unit':'BOOLEAN'},
+               {'metric':'scene','operator':'GT','value':'SPOT','unit':'ENUM'},
+               {'metric':'business_time','operator':'EQ','value':'2026-10-01','unit':'UTC'}]
+        for condition in cases:
+            plan=deepcopy(self.plan);plan['rules'][0]['condition']=condition
+            self.assertTrue(list(self.validator.iter_errors(plan)))
     def test_scope(self):
         for scope in ({'type':'ALL_ACTIVE_AGENTS','agent_ids':['A1']},{'type':'EXPLICIT_AGENT_IDS','agent_ids':[]},{'type':'EXPLICIT_AGENT_IDS','agent_ids':['A1','A1']}):
             plan=deepcopy(self.plan);plan['scope']=scope
