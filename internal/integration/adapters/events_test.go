@@ -16,6 +16,7 @@ import (
 	source "github.com/ex-business/ExCommission/internal/integration/adapters"
 	integration "github.com/ex-business/ExCommission/internal/integration/application"
 	event "github.com/ex-business/ExCommission/internal/integration/domain"
+	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
 	plans "github.com/ex-business/ExCommission/internal/plans/adapters"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
@@ -44,7 +45,7 @@ func database(t *testing.T) (*mysql.Store, foundation.Scope) {
 	}
 	scope := foundation.Scope{Tenant: "test-event-" + fmt.Sprint(time.Now().UnixNano()), App: "app"}
 	t.Cleanup(func() {
-		for _, table := range []string{"integration_event_keys", "integration_inbox", "integration_raw_payloads", "calculation_tasks", "calculation_recoveries", "command_results", "users_external", "agent_accounts", "agent_relations", "agent_relation_spaces", "agent_grade_history", "agent_plan_states", "plan_drafts", "plan_versions", "plan_route_spaces", "user_agent_bindings"} {
+		for _, table := range []string{"ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "integration_event_keys", "integration_inbox", "integration_raw_payloads", "calculation_tasks", "calculation_recoveries", "command_results", "users_external", "agent_accounts", "agent_relations", "agent_relation_spaces", "agent_grade_history", "agent_plan_states", "plan_drafts", "plan_versions", "plan_route_spaces", "user_agent_bindings"} {
 			if _, err := store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant); err != nil {
 				t.Error(err)
 			}
@@ -216,6 +217,28 @@ func TestSignedEventsIdempotencySnapshotAndLedgerGate(t *testing.T) {
 	store.DB.QueryRow(`SELECT COUNT(*) FROM calculation_recoveries WHERE tenant_id=?`, s.Tenant).Scan(&recoveries)
 	if recoveries != 1 {
 		t.Fatal("repair evidence missing")
+	}
+
+	if err = store.Within(ctx, func(tx db.Executor) error {
+		return tasks.Resume(ctx, tx, s, again.ID, again.Revision, "ledger-installed", at)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	processor.Committer = ledger.Repository{}
+	if done, err := processor.RunOnce(ctx, s); err != nil || !done {
+		t.Fatal("formal posting failed", err)
+	}
+	final, err := tasks.Get(ctx, store.DB, s, task.ID)
+	if err != nil || final.Status != "SUCCEEDED" || string(final.Snapshot) != before {
+		t.Fatal("task and ledger not committed together", final.Status, err)
+	}
+	for _, table := range []string{"ledger_entitlements", "ledger_journals", "transaction_outbox"} {
+		if err = store.DB.QueryRow("SELECT COUNT(*) FROM "+table+" WHERE tenant_id=?", s.Tenant).Scan(&count); err != nil || count != 1 {
+			t.Fatal("formal ledger count", table, count, err)
+		}
+	}
+	if done, err := processor.RunOnce(ctx, s); err != nil || done {
+		t.Fatal("completed task was reclaimed", err)
 	}
 }
 func TestTaskLeaseFencingAndRetryLimit(t *testing.T) {

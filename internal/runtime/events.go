@@ -11,6 +11,7 @@ import (
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	source "github.com/ex-business/ExCommission/internal/integration/adapters"
 	integration "github.com/ex-business/ExCommission/internal/integration/application"
+	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
 	plans "github.com/ex-business/ExCommission/internal/plans/adapters"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
@@ -29,7 +30,7 @@ func taskRepository(store *mysql.Store) tasks.Tasks {
 	return tasks.Tasks{DB: store.DB, Within: store.Within}
 }
 func buildWorker(store *mysql.Store) *calculation.Worker {
-	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Now: clockUTC, Lease: 30 * time.Second}
+	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Committer: ledger.Repository{}, Now: clockUTC, Lease: 30 * time.Second}
 }
 func localScope() foundation.Scope {
 	tenant, app := os.Getenv("LOCAL_TENANT"), os.Getenv("LOCAL_APP")
