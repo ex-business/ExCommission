@@ -29,6 +29,10 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    environment:
+      DB_ADDRESS: mysql:3306
+      DB_USER: excommission
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先生成本地 .env}
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -45,6 +49,10 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    environment:
+      DB_ADDRESS: mysql:3306
+      DB_USER: excommission
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先生成本地 .env}
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -54,6 +62,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 15
+  database-check:
+    profiles: ["verify"]
+    build:
+      context: .
+      target: integration-test
+    environment:
+      TEST_MYSQL_ADDRESS: mysql:3306
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先生成本地 .env}
+    depends_on:
+      mysql:
+        condition: service_healthy
   contract-check:
     profiles: ["verify"]
     build:

@@ -11,23 +11,51 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 )
 
-func Handler(service string) http.Handler {
+func Handler(service string) http.Handler { return handler(service, nil) }
+func handler(service string, ready func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"service": service, "status": "up"})
 	})
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		if ready == nil {
+			http.Error(w, "not initialized", http.StatusServiceUnavailable)
+			return
+		}
+		if err := ready(r.Context()); err != nil {
+			http.Error(w, "dependency unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ready"}`))
+	})
 	return mux
 }
 
 func Run(service string) error {
+	initCtx, cancelInit := context.WithTimeout(context.Background(), 45*time.Second)
+	store, err := mysql.Open(initCtx, os.Getenv("DB_ADDRESS"), os.Getenv("DB_USER"), os.Getenv("MYSQL_PASSWORD"), "excommission")
+	if err != nil {
+		cancelInit()
+		return err
+	}
+	defer store.DB.Close()
+	err = store.Migrate(initCtx)
+	cancelInit()
+	if err != nil {
+		return err
+	}
+
 	address := os.Getenv("HTTP_ADDR")
 	if address == "" {
 		address = ":8080"
 	}
-	server := &http.Server{Addr: address, Handler: Handler(service), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: address, Handler: handler(service, store.DB.PingContext), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	failure := make(chan error, 1)
