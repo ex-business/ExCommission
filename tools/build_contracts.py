@@ -100,10 +100,11 @@ endpoint('/v1/plans/{id}/rollback-requests','post',obj({'target_version_id':iden
 endpoint('/v1/statement-runs','post',obj({'period':identifier,'calendar_version':identifier,'agent_ids':{'type':'array','items':identifier,'uniqueItems':True}},['period','calendar_version']),202)
 endpoint('/v1/statements/{id}','get')
 endpoint('/v1/statements/{id}/submission','post',obj({**rev,'content_hash':identifier}))
-endpoint('/v1/payments','post',obj({'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision}))
+endpoint('/v1/payments','post',obj({'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision}),202)
 endpoint('/v1/payments/{id}/verification','post',obj({}))
 endpoint('/v1/payment-callbacks/{channel_id}','post',{'description':'渠道原始字节，由适配器验签，不使用公共身份或幂等头；渠道回调ID去重。'})
 callback=api['paths']['/v1/payment-callbacks/{channel_id}']['post'];callback['security']=[];callback['parameters']=[p for p in callback['parameters'] if p['in']=='path']
+callback['parameters'].append({'name':'X-Payment-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[0-9a-f]{64}$'}})
 endpoint('/v1/reconciliation-runs','post',obj({'channel_id':identifier,'date_range':obj({'from':time,'to':time}),'statement_file_ref':identifier}))
 endpoint('/v1/refunds','post',ref('Refund'),202)
 endpoint('/v1/recovery-requests','post',obj({'debt_id':identifier,'method':enum('FUTURE_OFFSET','CASH_CONFIRMED'),'amount':ref('Money'),'evidence_ref':identifier,**reason,**rev}))

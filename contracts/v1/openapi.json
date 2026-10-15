@@ -5399,7 +5399,7 @@
               }
             }
           },
-          "200": {
+          "202": {
             "description": "成功；异步接收不代表业务执行成功",
             "content": {
               "application/json": {
@@ -5865,6 +5865,15 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 128
+            }
+          },
+          {
+            "name": "X-Payment-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           },
           {

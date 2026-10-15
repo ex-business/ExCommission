@@ -26,6 +26,7 @@ services:
     volumes:
       - ./.local/users.json:/local/users.json:ro
       - ./.local/grade-statistics.json:/local/grade-statistics.json:ro
+      - ./.local/payment-results.json:/local/payment-results.json:ro
     restart: unless-stopped
     ports:
       - "127.0.0.1:18080:8080"
@@ -38,6 +39,8 @@ services:
       LOCAL_APPROVER_TOKEN: ${LOCAL_APPROVER_TOKEN:?请先生成本地凭据}
       LOCAL_CURSOR_KEY: ${LOCAL_CURSOR_KEY:?请先生成本地凭据}
       LOCAL_SOURCE_KEY: ${LOCAL_SOURCE_KEY:?请先生成本地凭据}
+      LOCAL_PAYMENT_KEY: ${LOCAL_PAYMENT_KEY:?请先生成本地凭据}
+      LOCAL_PAYMENT_RESULTS_FILE: /local/payment-results.json
       LOCAL_USERS_FILE: /local/users.json
       LOCAL_GRADE_STATISTICS_FILE: /local/grade-statistics.json
       DB_ADDRESS: mysql:3306
@@ -55,11 +58,15 @@ services:
   worker:
     image: excommission-local-runtime:dev
     entrypoint: ["/app/worker"]
+    volumes:
+      - ./.local/payment-results.json:/local/payment-results.json:ro
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
     environment:
+      LOCAL_PAYMENT_KEY: ${LOCAL_PAYMENT_KEY:?请先生成本地凭据}
+      LOCAL_PAYMENT_RESULTS_FILE: /local/payment-results.json
       DB_ADDRESS: mysql:3306
       DB_USER: excommission
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先生成本地 .env}

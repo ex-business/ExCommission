@@ -82,7 +82,7 @@ func Error(w http.ResponseWriter, request string, err error) {
 			status, code, retry = 404, "NOT_FOUND", false
 		case "IDEMPOTENCY_CONFLICT", "REVISION_CONFLICT", "STALE_APPROVAL", "STATE_CONFLICT":
 			status, code, retry = 409, strings.Split(err.Error(), ":")[0], false
-		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY", "UNKNOWN_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RATE_MISSING":
+		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY", "UNKNOWN_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RATE_MISSING", "INSUFFICIENT_BALANCE", "FUNDS_FROZEN", "AMOUNT_OUT_OF_RANGE":
 			status, code, retry = 422, strings.Split(err.Error(), ":")[0], false
 		}
 	}

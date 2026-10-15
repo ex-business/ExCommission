@@ -35,6 +35,7 @@ func TestPlanHTTPPublicationRejectionAndRollback(t *testing.T) {
 		t.Setenv(key, value)
 	}
 	t.Setenv("LOCAL_SOURCE_KEY", strings.Repeat("s", 32))
+	t.Setenv("LOCAL_PAYMENT_KEY", strings.Repeat("p", 32))
 	handler, err := businessHandler(context.Background(), store)
 	if err != nil {
 		t.Fatal(err)

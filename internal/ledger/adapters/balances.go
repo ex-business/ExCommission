@@ -79,3 +79,15 @@ func (r Repository) Transfer(ctx context.Context, tx db.Executor, scope foundati
 	_, err = tx.ExecContext(ctx, `INSERT INTO ledger_journals(tenant_id,app_id,journal_id,business_ref,idempotency_key,currency,debit_account,credit_account,amount,occurred_at,posted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, scope.Tenant, scope.App, journal, reference, journal, e.Currency, accounts[0], accounts[1], amount, now, now)
 	return err
 }
+
+// Hold locks the entitlement before adding a reason; restrictions never move money.
+func (r Repository) Hold(ctx context.Context, tx db.Executor, s foundation.Scope, id, risk, reason string, now time.Time) error {
+	if !foundation.ValidID(risk) || !foundation.ValidID(reason) {
+		return foundation.ErrValidation
+	}
+	if _, err := r.Get(ctx, tx, s, id, true); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `INSERT IGNORE INTO ledger_restrictions(tenant_id,app_id,entitlement_id,risk_id,reason_code,created_at) VALUES(?,?,?,?,?,?)`, s.Tenant, s.App, id, risk, reason, now)
+	return err
+}
