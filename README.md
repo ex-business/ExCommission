@@ -23,3 +23,16 @@ docker compose --profile verify run --build --rm contract-check
 - `tools/test_contracts.py`：契约检查工具；业务后台统一使用 Go。
 
 原始参考资料和本地开发指令保存在 Git 排除目录，不进入镜像与提交。结构契约检查不替代 Go 业务、并发、账务和故障验收。
+
+## Go 服务
+
+锁定 Go 1.26.5，模块化单体，API 和 worker 可独立启动：
+
+```sh
+docker compose up -d --build api worker
+curl http://127.0.0.1:18080/healthz
+```
+
+当前健康接口只证明进程已启动，未实现的业务 URL 返回 404。worker 尚未装配任务领取器。
+
+模块下的 `domain/application/ports/adapters` 分别负责领域、用例、边界和适配器；不得跨模块直接写表。计算领域只依赖标准库，金额采用任意精度整数、八位定点，禁止浮点。

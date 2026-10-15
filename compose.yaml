@@ -18,6 +18,42 @@ services:
       timeout: 5s
       retries: 30
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin"]
+  api:
+    build:
+      context: .
+      target: runtime
+    image: excommission-local-runtime:dev
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  worker:
+    image: excommission-local-runtime:dev
+    entrypoint: ["/app/worker"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
   contract-check:
     profiles: ["verify"]
     build:
