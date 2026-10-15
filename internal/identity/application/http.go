@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -8,12 +9,16 @@ import (
 	"github.com/ex-business/ExCommission/internal/identity/domain"
 	"github.com/ex-business/ExCommission/internal/identity/ports"
 	"net/http"
+	"time"
 )
 
 type AuthorizedHandler func(http.ResponseWriter, *http.Request, domain.Principal, string)
 
 func Require(provider ports.Provider, authorizer ports.Authorizer, permission string, next AuthorizedHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		r = r.WithContext(ctx)
 		bytes := make([]byte, 16)
 		if _, err := rand.Read(bytes); err != nil {
 			http.Error(w, "dependency unavailable", 503)

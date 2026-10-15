@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
+	driver "github.com/go-sql-driver/mysql"
 	"strings"
 
 	"github.com/ex-business/ExCommission/internal/platform/domain"
@@ -23,26 +24,7 @@ func validID(value string) bool { return domain.ValidID(value) }
 
 func digest(body []byte) string { sum := sha256.Sum256(body); return hex.EncodeToString(sum[:]) }
 
-// CanonicalJSON 只处理JSON结构；调用方必须先按严格schema校验并规范化默认值、时间及金额。
-func CanonicalJSON(body []byte) ([]byte, error) {
-	check := json.NewDecoder(bytes.NewReader(body))
-	check.UseNumber()
-	if err := rejectDuplicateKeys(check); err != nil {
-		return nil, ErrValidation
-	}
-
-	decoder := json.NewDecoder(bytes.NewReader(body))
-	decoder.UseNumber()
-	var object map[string]any
-	if err := decoder.Decode(&object); err != nil || object == nil {
-		return nil, ErrValidation
-	}
-	var extra any
-	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return nil, ErrValidation
-	}
-	return json.Marshal(object)
-}
+func CanonicalJSON(body []byte) ([]byte, error) { return domain.CanonicalJSON(body) }
 
 func ValidKey(value string) bool {
 	if len(value) < 1 || len(value) > 128 {
@@ -56,12 +38,7 @@ func ValidKey(value string) bool {
 	return true
 }
 
-type Result struct {
-	Status     int
-	Body       []byte
-	ResourceID string
-	Replayed   bool
-}
+type Result = domain.CommandResult
 
 // Command 在同一事务中持久化业务写入、outbox与HTTP结果；不确定故障不缓存为业务失败。
 func (s *Store) Command(ctx context.Context, scope Scope, operation, key string, canonical []byte, fn func(ports.Executor) (Result, error)) (Result, error) {
@@ -113,41 +90,88 @@ func (s *Store) Command(ctx context.Context, scope Scope, operation, key string,
 	return result, err
 }
 
-func rejectDuplicateKeys(decoder *json.Decoder) error {
-	token, err := decoder.Token()
+func (s *Store) Execute(ctx context.Context, scope Scope, operation, key string, input any, fn func(ports.Executor) (domain.CommandResult, error)) (domain.CommandResult, error) {
+	body, err := json.Marshal(input)
 	if err != nil {
-		return err
+		return Result{}, ErrValidation
 	}
-	delimiter, ok := token.(json.Delim)
-	if !ok {
-		return nil
+	canonical, err := CanonicalJSON(body)
+	if err != nil {
+		return Result{}, err
 	}
-	switch delimiter {
-	case '{':
-		seen := map[string]bool{}
-		for decoder.More() {
-			key, err := decoder.Token()
-			if err != nil {
-				return err
-			}
-			name, ok := key.(string)
-			if !ok || seen[name] {
-				return ErrValidation
-			}
-			seen[name] = true
-			if err = rejectDuplicateKeys(decoder); err != nil {
-				return err
-			}
+	return s.Command(ctx, scope, operation, key, canonical, func(tx ports.Executor) (Result, error) {
+		if _, err := tx.ExecContext(ctx, "SAVEPOINT command_business"); err != nil {
+			return Result{}, err
 		}
-	case '[':
-		for decoder.More() {
-			if err = rejectDuplicateKeys(decoder); err != nil {
-				return err
-			}
+		result, err := fn(tx)
+		if err == nil {
+			return result, nil
 		}
-	default:
-		return ErrValidation
+		code := strings.Split(err.Error(), ":")[0]
+		status := 0
+		switch code {
+		case "VALIDATION_FAILED", "UNIT_MISMATCH":
+			status = 400
+		case "PERMISSION_DENIED", "SELF_APPROVAL_FORBIDDEN":
+			status = 403
+		case "NOT_FOUND", "USER_NOT_FOUND":
+			status = 404
+		case "REVISION_CONFLICT", "STALE_APPROVAL", "STATE_CONFLICT":
+			status = 409
+		case "RELATION_CYCLE", "RELATION_HISTORY_MISSING", "UNSUPPORTED_CAPABILITY":
+			status = 422
+		}
+		var sqlError *driver.MySQLError
+		if errors.As(err, &sqlError) && sqlError.Number == 1062 {
+			status = 409
+			code = "STATE_CONFLICT"
+		}
+		if status == 0 {
+			return Result{}, err
+		}
+		if _, err = tx.ExecContext(ctx, "ROLLBACK TO SAVEPOINT command_business"); err != nil {
+			return Result{}, err
+		}
+		metadata := domain.RequestFrom(ctx)
+		if metadata.RequestID == "" {
+			metadata.RequestID = "internal"
+		}
+		body, err := json.Marshal(map[string]any{"error": map[string]any{"code": code, "message": code, "retryable": false, "resource_ref": nil, "details": map[string]string{}}, "request_id": metadata.RequestID})
+		return Result{Status: status, Body: body, ResourceID: "cmd_" + digest(canonical)[:32]}, err
+	})
+}
+
+func (s *Store) Lookup(ctx context.Context, scope Scope, operation, key string, input any) (Result, bool, error) {
+	if !scope.Valid() || !ValidKey(key) {
+		return Result{}, false, ErrValidation
 	}
-	_, err = decoder.Token()
-	return err
+	body, err := json.Marshal(input)
+	if err != nil {
+		return Result{}, false, ErrValidation
+	}
+	canonical, err := CanonicalJSON(body)
+	if err != nil {
+		return Result{}, false, err
+	}
+	var old, resultBody []byte
+	var status *int
+	var resource *string
+	err = s.DB.QueryRowContext(ctx, `SELECT canonical_body,http_status,result_body,resource_id FROM command_results WHERE tenant_id=? AND app_id=? AND operation=? AND idempotency_key=?`, scope.Tenant, scope.App, operation, key).Scan(&old, &status, &resultBody, &resource)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Result{}, false, nil
+	}
+	if err != nil {
+		return Result{}, false, err
+	}
+	if !bytes.Equal(old, canonical) {
+		return Result{}, false, ErrConflict
+	}
+	if status == nil {
+		return Result{}, false, nil
+	}
+	result := Result{Status: *status, Body: resultBody, Replayed: true}
+	if resource != nil {
+		result.ResourceID = *resource
+	}
+	return result, true, nil
 }

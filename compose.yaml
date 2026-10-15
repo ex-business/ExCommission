@@ -23,6 +23,8 @@ services:
       context: .
       target: runtime
     image: excommission-local-runtime:dev
+    volumes:
+      - ./.local/users.json:/local/users.json:ro
     restart: unless-stopped
     ports:
       - "127.0.0.1:18080:8080"
@@ -30,6 +32,11 @@ services:
       mysql:
         condition: service_healthy
     environment:
+      APP_MODE: local
+      LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}
+      LOCAL_APPROVER_TOKEN: ${LOCAL_APPROVER_TOKEN:?请先生成本地凭据}
+      LOCAL_CURSOR_KEY: ${LOCAL_CURSOR_KEY:?请先生成本地凭据}
+      LOCAL_USERS_FILE: /local/users.json
       DB_ADDRESS: mysql:3306
       DB_USER: excommission
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先生成本地 .env}

@@ -7,7 +7,7 @@ Go 模块化佣金分润系统，业务标准 V1。按顺序实施，未完成�
 使用 Docker Compose 和 MySQL 8.4。复制环境配置后填写本地专用密码：
 
 ```sh
-cp .env.example .env
+python3 tools/init_local.py
 docker compose up -d mysql
 docker compose --profile verify run --build --rm contract-check
 ```
@@ -47,3 +47,12 @@ curl http://127.0.0.1:18080/readyz
 ```
 
 测试使用独立随机租户并清理自己产生的数据。构建仅执行格式、静态检查和编译；业务测试按当前改动影响范围显式运行，避免每次构建重复测试未改功能。当前身份提供方只实现本地沙箱接口，未接生产身份源；业务 API 的授权装配随各功能落地。
+
+
+## 用户与代理沙箱
+
+先运行 `python3 tools/init_local.py`，再运行 `docker compose up -d --build api worker`。本地模式使用 `.env` 中两个独立身份令牌，分别用于申请和审批；不存在公开管理员注册。更改授权后重启不会自动恢复已撤销权限。
+
+可在 `.local/users.json` 提供明确的本地测试用户数组，每项包含 `external_user_id` 和 `display_name`。该来源固定为 `source_id=sandbox`、`mapping_version_id=1`，不代表任何真实外部来源已联通；空数组不会制造用户。
+
+已实现用户同步与结果查询、代理创建、关系迁移申请、独立审批、历史祖先分页查询。关系不压缩物理层数，游标绑定租户、应用、代理、时间与分页条件；并发互绑通过作用域锁防止成环。合同端口按半开有效区间读取且拒绝重叠，不允许合同覆盖佣金费率。等级和方案资格在下一阶段实现。

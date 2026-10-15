@@ -55,7 +55,18 @@ func Run(service string) error {
 	if address == "" {
 		address = ":8080"
 	}
-	server := &http.Server{Addr: address, Handler: handler(service, store.DB.PingContext), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	health := handler(service, store.DB.PingContext)
+	router := http.NewServeMux()
+	router.Handle("/healthz", health)
+	router.Handle("/readyz", health)
+	if service == "api" {
+		business, err := businessHandler(context.Background(), store)
+		if err != nil {
+			return err
+		}
+		router.Handle("/v1/", business)
+	}
+	server := &http.Server{Addr: address, Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	failure := make(chan error, 1)

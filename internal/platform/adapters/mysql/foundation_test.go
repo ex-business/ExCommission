@@ -17,6 +17,7 @@ import (
 	auth "github.com/ex-business/ExCommission/internal/identity/domain"
 	integration "github.com/ex-business/ExCommission/internal/integration/adapters"
 	db "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
+	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"github.com/ex-business/ExCommission/internal/platform/ports"
 )
 
@@ -269,5 +270,31 @@ func TestProcessCrashRollback(t *testing.T) {
 	var count int
 	if err := store.DB.QueryRow(`SELECT COUNT(*) FROM platform_revisions WHERE tenant_id=?`, s.Tenant).Scan(&count); err != nil || count != 0 {
 		t.Fatalf("crash leaked write %d %v", count, err)
+	}
+}
+
+func TestAcceptedBusinessFailureReplay(t *testing.T) {
+	store := open(t)
+	s := scope(t, store)
+	ctx := foundation.WithRequest(context.Background(), "request-1", "subject-1")
+	calls := 0
+	callback := func(tx ports.Executor) (db.Result, error) {
+		calls++
+		if err := db.AppendOutbox(ctx, tx, db.OutboxEvent{Scope: s, ID: "must-rollback", Topic: "test", Payload: []byte(`{}`), CreatedAt: time.Now()}); err != nil {
+			return db.Result{}, err
+		}
+		return db.Result{}, errors.New("STALE_APPROVAL")
+	}
+	first, err := store.Execute(ctx, s, "business-failure", "key", map[string]string{"resource": "a"}, callback)
+	if err != nil || first.Status != 409 {
+		t.Fatalf("first failure %d %v", first.Status, err)
+	}
+	second, err := store.Execute(foundation.WithRequest(context.Background(), "request-2", "subject-1"), s, "business-failure", "key", map[string]string{"resource": "a"}, callback)
+	if err != nil || !second.Replayed || string(first.Body) != string(second.Body) || calls != 1 {
+		t.Fatalf("failure replay calls=%d %v", calls, err)
+	}
+	var count int
+	if err = store.DB.QueryRow(`SELECT COUNT(*) FROM transaction_outbox WHERE tenant_id=?`, s.Tenant).Scan(&count); err != nil || count != 0 {
+		t.Fatal("partial business writes survived", err)
 	}
 }
