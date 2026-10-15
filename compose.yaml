@@ -25,6 +25,7 @@ services:
     image: excommission-local-runtime:dev
     volumes:
       - ./.local/users.json:/local/users.json:ro
+      - ./.local/recovery-evidence.json:/local/recovery-evidence.json:ro
       - ./.local/grade-statistics.json:/local/grade-statistics.json:ro
       - ./.local/payment-results.json:/local/payment-results.json:ro
     restart: unless-stopped
@@ -42,6 +43,7 @@ services:
       LOCAL_PAYMENT_KEY: ${LOCAL_PAYMENT_KEY:?请先生成本地凭据}
       LOCAL_PAYMENT_RESULTS_FILE: /local/payment-results.json
       LOCAL_USERS_FILE: /local/users.json
+      LOCAL_RECOVERY_EVIDENCE_FILE: /local/recovery-evidence.json
       LOCAL_GRADE_STATISTICS_FILE: /local/grade-statistics.json
       DB_ADDRESS: mysql:3306
       DB_USER: excommission

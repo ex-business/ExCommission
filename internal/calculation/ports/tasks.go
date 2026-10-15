@@ -9,6 +9,7 @@ import (
 )
 
 type Tasks interface {
+	ByBusiness(context.Context, db.Executor, foundation.Scope, string, string, string) (domain.Task, error)
 	Create(context.Context, db.Executor, foundation.Scope, domain.Task, time.Time) error
 	Get(context.Context, db.Executor, foundation.Scope, string) (domain.Task, error)
 	BySource(context.Context, db.Executor, foundation.Scope, string, string) (domain.Task, error)

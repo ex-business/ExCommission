@@ -24,6 +24,7 @@ type Ledger interface {
 	Hold(context.Context, db.Executor, foundation.Scope, string, string, string, time.Time) error
 }
 type Statements interface {
+	Owns(context.Context, db.Executor, foundation.Scope, string, string) (bool, error)
 	Get(context.Context, db.Executor, foundation.Scope, string, bool) (statement.Statement, error)
 	PaymentState(context.Context, db.Executor, foundation.Scope, statement.Statement, string) error
 }

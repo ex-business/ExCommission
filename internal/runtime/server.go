@@ -72,6 +72,7 @@ func Run(service string) error {
 	if service == "worker" {
 		worker := buildWorker(store)
 		payments := paymentService(store)
+		refunds := refundService(store)
 		go func() {
 			ticker := time.NewTicker(5 * time.Second)
 			defer ticker.Stop()
@@ -82,6 +83,9 @@ func Run(service string) error {
 				case <-ticker.C:
 					jobCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 					err := payments.Recover(jobCtx, localScope())
+					if err == nil {
+						err = refunds.Recover(jobCtx, localScope())
+					}
 					cancel()
 					if err != nil && ctx.Err() == nil {
 						slog.Error("付款恢复失败，保留原资金号与占用", "service", service)

@@ -36,6 +36,15 @@ func (Repository) Commit(ctx context.Context, tx db.Executor, scope foundation.S
 		if !validAmount(item.Minor) || !foundation.ValidID(item.BeneficiaryID) || !foundation.ValidID(item.RuleID) || item.Currency != input.Plan.Currency {
 			return foundation.ErrValidation
 		}
+		originalAmount := item.Minor
+		if item.OriginalMinor != "" {
+			originalAmount = item.OriginalMinor
+			n, ok := new(big.Int).SetString(originalAmount, 10)
+			target, _ := new(big.Int).SetString(item.Minor, 10)
+			if !ok || !validAmount(originalAmount) || n.Cmp(target) < 0 {
+				return foundation.ErrValidation
+			}
+		}
 		id := stableID(task.Source, task.BusinessID, task.EventType, input.PlanVersionID, item.RuleID, item.BeneficiaryID, item.Currency)
 		if seen[id] {
 			return foundation.ErrValidation
@@ -59,12 +68,12 @@ func (Repository) Commit(ctx context.Context, tx db.Executor, scope foundation.S
 			return rowErr
 		}
 		if exists {
-			if oldTask != task.ID || oldAmount != item.Minor {
+			if oldTask != task.ID || oldAmount != originalAmount {
 				return errors.New("LEDGER_IDEMPOTENCY_CONFLICT")
 			}
 			continue
 		}
-		_, err = tx.ExecContext(ctx, `INSERT INTO ledger_entitlements(tenant_id,app_id,entitlement_id,task_id,source_id,business_id,event_type,plan_version_id,rule_id,beneficiary_id,currency,original_target,target,pending,business_time,posted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, scope.Tenant, scope.App, id, task.ID, task.Source, task.BusinessID, task.EventType, input.PlanVersionID, item.RuleID, item.BeneficiaryID, item.Currency, item.Minor, item.Minor, item.Minor, input.Facts.BusinessTime, now)
+		_, err = tx.ExecContext(ctx, `INSERT INTO ledger_entitlements(tenant_id,app_id,entitlement_id,task_id,source_id,business_id,event_type,plan_version_id,rule_id,beneficiary_id,currency,original_target,target,pending,business_time,posted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, scope.Tenant, scope.App, id, task.ID, task.Source, task.BusinessID, task.EventType, input.PlanVersionID, item.RuleID, item.BeneficiaryID, item.Currency, originalAmount, item.Minor, item.Minor, input.Facts.BusinessTime, now)
 		if err != nil {
 			return err
 		}

@@ -23,6 +23,8 @@ import (
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
 	users "github.com/ex-business/ExCommission/internal/users/adapters"
 	user "github.com/ex-business/ExCommission/internal/users/domain"
+	workflowrepo "github.com/ex-business/ExCommission/internal/workflow/adapters"
+	workflow "github.com/ex-business/ExCommission/internal/workflow/application"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -45,7 +47,7 @@ func database(t *testing.T) (*mysql.Store, foundation.Scope) {
 	}
 	scope := foundation.Scope{Tenant: "test-event-" + fmt.Sprint(time.Now().UnixNano()), App: "app"}
 	t.Cleanup(func() {
-		for _, table := range []string{"ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "integration_event_keys", "integration_inbox", "integration_raw_payloads", "calculation_tasks", "calculation_recoveries", "command_results", "users_external", "agent_accounts", "agent_relations", "agent_relation_spaces", "agent_grade_history", "agent_plan_states", "plan_drafts", "plan_versions", "plan_route_spaces", "user_agent_bindings"} {
+		for _, table := range []string{"ledger_recoveries", "calculation_adjustments", "workflow_requests", "calculation_refund_order", "calculation_refunds", "calculation_refund_spaces", "ledger_debt_ages", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "integration_event_keys", "integration_inbox", "integration_raw_payloads", "calculation_tasks", "calculation_recoveries", "command_results", "users_external", "agent_accounts", "agent_relations", "agent_relation_spaces", "agent_grade_history", "agent_plan_states", "plan_drafts", "plan_versions", "plan_route_spaces", "user_agent_bindings"} {
 			if _, err := store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant); err != nil {
 				t.Error(err)
 			}
@@ -183,6 +185,24 @@ func TestSignedEventsIdempotencySnapshotAndLedgerGate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	refunds := worker.RefundService{Commands: store, UOW: store, Query: store.DB, Repo: taskrepo.Refunds{}, Adjustments: taskrepo.Adjustments{}, Tasks: tasks, Ledger: ledger.Repository{}, Now: func() time.Time { return at }, ID: ids}
+	refundInput := calculation.Refund{Source: "sandbox", ID: "refund1", BusinessID: "B1", EventType: "FEE_CONFIRMED", Total: "400", Currency: "USD", Time: at, Reason: "confirmed cancellation"}
+	refundRaw, _ := json.Marshal(refundInput)
+	normalized, err := provider.NormalizeRefund(refundRaw, signature(refundRaw, key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	receivedRefund, err := refunds.Receive(ctx, p, normalized, "refund-first", "request")
+	if err != nil || receivedRefund.Status != 202 {
+		t.Fatal("refund before original", err, string(receivedRefund.Body))
+	}
+	invalidBeforeOriginal := normalized
+	invalidBeforeOriginal.ID = "invalid-before-original"
+	invalidBeforeOriginal.Total = "2000"
+	rejectedLater, err := refunds.Receive(ctx, p, invalidBeforeOriginal, "invalid-before-original-key", "request")
+	if err != nil || rejectedLater.Status != 202 {
+		t.Fatal(err, string(rejectedLater.Body))
+	}
 	processor := worker.Worker{UOW: store, Tasks: tasks, Resolver: worker.Resolver{Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2}}, Now: func() time.Time { return at }, Lease: 30 * time.Second}
 	if done, err := processor.RunOnce(ctx, s); err != nil || !done {
 		t.Fatalf("worker %t %v", done, err)
@@ -225,6 +245,7 @@ func TestSignedEventsIdempotencySnapshotAndLedgerGate(t *testing.T) {
 		t.Fatal(err)
 	}
 	processor.Committer = ledger.Repository{}
+	processor.TargetPolicy = refunds
 	if done, err := processor.RunOnce(ctx, s); err != nil || !done {
 		t.Fatal("formal posting failed", err)
 	}
@@ -240,6 +261,197 @@ func TestSignedEventsIdempotencySnapshotAndLedgerGate(t *testing.T) {
 	if done, err := processor.RunOnce(ctx, s); err != nil || done {
 		t.Fatal("completed task was reclaimed", err)
 	}
+	entitlements, err := (ledger.Repository{}).TaskEntitlements(ctx, store.DB, s, task.ID)
+	if err != nil || len(entitlements) != 1 || entitlements[0].Target != "6000" {
+		t.Fatal("first final commission ignored prior refund", entitlements, err)
+	}
+	entitlementID := entitlements[0].ID
+	invalidRecord, err := refunds.Repo.Get(ctx, store.DB, s, rejectedLater.ResourceID)
+	if err != nil || invalidRecord.Status != "REJECTED" {
+		t.Fatal("unbounded pre-original refund was not rejected", invalidRecord, err)
+	}
+	acceptRefund := func(id, total string) calculation.RefundRecord {
+		t.Helper()
+		refundInput.ID = id
+		refundInput.Total = total
+		r, e := refunds.Receive(ctx, p, refundInput, "refund-key-"+id, "request")
+		if e != nil || r.Status != 202 {
+			t.Fatal(e, string(r.Body))
+		}
+		v, e := refunds.Repo.Get(ctx, store.DB, s, r.ResourceID)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = refunds.Process(ctx, s, v); e != nil {
+			t.Fatal(e)
+		}
+		v, e = refunds.Repo.Get(ctx, store.DB, s, r.ResourceID)
+		if e != nil {
+			t.Fatal(e)
+		}
+		return v
+	}
+	if r := acceptRefund("refund2", "500"); r.Status != "SUCCEEDED" {
+		t.Fatal(r)
+	}
+	if r := acceptRefund("refund-stale", "450"); r.Status != "STALE_NOOP" {
+		t.Fatal(r)
+	}
+	refundInput.ID = "refund-excess"
+	refundInput.Total = "1001"
+	excess, e := refunds.Receive(ctx, p, refundInput, "excess-key", "request")
+	if e != nil || excess.Status != 422 {
+		t.Fatal("over refund accepted", excess.Status, e)
+	}
+	transfer := func(from, to, amount, ref string) {
+		t.Helper()
+		if err := store.Within(ctx, func(tx db.Executor) error {
+			return (ledger.Repository{}).Transfer(ctx, tx, s, entitlementID, from, to, amount, ref, at)
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	transfer("pending", "available", "5000", "settlement-test")
+	transfer("available", "reserved", "1000", "payment-test")
+	waiting := acceptRefund("refund3", "600")
+	if waiting.Status != "WAITING_PAYMENT" {
+		t.Fatal("unknown payment refund moved funds", waiting)
+	}
+	money, err := (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Target != "5000" || !money.Frozen || money.Reserved != "1000" {
+		t.Fatal(money, err)
+	}
+	transfer("reserved", "paid", "1000", "payment-confirmed")
+	if err = refunds.Process(ctx, s, waiting); err != nil {
+		t.Fatal(err)
+	}
+	money, err = (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Target != "4000" || money.Frozen || money.Paid != "1000" || money.Available != "0" || money.Pending != "3000" {
+		t.Fatal("refund resumed wrong buckets", money, err)
+	}
+	if r := acceptRefund("refund4", "1000"); r.Status != "SUCCEEDED" {
+		t.Fatal(r)
+	}
+	money, err = (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Target != "0" || money.Debt != "1000" || money.Paid != "1000" || money.Available != "0" {
+		t.Fatal("paid history/debt conservation", money, err)
+	}
+	recovery := worker.RecoveryService{Commands: store, Query: store.DB, Ledger: ledger.Repository{}, Workflow: workflowrepo.Repository{}, Now: func() time.Time { return at }, ID: ids}
+	adjustment := worker.AdjustmentService{Commands: store, Tasks: tasks, Repo: taskrepo.Adjustments{}, Refunds: refunds, Ledger: ledger.Repository{}, Workflow: workflowrepo.Repository{}, Now: func() time.Time { return at }, ID: ids}
+	approvals := workflow.Service{Commands: store, Query: store.DB, Repo: workflowrepo.Repository{}, Now: func() time.Time { return at }, Executors: map[string]workflow.Executor{"RECOVERY": recovery.Execute, "ADJUSTMENT": adjustment.Execute}}
+	checker := p
+	checker.Subject = "independent-checker"
+	approve := func(command foundation.CommandResult) {
+		t.Helper()
+		if command.Status != 202 {
+			t.Fatal("approval request rejected", string(command.Body))
+		}
+		var body struct {
+			Data struct {
+				ID   string `json:"approval_id"`
+				Hash string `json:"object_hash"`
+			}
+		}
+		json.Unmarshal(command.Body, &body)
+		decision := workflow.Decision{Decision: "APPROVE", ObjectHash: body.Data.Hash, Revision: 0, Reason: "verified independently"}
+		self, e := approvals.Decide(ctx, p, body.Data.ID, decision, ids(), "r")
+		if e != nil || self.Status != 403 {
+			t.Fatal("self approval bypass", self.Status, e)
+		}
+		answer, e := approvals.Decide(ctx, checker, body.Data.ID, decision, ids(), "r")
+		if e != nil || answer.Status != 200 {
+			t.Fatal(e, string(answer.Body))
+		}
+		a, e := approvals.Get(ctx, checker, body.Data.ID)
+		if e != nil || a.Execution != "SUCCEEDED" {
+			t.Fatal("approval execution", a, e)
+		}
+	}
+	// A future approved commission can offset only this agent and currency, after independent approval.
+	futureInput := snapshot
+	futureInput.TaskID = "future-task"
+	futureTask := task
+	futureTask.ID = "future-task"
+	futureTask.BusinessID = "future-business"
+	futureResult := calculation.Calculate(futureInput)
+	if err = store.Within(ctx, func(tx db.Executor) error {
+		return (ledger.Repository{}).Commit(ctx, tx, s, futureTask, futureInput, futureResult, at)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	future, err := (ledger.Repository{}).TaskEntitlements(ctx, store.DB, s, "future-task")
+	if err != nil || len(future) != 1 {
+		t.Fatal(future, err)
+	}
+	if err = store.Within(ctx, func(tx db.Executor) error {
+		return (ledger.Repository{}).Transfer(ctx, tx, s, future[0].ID, "pending", "available", "10000", "future-approved", at)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	request := worker.RecoveryInput{DebtID: entitlementID, Method: "FUTURE_OFFSET", Evidence: "offset-proof", Reason: "approved offset", Revision: money.Revision}
+	request.Amount.Currency = "USD"
+	request.Amount.Minor = "600"
+	rec, err := recovery.Request(ctx, p, request, ids(), "r")
+	if err != nil {
+		t.Fatal(err)
+	}
+	approve(rec)
+	money, err = (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Debt != "400" || money.Recovered != "600" || money.Paid != "1000" {
+		t.Fatal("offset conservation", money, err)
+	}
+	proofFile := t.TempDir() + "/evidence.json"
+	proofBody, _ := json.Marshal(map[string]any{"cash-proof": map[string]any{"tenant_id": s.Tenant, "app_id": s.App, "agent_id": "parent", "currency": "USD", "minor_units": "400", "confirmed": true}})
+	if err = os.WriteFile(proofFile, proofBody, 0600); err != nil {
+		t.Fatal(err)
+	}
+	recovery.Evidence = taskrepo.SandboxEvidence{File: proofFile}
+	request.Method = "CASH_CONFIRMED"
+	request.Evidence = "missing-proof"
+	request.Amount.Minor = "400"
+	request.Revision = money.Revision
+	if _, err = recovery.Request(ctx, p, request, ids(), "r"); err == nil {
+		t.Fatal("unconfirmed cash accepted")
+	}
+	request.Evidence = "cash-proof"
+	rec, err = recovery.Request(ctx, p, request, ids(), "r")
+	if err != nil {
+		t.Fatal(err)
+	}
+	approve(rec)
+	money, err = (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Debt != "0" || money.Recovered != "1000" || money.Paid != "1000" {
+		t.Fatal("cash recovery conservation", money, err)
+	}
+	// Approved corrections append a revision; original snapshots and paid records are immutable.
+	finalTask, err := tasks.Get(ctx, store.DB, s, task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	facts := snapshot.Facts
+	facts.Basis = "2000"
+	adjustRequest := worker.AdjustmentInput{TaskID: task.ID, Facts: facts, Reason: "source facts corrected", Evidence: "correction-proof", Revision: finalTask.Revision}
+	adj, err := adjustment.Request(ctx, p, adjustRequest, ids(), "r")
+	if err != nil {
+		t.Fatal(err)
+	}
+	approve(adj)
+	money, err = (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Target != "10000" || money.Pending != "10000" || money.Paid != "1000" || money.Recovered != "1000" {
+		t.Fatal("adjusted target conservation", money, err)
+	}
+	afterCorrection, err := tasks.Get(ctx, store.DB, s, task.ID)
+	if err != nil || string(afterCorrection.Snapshot) != before {
+		t.Fatal("correction overwrote original snapshot", err)
+	}
+	if r := acceptRefund("refund-after-adjustment", "1500"); r.Status != "SUCCEEDED" {
+		t.Fatal(r)
+	}
+	money, err = (ledger.Repository{}).Get(ctx, store.DB, s, entitlementID, false)
+	if err != nil || money.Target != "5000" || money.Pending != "5000" {
+		t.Fatal("refund ignored approved corrected snapshot", money, err)
+	}
+
 }
 func TestTaskLeaseFencingAndRetryLimit(t *testing.T) {
 	store, s := database(t)

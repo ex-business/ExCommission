@@ -134,3 +134,15 @@ func (Tasks) Resume(ctx context.Context, tx db.Executor, s foundation.Scope, id 
 	_, err = tx.ExecContext(ctx, `INSERT INTO calculation_recoveries SELECT tenant_id,app_id,task_id,revision,?,? FROM calculation_tasks WHERE tenant_id=? AND app_id=? AND task_id=?`, evidence, at.UTC(), s.Tenant, s.App, id)
 	return err
 }
+
+func (r Tasks) ByBusiness(ctx context.Context, tx db.Executor, s foundation.Scope, source, business, kind string) (domain.Task, error) {
+	var id string
+	err := tx.QueryRowContext(ctx, `SELECT task_id FROM calculation_tasks WHERE tenant_id=? AND app_id=? AND source_id=? AND business_id=? AND event_type=?`, s.Tenant, s.App, source, business, kind).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.Task{}, errors.New("NOT_FOUND")
+	}
+	if err != nil {
+		return domain.Task{}, err
+	}
+	return r.Get(ctx, tx, s, id)
+}

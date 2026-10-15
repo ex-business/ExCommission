@@ -14,12 +14,13 @@ import (
 )
 
 type Worker struct {
-	UOW       db.UnitOfWork
-	Tasks     ports.Tasks
-	Resolver  ports.SnapshotResolver
-	Committer ports.Committer
-	Now       func() time.Time
-	Lease     time.Duration
+	UOW          db.UnitOfWork
+	Tasks        ports.Tasks
+	Resolver     ports.SnapshotResolver
+	Committer    ports.Committer
+	TargetPolicy ports.TargetPolicy
+	Now          func() time.Time
+	Lease        time.Duration
 }
 
 func (w Worker) RunOnce(ctx context.Context, s foundation.Scope) (bool, error) {
@@ -81,6 +82,17 @@ func (w Worker) RunOnce(ctx context.Context, s foundation.Scope) (bool, error) {
 		return true, w.failure(ctx, s, task, errors.New("LEDGER_NOT_READY"))
 	}
 	err = w.UOW.Within(ctx, func(tx db.Executor) error {
+		if w.TargetPolicy != nil {
+			var err error
+			result, err = w.TargetPolicy.Prepare(ctx, tx, s, task, snapshot, result)
+			if err != nil {
+				return err
+			}
+			body, err = json.Marshal(result)
+			if err != nil {
+				return err
+			}
+		}
 		if err := w.Committer.Commit(ctx, tx, s, task, snapshot, result, w.Now()); err != nil {
 			return err
 		}
@@ -104,7 +116,7 @@ func (w Worker) failure(ctx context.Context, s foundation.Scope, t domain.Task, 
 	switch code {
 	case "REVISION_CONFLICT":
 		return cause
-	case "NO_EFFECTIVE_PLAN_VERSION", "RELATION_HISTORY_MISSING", "UNKNOWN_FACT", "RATE_MISSING", "UNIT_MISMATCH", "VALIDATION_FAILED", "BASIS_CURRENCY_MISMATCH", "BUDGET_EXCEEDED", "SNAPSHOT_INTEGRITY_FAILED", "LEDGER_NOT_READY", "UNSUPPORTED_CAPABILITY", "NOT_FOUND":
+	case "NO_EFFECTIVE_PLAN_VERSION", "RELATION_HISTORY_MISSING", "UNKNOWN_FACT", "RATE_MISSING", "UNIT_MISMATCH", "VALIDATION_FAILED", "BASIS_CURRENCY_MISMATCH", "BUDGET_EXCEEDED", "SNAPSHOT_INTEGRITY_FAILED", "LEDGER_NOT_READY", "UNSUPPORTED_CAPABILITY", "NOT_FOUND", "REFUND_QUANTITY_MISSING", "REFUND_EXCEEDS_ORIGINAL", "REFUND_TARGET_INCREASE":
 		return w.UOW.Within(ctx, func(tx db.Executor) error { return w.Tasks.Finish(ctx, tx, s, t, "SUSPENDED", &code, nil, w.Now()) })
 	default:
 		return w.Tasks.Retry(ctx, s, t, w.Now())

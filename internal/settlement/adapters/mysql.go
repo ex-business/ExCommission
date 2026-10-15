@@ -110,6 +110,11 @@ func (Repository) Create(ctx context.Context, tx db.Executor, s foundation.Scope
 	return nil
 }
 func (Repository) Claimed(ctx context.Context, tx db.Executor, s foundation.Scope, id string) (bool, error) {
+	// New pending after an approved cycle is a new revision requiring a new statement.
+	if _, err := tx.ExecContext(ctx, `DELETE c FROM settlement_claims c JOIN settlement_statements v ON v.tenant_id=c.tenant_id AND v.app_id=c.app_id AND v.statement_id=c.statement_id WHERE c.tenant_id=? AND c.app_id=? AND c.entitlement_id=? AND v.status IN ('APPROVED','PARTIALLY_PAID','PAID')`, s.Tenant, s.App, id); err != nil {
+		return false, err
+	}
+
 	var n int
 	err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM settlement_claims WHERE tenant_id=? AND app_id=? AND entitlement_id=?`, s.Tenant, s.App, id).Scan(&n)
 	return n > 0, err
@@ -143,4 +148,10 @@ func (Repository) State(ctx context.Context, tx db.Executor, s foundation.Scope,
 // PaymentState is owned by settlement so payment adapters cannot write its tables.
 func (r Repository) PaymentState(ctx context.Context, tx db.Executor, s foundation.Scope, v model.Statement, status string) error {
 	return r.State(ctx, tx, s, v, status)
+}
+
+func (Repository) Owns(ctx context.Context, tx db.Executor, s foundation.Scope, statement, id string) (bool, error) {
+	var n int
+	err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM settlement_claims WHERE tenant_id=? AND app_id=? AND statement_id=? AND entitlement_id=?`, s.Tenant, s.App, statement, id).Scan(&n)
+	return n == 1, err
 }

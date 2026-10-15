@@ -3,6 +3,7 @@ package domain
 import "time"
 
 type Entitlement struct {
+	RuleID       string    `json:"rule_id"`
 	ID           string    `json:"entitlement_id"`
 	TaskID       string    `json:"task_id"`
 	AgentID      string    `json:"agent_id"`

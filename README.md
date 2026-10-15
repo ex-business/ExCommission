@@ -87,3 +87,9 @@ worker 使用持久化租约、fencing token和冻结快照。快照仅按业务
 结算通过 `POST /v1/statement-runs` 按已结束的 UTC 日期生成草稿，通过 `GET /v1/statements/{id}` 核对权益与摘要，再提交独立审批。一个作用域内结算期按日期向前推进，已生成周期与筛选集合固定；重复运行返回原单，改变筛选集合返回冲突。迟到事实保留原 business_time，在后续运行中收录。提交才占用权益；拒绝或执行失效释放占用。批准时重新检查每个权益的修订、金额及冻结状态，整体转入 available；过时审批不会部分执行。
 
 支付使用独立本地沙箱：创建时锁定结算修订并占用 available，渠道调用在事务外执行。worker 恢复未发送付款，对 SUBMITTED/UNKNOWN 仅按原 merchant_payment_id 查询。`POST /v1/payment-callbacks/sandbox` 必须通过 `X-Payment-Signature` 验签；重复通知幂等，金额/币种不符或终态冲突进入对账异常，保留原资金结果并冻结关联权益。沙箱默认只返回 UNKNOWN，终态必须来自显式签名回调或 `.local/payment-results.json` 中的查询/对账记录；这不代表真实银行到账。付款状态通过 GET 查询，创建响应保留最初的受理结果。
+
+累计退款由签名来源提交，先于原业务的记录等待原快照；首次正式入账会合并已确认累计值。每次使用原资格、候选人、算法与上限求新目标，固定/加权奖池部分退款不变，全额归零；单位单价必须有累计撤销数量。低累计值是 STALE_NOOP，超过已知原额拒绝；原业务尚未知时收到的超额记录，在原事实确定后标为 REJECTED。reserved 未决时挂起资金调整并冻结，其结果明确后继续冲减；已付不足部分增加 debt，历史 paid 不覆盖。
+
+退款或事实更正改变已批准权益时，剩余 available 回 pending，旧付款授权失效，后续结算必须重新审批。独立审批的 FUTURE_OFFSET 只使用同代理同币种已批准可用佣金并按债务 FIFO 执行；抵债作为非现金结清记入该未来权益 paid，债务权益同时累计 recovered，现金支出仍由账簿 CASH_CLEARING 口径识别。CASH_CONFIRMED 必须有服务端核验的确认凭证，一份凭证不能重复追回；本地凭证文件只是沙箱事实，不代替银行核验。
+
+`POST /v1/adjustment-requests` 的 corrected_facts 必须提供完整事实，保留原 business_time、币种和业务路由；沿用原版本及资格快照。通过独立审批后追加新修订和差额，不覆盖原任务快照与已付记录。通过任务 `/adjustments` 查询有效修订，再提交 expected_revision；后续退款沿用最新已批准事实修订。

@@ -70,7 +70,11 @@ func (s Service) Create(ctx context.Context, p identity.Principal, input CreateI
 			if err != nil {
 				return foundation.CommandResult{}, err
 			}
-			if e.Frozen || e.Target != item.Amount {
+			owns, err := s.Statements.Owns(ctx, tx, scope, v.ID, item.ID)
+			if err != nil {
+				return foundation.CommandResult{}, err
+			}
+			if e.Frozen || e.Pending != "0" || !owns {
 				return foundation.CommandResult{}, errors.New("STALE_APPROVAL")
 			}
 			available, _ := new(big.Int).SetString(e.Available, 10)

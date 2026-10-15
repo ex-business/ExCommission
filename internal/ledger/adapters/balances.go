@@ -16,11 +16,11 @@ func (Repository) Get(ctx context.Context, tx db.Executor, scope foundation.Scop
 	if !scope.Valid() || !foundation.ValidID(id) {
 		return e, foundation.ErrValidation
 	}
-	q := `SELECT entitlement_id,task_id,beneficiary_id,currency,CAST(target AS CHAR),CAST(pending AS CHAR),CAST(available AS CHAR),CAST(reserved AS CHAR),CAST(paid AS CHAR),CAST(debt AS CHAR),CAST(recovered AS CHAR),revision,business_time FROM ledger_entitlements WHERE tenant_id=? AND app_id=? AND entitlement_id=?`
+	q := `SELECT entitlement_id,rule_id,task_id,beneficiary_id,currency,CAST(target AS CHAR),CAST(pending AS CHAR),CAST(available AS CHAR),CAST(reserved AS CHAR),CAST(paid AS CHAR),CAST(debt AS CHAR),CAST(recovered AS CHAR),revision,business_time FROM ledger_entitlements WHERE tenant_id=? AND app_id=? AND entitlement_id=?`
 	if lock {
 		q += " FOR UPDATE"
 	}
-	err := tx.QueryRowContext(ctx, q, scope.Tenant, scope.App, id).Scan(&e.ID, &e.TaskID, &e.AgentID, &e.Currency, &e.Target, &e.Pending, &e.Available, &e.Reserved, &e.Paid, &e.Debt, &e.Recovered, &e.Revision, &e.BusinessTime)
+	err := tx.QueryRowContext(ctx, q, scope.Tenant, scope.App, id).Scan(&e.ID, &e.RuleID, &e.TaskID, &e.AgentID, &e.Currency, &e.Target, &e.Pending, &e.Available, &e.Reserved, &e.Paid, &e.Debt, &e.Recovered, &e.Revision, &e.BusinessTime)
 	if errors.Is(err, sql.ErrNoRows) {
 		return e, errors.New("NOT_FOUND")
 	}
@@ -89,5 +89,17 @@ func (r Repository) Hold(ctx context.Context, tx db.Executor, s foundation.Scope
 		return err
 	}
 	_, err := tx.ExecContext(ctx, `INSERT IGNORE INTO ledger_restrictions(tenant_id,app_id,entitlement_id,risk_id,reason_code,created_at) VALUES(?,?,?,?,?,?)`, s.Tenant, s.App, id, risk, reason, now)
+	return err
+}
+
+func (r Repository) CloseHold(ctx context.Context, tx db.Executor, s foundation.Scope, id, risk string, now time.Time) error {
+	e, err := r.Get(ctx, tx, s, id, true)
+	if err != nil {
+		return err
+	}
+	if e.Reserved != "0" {
+		return errors.New("PAYMENT_RESULT_UNKNOWN")
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE ledger_restrictions SET closed_at=? WHERE tenant_id=? AND app_id=? AND entitlement_id=? AND risk_id=? AND closed_at IS NULL`, now, s.Tenant, s.App, id, risk)
 	return err
 }

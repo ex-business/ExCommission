@@ -45,6 +45,7 @@ type Input struct {
 	Exponent   int
 }
 type Item struct {
+	OriginalMinor string `json:"-"`
 	RuleID        string `json:"rule_id"`
 	BeneficiaryID string `json:"beneficiary_id"`
 	Depth         int    `json:"depth"`

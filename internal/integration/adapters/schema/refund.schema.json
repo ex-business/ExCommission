@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:refund",
+  "type": "object",
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "refund_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "original_business_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "original_event_type": {
+      "type": "string",
+      "enum": [
+        "FEE_CONFIRMED",
+        "TRADE_CLOSED",
+        "ORDER_CONFIRMED"
+      ]
+    },
+    "refund_basis_total": {
+      "type": "string",
+      "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "business_time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "refund_quantity_total": {
+      "type": "string",
+      "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+    },
+    "quantity_unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "required": [
+    "source_id",
+    "refund_id",
+    "original_business_id",
+    "original_event_type",
+    "refund_basis_total",
+    "currency",
+    "business_time",
+    "reason"
+  ],
+  "additionalProperties": false,
+  "dependentRequired": {
+    "refund_quantity_total": [
+      "quantity_unit"
+    ],
+    "quantity_unit": [
+      "refund_quantity_total"
+    ]
+  }
+}

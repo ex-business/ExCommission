@@ -24,3 +24,7 @@ print('本地配置已就绪；凭据仅保存在被忽略的 .env，未输出�
 payment_results = local / 'payment-results.json'
 if not payment_results.exists():
     payment_results.write_text('{"queries":{},"reconciliations":{}}\n')
+
+recovery_evidence = local / 'recovery-evidence.json'
+if not recovery_evidence.exists():
+    recovery_evidence.write_text('{}\n')

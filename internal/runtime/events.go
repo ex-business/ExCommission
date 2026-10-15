@@ -30,7 +30,7 @@ func taskRepository(store *mysql.Store) tasks.Tasks {
 	return tasks.Tasks{DB: store.DB, Within: store.Within}
 }
 func buildWorker(store *mysql.Store) *calculation.Worker {
-	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Committer: ledger.Repository{}, Now: clockUTC, Lease: 30 * time.Second}
+	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Committer: ledger.Repository{}, TargetPolicy: refundService(store), Now: clockUTC, Lease: 30 * time.Second}
 }
 func localScope() foundation.Scope {
 	tenant, app := os.Getenv("LOCAL_TENANT"), os.Getenv("LOCAL_APP")
