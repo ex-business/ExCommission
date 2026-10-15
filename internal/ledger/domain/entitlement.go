@@ -3,6 +3,8 @@ package domain
 import "time"
 
 type Entitlement struct {
+	Minimum             string    `json:"minimum_payout_minor"`
+	Maximum             *string   `json:"max_payment_minor"`
 	PaymentHold         bool      `json:"payment_hold"`
 	RestrictedPending   string    `json:"restricted_pending_minor"`
 	RestrictedAvailable string    `json:"restricted_available_minor"`

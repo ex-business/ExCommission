@@ -82,6 +82,9 @@ func (Repository) Get(ctx context.Context, tx db.Executor, s foundation.Scope, i
 	if err != nil {
 		return v, err
 	}
+	if err = tx.QueryRowContext(ctx, `SELECT CAST(minimum AS CHAR),CAST(maximum AS CHAR) FROM settlement_payout_policies WHERE tenant_id=? AND app_id=? AND statement_id=?`, s.Tenant, s.App, id).Scan(&v.Minimum, &v.Maximum); err != nil {
+		return v, err
+	}
 	rows, err := tx.QueryContext(ctx, `SELECT entitlement_id,CAST(amount AS CHAR),entitlement_revision FROM settlement_items WHERE tenant_id=? AND app_id=? AND statement_id=? ORDER BY entitlement_id`, s.Tenant, s.App, id)
 	if err != nil {
 		return v, err
@@ -100,6 +103,12 @@ func (Repository) Get(ctx context.Context, tx db.Executor, s foundation.Scope, i
 func (Repository) Create(ctx context.Context, tx db.Executor, s foundation.Scope, v model.Statement, now time.Time) error {
 	_, err := tx.ExecContext(ctx, `INSERT INTO settlement_statements VALUES(?,?,?,?,?,?,'DRAFT',0,?,?,?)`, s.Tenant, s.App, v.ID, v.AgentID, v.Currency, v.Period, v.Hash, v.Total, now)
 	if err != nil {
+		return err
+	}
+	if v.Minimum == "" {
+		v.Minimum = "0"
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO settlement_payout_policies VALUES(?,?,?,?,?)`, s.Tenant, s.App, v.ID, v.Minimum, v.Maximum); err != nil {
 		return err
 	}
 	for _, item := range v.Items {

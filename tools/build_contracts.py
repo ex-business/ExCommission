@@ -124,6 +124,12 @@ endpoint('/v1/permission-change-requests','post',obj({'subject_id':identifier,'g
 endpoint('/v1/identity/subjects/{id}/permissions','get')
 endpoint('/v1/security-events/{id}/handling-records','post',obj({**rev,'status':enum('OPEN','ACKNOWLEDGED','RESOLVED'),**reason}))
 endpoint('/v1/audit-logs','get',query=[('type',enum('OPERATION','SECURITY'),False),('time_range',identifier,False),('actor',identifier,False),('object_ref',identifier,False)])
+currency_entry=obj({'code':currency,'exponent':{'type':'integer','minimum':0,'maximum':8},'display_format':identifier,'payment_channels':arr(identifier)})
+setting_configuration={'oneOf':[obj({'version_id':identifier,'effective_from':time,'currencies':arr(currency_entry)}),obj({'version_id':identifier,'effective_from':time,'timezone':enum('UTC'),'period':enum('DAILY')}),obj({'component_type':enum('SOURCE','PAYMENT','NOTIFICATION'),'component_id':identifier,'enabled':boolean})]}
+endpoint('/v1/platform-setting-requests','post',obj({'kind':enum('CURRENCY_CATALOG','CALENDAR','COMPONENT_STATE'),'configuration':setting_configuration,**rev,**reason}),202)
+endpoint('/v1/platform/catalogs','get')
+endpoint('/v1/platform/components','get')
+endpoint('/v1/notifications','get')
 endpoint('/v1/reports/{kind}','get',query=[(name,time if name in ('from','to') else identifier,False) for name in ('from','to','plan_id','version_id','agent_id','currency')])
 endpoint('/v1/report-exports','post',obj({'kind':enum('earnings','finance','cost'),'filters':obj({name:time if name in ('from','to') else identifier for name in ('from','to','plan_id','version_id','agent_id','currency')},[]),'format':enum('CSV')}),202)
 endpoint('/v1/report-exports/{id}/download','get')

@@ -104,6 +104,12 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err := installEvents(mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}
+	if err := installReports(mux, require, store, tenant, app); err != nil {
+		return nil, err
+	}
+	if err := installPlatform(mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
 	if err := installIdentityChanges(mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}

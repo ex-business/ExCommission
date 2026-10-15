@@ -72,7 +72,7 @@ func (r Repository) Reduce(ctx context.Context, tx db.Executor, s foundation.Sco
 		}
 		balance.Sub(balance, take)
 		delta.Sub(delta, take)
-		return appendJournal(ctx, tx, s, stableID(id, reference, bucket), reference, e.Currency, account, "COMMISSION_EXPENSE", take.String(), now)
+		return appendJournal(ctx, tx, s, stableID(id, reference, bucket), reference, id, e.Currency, account, "COMMISSION_EXPENSE", take.String(), now)
 	}
 	if err = post("pending", pending, "PAYABLE_PENDING"); err != nil {
 		return err
@@ -82,7 +82,7 @@ func (r Repository) Reduce(ctx context.Context, tx db.Executor, s foundation.Sco
 	}
 	if delta.Sign() > 0 {
 		debt.Add(debt, delta)
-		if err = appendJournal(ctx, tx, s, stableID(id, reference, "debt"), reference, e.Currency, "AGENT_RECEIVABLE", "COMMISSION_EXPENSE", delta.String(), now); err != nil {
+		if err = appendJournal(ctx, tx, s, stableID(id, reference, "debt"), reference, id, e.Currency, "AGENT_RECEIVABLE", "COMMISSION_EXPENSE", delta.String(), now); err != nil {
 			return err
 		}
 		if _, err = tx.ExecContext(ctx, `INSERT IGNORE INTO ledger_debt_ages VALUES(?,?,?,?)`, s.Tenant, s.App, id, now); err != nil {
@@ -94,18 +94,22 @@ func (r Repository) Reduce(ctx context.Context, tx db.Executor, s foundation.Sco
 		amount := available.String()
 		pending.Add(pending, available)
 		available.SetInt64(0)
-		if err = appendJournal(ctx, tx, s, stableID(id, reference, "reapproval"), reference, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", amount, now); err != nil {
+		if err = appendJournal(ctx, tx, s, stableID(id, reference, "reapproval"), reference, id, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", amount, now); err != nil {
 			return err
 		}
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE ledger_entitlements SET target=?,pending=?,available=?,debt=?,revision=revision+1 WHERE tenant_id=? AND app_id=? AND entitlement_id=?`, target, pending.String(), available.String(), debt.String(), s.Tenant, s.App, id)
 	return err
 }
-func appendJournal(ctx context.Context, tx db.Executor, s foundation.Scope, id, ref, currency, debit, credit, amount string, now time.Time) error {
+func appendJournal(ctx context.Context, tx db.Executor, s foundation.Scope, id, ref, entitlement, currency, debit, credit, amount string, now time.Time) error {
 	if !validAmount(amount) || debit == credit || !foundation.ValidID(ref) {
 		return foundation.ErrValidation
 	}
 	_, err := tx.ExecContext(ctx, `INSERT INTO ledger_journals(tenant_id,app_id,journal_id,business_ref,idempotency_key,currency,debit_account,credit_account,amount,occurred_at,posted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, s.Tenant, s.App, id, ref, id, currency, debit, credit, amount, now, now)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO ledger_journal_links VALUES(?,?,?,?)`, s.Tenant, s.App, id, entitlement)
 	return err
 }
 
@@ -135,7 +139,7 @@ func (r Repository) Increase(ctx context.Context, tx db.Executor, s foundation.S
 		clear.Set(delta)
 	}
 	if clear.Sign() > 0 {
-		if err = appendJournal(ctx, tx, s, stableID(id, reference, "debt-restore"), reference, e.Currency, "COMMISSION_EXPENSE", "AGENT_RECEIVABLE", clear.String(), now); err != nil {
+		if err = appendJournal(ctx, tx, s, stableID(id, reference, "debt-restore"), reference, id, e.Currency, "COMMISSION_EXPENSE", "AGENT_RECEIVABLE", clear.String(), now); err != nil {
 			return err
 		}
 		debt.Sub(debt, clear)
@@ -147,7 +151,7 @@ func (r Repository) Increase(ctx context.Context, tx db.Executor, s foundation.S
 		if len(pending.String()) > 38 {
 			return errors.New("AMOUNT_OUT_OF_RANGE")
 		}
-		if err = appendJournal(ctx, tx, s, stableID(id, reference, "increase"), reference, e.Currency, "COMMISSION_EXPENSE", "PAYABLE_PENDING", delta.String(), now); err != nil {
+		if err = appendJournal(ctx, tx, s, stableID(id, reference, "increase"), reference, id, e.Currency, "COMMISSION_EXPENSE", "PAYABLE_PENDING", delta.String(), now); err != nil {
 			return err
 		}
 	}
@@ -155,7 +159,7 @@ func (r Repository) Increase(ctx context.Context, tx db.Executor, s foundation.S
 	available, _ := new(big.Int).SetString(e.Available, 10)
 	if available.Sign() > 0 {
 		pending.Add(pending, available)
-		if err = appendJournal(ctx, tx, s, stableID(id, reference, "reapproval"), reference, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", available.String(), now); err != nil {
+		if err = appendJournal(ctx, tx, s, stableID(id, reference, "reapproval"), reference, id, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", available.String(), now); err != nil {
 			return err
 		}
 	}

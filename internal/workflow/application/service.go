@@ -49,6 +49,9 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 		}
 		if s.Authorize != nil {
 			permission := "relations:approve"
+			if approval.Type == "PLATFORM_SETTING" {
+				permission = "platform:approve"
+			}
 			if approval.Type == "IDENTITY_GRANT" {
 				permission = "identity:approve"
 			}

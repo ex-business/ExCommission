@@ -5,6 +5,7 @@ import (
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
+	catalog "github.com/ex-business/ExCommission/internal/platform/adapters/catalog"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	response "github.com/ex-business/ExCommission/internal/platform/application"
@@ -25,7 +26,7 @@ func installSettlement(mux *http.ServeMux, require func(string, authhttp.Authori
 			return err
 		}
 	}
-	service := settlement.Service{Commands: store, Query: store.DB, Repo: repo.Repository{}, Ledger: ledger.Repository{}, Workflow: workflowrepo.Repository{}, Now: clockUTC, ID: newID}
+	service := settlement.Service{Calendar: catalog.Repository{}, Commands: store, Query: store.DB, Repo: repo.Repository{}, Ledger: ledger.Repository{}, Workflow: workflowrepo.Repository{}, Now: clockUTC, ID: newID}
 	approvals.Executors["STATEMENT"] = service.Execute
 	if approvals.Rejections == nil {
 		approvals.Rejections = map[string]workflow.Executor{}

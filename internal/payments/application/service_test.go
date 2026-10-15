@@ -70,7 +70,7 @@ func TestPaymentUnknownOriginalIDCallbacksAndConservation(t *testing.T) {
 	}
 	scope := foundation.Scope{Tenant: fmt.Sprint("test-payment-", time.Now().UnixNano()), App: "app"}
 	defer func() {
-		for _, table := range []string{"payment_callbacks", "payment_allocations", "payment_orders", "settlement_claims", "settlement_items", "settlement_statements", "settlement_runs", "settlement_spaces", "workflow_requests", "command_results", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
+		for _, table := range []string{"payment_callbacks", "payment_allocations", "payment_orders", "settlement_claims", "settlement_payout_policies", "settlement_items", "settlement_statements", "settlement_runs", "settlement_spaces", "workflow_requests", "command_results", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant)
 		}
 	}()
@@ -82,6 +82,9 @@ func TestPaymentUnknownOriginalIDCallbacksAndConservation(t *testing.T) {
 	checker.Subject = "checker"
 	input := calc.Input{TaskID: "task", PlanVersionID: "pv", Facts: calc.Facts{BusinessTime: now.Add(-48 * time.Hour)}}
 	input.Plan.Currency = "USD"
+	input.Plan.Settlement.Minimum = "1000"
+	maximum := "7000"
+	input.Plan.Settlement.Maximum = &maximum
 	result := calc.Result{TaskID: "task", Status: "SUCCEEDED", Items: []calc.Item{{RuleID: "r", BeneficiaryID: "agent", Currency: "USD", Minor: "10000"}}}
 	task := calc.Task{ID: "task", Source: "source", BusinessID: "business", EventType: "FEE_CONFIRMED"}
 	if err = store.Within(ctx, func(tx db.Executor) error {
@@ -124,6 +127,14 @@ func TestPaymentUnknownOriginalIDCallbacksAndConservation(t *testing.T) {
 		t.Fatal(err)
 	}
 	create := CreateInput{StatementID: v.ID, Amount: model.Money{Currency: "USD", Minor: "6000"}, Channel: "sandbox", Revision: v.Revision}
+	for _, amount := range []string{"500", "8000"} {
+		invalid := create
+		invalid.Amount.Minor = amount
+		r, e := service.Create(ctx, p, invalid, id(), id())
+		if e != nil || r.Status != 422 {
+			t.Fatal("payout limit ignored", amount, r.Status, e)
+		}
+	}
 	key := id()
 	created, err := service.Create(ctx, p, create, key, id())
 	if err != nil || created.Status != 202 {

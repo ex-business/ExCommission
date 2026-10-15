@@ -30,7 +30,7 @@ func TestAtomicLedgerReplayIsolationAndFencing(t *testing.T) {
 	}
 	scope := foundation.Scope{Tenant: fmt.Sprint("test-ledger-", time.Now().UnixNano()), App: "app"}
 	defer func() {
-		for _, table := range []string{"ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "calculation_tasks"} {
+		for _, table := range []string{"ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "calculation_tasks"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant)
 		}
 	}()
@@ -98,7 +98,7 @@ func TestAtomicLedgerReplayIsolationAndFencing(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	for _, table := range []string{"ledger_entitlements", "ledger_journals", "ledger_restrictions", "transaction_outbox"} {
+	for _, table := range []string{"ledger_entitlements", "ledger_journals", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "transaction_outbox"} {
 		if err = store.DB.QueryRow("SELECT COUNT(*) FROM "+table+" WHERE tenant_id=?", scope.Tenant).Scan(&n); err != nil || n != 1 {
 			t.Fatalf("%s count=%d err=%v", table, n, err)
 		}

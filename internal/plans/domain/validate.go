@@ -109,8 +109,13 @@ func Validate(config Config, exponent int) error {
 		return err
 	}
 	if config.Settlement.Maximum != nil {
-		if _, err := Minor(*config.Settlement.Maximum); err != nil {
+		maximum, err := Minor(*config.Settlement.Maximum)
+		if err != nil {
 			return err
+		}
+		minimum, _ := Minor(config.Settlement.Minimum)
+		if maximum.Cmp(minimum) < 0 {
+			return invalid("payout limits")
 		}
 	}
 	if config.EventBudget != nil {

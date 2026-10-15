@@ -16,6 +16,7 @@ import (
 )
 
 type Service struct {
+	AllowNew func(context.Context, db.Executor, foundation.Scope, string) error
 	Commands db.Commands
 	Query    db.Executor
 	Repo     ports.Repository
@@ -54,6 +55,11 @@ func (s Service) Receive(ctx context.Context, p identity.Principal, raw []byte, 
 			return foundation.CommandResult{}, err
 		}
 		if err != nil {
+			if s.AllowNew != nil {
+				if err = s.AllowNew(ctx, tx, scope, event.Source); err != nil {
+					return foundation.CommandResult{}, err
+				}
+			}
 			if s.Plans == nil {
 				return foundation.CommandResult{}, foundation.ErrValidation
 			}

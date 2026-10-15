@@ -28,6 +28,9 @@ func (Repository) Get(ctx context.Context, tx db.Executor, scope foundation.Scop
 	if err != nil {
 		return e, err
 	}
+	if err = tx.QueryRowContext(ctx, `SELECT CAST(minimum AS CHAR),CAST(maximum AS CHAR) FROM ledger_payout_policies WHERE tenant_id=? AND app_id=? AND entitlement_id=?`, scope.Tenant, scope.App, id).Scan(&e.Minimum, &e.Maximum); err != nil {
+		return e, err
+	}
 	var n int
 	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM ledger_restrictions WHERE tenant_id=? AND app_id=? AND entitlement_id=? AND closed_at IS NULL`, scope.Tenant, scope.App, id).Scan(&n)
 	e.Frozen = n > 0
@@ -85,6 +88,10 @@ func (r Repository) Transfer(ctx context.Context, tx db.Executor, scope foundati
 		return err
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO ledger_journals(tenant_id,app_id,journal_id,business_ref,idempotency_key,currency,debit_account,credit_account,amount,occurred_at,posted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, scope.Tenant, scope.App, journal, reference, journal, e.Currency, accounts[0], accounts[1], amount, now, now)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO ledger_journal_links VALUES(?,?,?,?)`, scope.Tenant, scope.App, journal, id)
 	return err
 }
 
@@ -126,7 +133,7 @@ func (r Repository) Requeue(ctx context.Context, tx db.Executor, s foundation.Sc
 	if len(pending.String()) > 38 {
 		return errors.New("AMOUNT_OUT_OF_RANGE")
 	}
-	if err = appendJournal(ctx, tx, s, stableID(id, reference, "requeue"), reference, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", e.Available, now); err != nil {
+	if err = appendJournal(ctx, tx, s, stableID(id, reference, "requeue"), reference, id, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", e.Available, now); err != nil {
 		return err
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE ledger_entitlements SET pending=?,available=0,revision=revision+1 WHERE tenant_id=? AND app_id=? AND entitlement_id=?`, pending.String(), s.Tenant, s.App, id)

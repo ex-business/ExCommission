@@ -10,7 +10,7 @@ import (
 
 // PendingBefore exposes ledger-owned records to settlement without granting write access.
 func (r Repository) PendingBefore(ctx context.Context, tx db.Executor, s foundation.Scope, before time.Time) ([]domain.Entitlement, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT entitlement_id FROM ledger_entitlements WHERE tenant_id=? AND app_id=? AND pending>0 AND business_time<? ORDER BY business_time,entitlement_id`, s.Tenant, s.App, before)
+	rows, err := tx.QueryContext(ctx, `SELECT e.entitlement_id FROM ledger_entitlements e JOIN ledger_payout_policies p ON p.tenant_id=e.tenant_id AND p.app_id=e.app_id AND p.entitlement_id=e.entitlement_id WHERE e.tenant_id=? AND e.app_id=? AND (e.pending>0 OR (e.available>0 AND e.available<p.minimum)) AND e.business_time<? ORDER BY e.business_time,e.entitlement_id`, s.Tenant, s.App, before)
 	if err != nil {
 		return nil, err
 	}
@@ -33,6 +33,15 @@ func (r Repository) PendingBefore(ctx context.Context, tx db.Executor, s foundat
 		e, err := r.Get(ctx, tx, s, id, true)
 		if err != nil {
 			return nil, err
+		}
+		if !e.Frozen && e.Available != "0" {
+			if err = r.Requeue(ctx, tx, s, e.ID, "minimum-rollover-"+before.Format("20060102"), time.Now().UTC().Truncate(time.Microsecond)); err != nil {
+				return nil, err
+			}
+			e, err = r.Get(ctx, tx, s, e.ID, true)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if e.Pending != "0" && !e.Frozen {
 			result = append(result, e)

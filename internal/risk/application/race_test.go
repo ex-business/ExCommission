@@ -31,7 +31,7 @@ func TestFreezeVersusPaymentReservationUsesOneLockOrder(t *testing.T) {
 	}
 	s := foundation.Scope{Tenant: fmt.Sprint("test-risk-race-", time.Now().UnixNano()), App: "app"}
 	defer func() {
-		for _, table := range []string{"agent_status_history", "agent_accounts", "agent_relations", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
+		for _, table := range []string{"agent_status_history", "agent_accounts", "agent_relations", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", s.Tenant)
 		}
 	}()

@@ -26,3 +26,7 @@ type SnapshotResolver interface {
 type Committer interface {
 	Commit(context.Context, db.Executor, foundation.Scope, domain.Task, domain.Input, domain.Result, time.Time) error
 }
+
+type CurrencyCatalog interface {
+	CurrencyAt(context.Context, db.Executor, foundation.Scope, string, time.Time) (string, int, error)
+}

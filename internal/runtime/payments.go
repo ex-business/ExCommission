@@ -9,6 +9,7 @@ import (
 	adapter "github.com/ex-business/ExCommission/internal/payments/adapters"
 	payments "github.com/ex-business/ExCommission/internal/payments/application"
 	paymentports "github.com/ex-business/ExCommission/internal/payments/ports"
+	catalog "github.com/ex-business/ExCommission/internal/platform/adapters/catalog"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	response "github.com/ex-business/ExCommission/internal/platform/application"
@@ -22,7 +23,7 @@ import (
 )
 
 func paymentService(store *mysql.Store) payments.Service {
-	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: accounts.Repository{}, Statements: statements.Repository{}, Providers: map[string]paymentports.Provider{"sandbox": adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}}, Now: clockUTC, ID: newID}
+	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: accounts.Repository{}, Statements: statements.Repository{}, Providers: map[string]paymentports.Provider{"sandbox": configuredPaymentProvider{Provider: adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}, Store: store, Scope: localScope()}}, Now: clockUTC, ID: newID}
 }
 func installPayments(mux *http.ServeMux, require func(string, authhttp.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, app string) error {
 	if len(os.Getenv("LOCAL_PAYMENT_KEY")) < 32 {
@@ -155,4 +156,17 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 		httpapi.Write(w, result)
 	}))
 	return nil
+}
+
+type configuredPaymentProvider struct {
+	paymentports.Provider
+	Store *mysql.Store
+	Scope foundation.Scope
+}
+
+func (p configuredPaymentProvider) Enabled() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	enabled, _, err := (catalog.Repository{}).Component(ctx, p.Store.DB, p.Scope, "PAYMENT", "sandbox")
+	return err == nil && enabled && p.Provider.Enabled()
 }

@@ -61,6 +61,22 @@ func (s Service) Create(ctx context.Context, p identity.Principal, input CreateI
 		if (v.Status != "APPROVED" && v.Status != "PARTIALLY_PAID") || v.Currency != input.Amount.Currency {
 			return foundation.CommandResult{}, errors.New("STATE_CONFLICT")
 		}
+		minimum, _ := new(big.Int).SetString(v.Minimum, 10)
+		if minimum == nil {
+			return foundation.CommandResult{}, errors.New("UNKNOWN_FACT")
+		}
+		if n.Cmp(minimum) < 0 {
+			return foundation.CommandResult{}, errors.New("PAYMENT_BELOW_MINIMUM")
+		}
+		if v.Maximum != nil {
+			maximum, _ := new(big.Int).SetString(*v.Maximum, 10)
+			if maximum == nil {
+				return foundation.CommandResult{}, errors.New("UNKNOWN_FACT")
+			}
+			if n.Cmp(maximum) > 0 {
+				return foundation.CommandResult{}, errors.New("PAYMENT_LIMIT_EXCEEDED")
+			}
+		}
 		if s.Accounts == nil {
 			return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
 		}
@@ -285,15 +301,16 @@ func (s Service) Recover(ctx context.Context, scope foundation.Scope) error {
 	if err != nil {
 		return err
 	}
+	var firstError error
 	for _, p := range payments {
 		if p.Status == "CREATED" {
 			err = s.Dispatch(ctx, scope, p.ID)
 		} else {
 			err = s.Verify(ctx, scope, p.ID)
 		}
-		if err != nil {
-			return err
+		if err != nil && firstError == nil {
+			firstError = err
 		}
 	}
-	return nil
+	return firstError
 }

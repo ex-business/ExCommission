@@ -30,6 +30,7 @@ func hash(body []byte) string {
 }
 
 type Service struct {
+	Catalog      ports.CurrencyCatalog
 	Commands     db.Commands
 	Contracts    agents.Contracts
 	Participants agents.PlanParticipants
@@ -146,6 +147,26 @@ func (s Service) Simulate(ctx context.Context, p identity.Principal, input Simul
 			configHash = version.Hash
 		}
 		snapshot := calculation.Input{TaskID: "simulation", SnapshotID: s.ID(), Plan: config, Facts: input.Facts, Ancestors: input.Ancestors, Contracts: map[string]calculation.ContractFact{}, Exponent: s.Exponents[config.Currency]}
+		snapshot.StandardVersion = "1"
+		snapshot.ConfigHash = configHash
+		snapshot.CurrencyCatalogVersion = "currency-v1"
+		snapshot.CalendarVersion = config.CalendarVersion
+		snapshot.PlanVersionID = "draft:" + config.PlanID
+		if input.VersionID != nil {
+			snapshot.PlanVersionID = *input.VersionID
+		}
+		snapshot.AlgorithmVersions = map[string]string{}
+		for _, rule := range config.Rules {
+			snapshot.AlgorithmVersions[rule.Algorithm] = rule.Version
+		}
+		if s.Catalog != nil {
+			version, exponent, err := s.Catalog.CurrencyAt(ctx, tx, scope, config.Currency, input.Facts.BusinessTime)
+			if err != nil {
+				return foundation.CommandResult{}, err
+			}
+			snapshot.CurrencyCatalogVersion = version
+			snapshot.Exponent = exponent
+		}
 		// 模拟也要求显式资格历史；不把缺失事实补成当前状态。
 		for _, actor := range input.Ancestors {
 			qualification, ok := input.Qualification[actor.ID]
@@ -315,4 +336,19 @@ func (s Service) validateParticipants(ctx context.Context, tx db.Executor, scope
 		}
 	}
 	return nil
+}
+
+// ExecutePublication rechecks participants under the approval transaction, not only at request time.
+func (s Service) ExecutePublication(ctx context.Context, tx db.Executor, scope foundation.Scope, input PublicationPayload, version string, at time.Time) error {
+	draft, err := s.Repo.Read(ctx, tx, scope, input.PlanID, true)
+	if err != nil {
+		return err
+	}
+	if draft.Hash != input.Hash || draft.Revision != input.Revision {
+		return errors.New("STALE_APPROVAL")
+	}
+	if err = s.validateParticipants(ctx, tx, scope, draft.Config, input.EffectiveFrom); err != nil {
+		return err
+	}
+	return s.Repo.Publish(ctx, tx, scope, input.PlanID, input.Revision, input.Hash, version, input.EffectiveFrom, at)
 }

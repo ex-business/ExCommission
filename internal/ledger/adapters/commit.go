@@ -77,8 +77,28 @@ func (Repository) Commit(ctx context.Context, tx db.Executor, scope foundation.S
 		if err != nil {
 			return err
 		}
+		minimum := input.Plan.Settlement.Minimum
+		if minimum == "" {
+			minimum = "0"
+		}
+		min, ok := new(big.Int).SetString(minimum, 10)
+		if !ok || min.Sign() < 0 || len(minimum) > 38 {
+			return foundation.ErrValidation
+		}
+		if input.Plan.Settlement.Maximum != nil {
+			max, ok := new(big.Int).SetString(*input.Plan.Settlement.Maximum, 10)
+			if !ok || max.Sign() < 0 || len(*input.Plan.Settlement.Maximum) > 38 {
+				return foundation.ErrValidation
+			}
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO ledger_payout_policies VALUES(?,?,?,?,?)`, scope.Tenant, scope.App, id, minimum, input.Plan.Settlement.Maximum); err != nil {
+			return err
+		}
 		_, err = tx.ExecContext(ctx, `INSERT INTO ledger_journals(tenant_id,app_id,journal_id,business_ref,idempotency_key,currency,debit_account,credit_account,amount,occurred_at,posted_at) VALUES(?,?,?,?,?,?, 'COMMISSION_EXPENSE','PAYABLE_PENDING',?,?,?)`, scope.Tenant, scope.App, id, id, id, item.Currency, item.Minor, input.Facts.BusinessTime, now)
 		if err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO ledger_journal_links VALUES(?,?,?,?)`, scope.Tenant, scope.App, id, id); err != nil {
 			return err
 		}
 		frozen := false

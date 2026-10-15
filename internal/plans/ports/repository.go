@@ -23,3 +23,7 @@ type Repository interface {
 type Validator interface {
 	Decode([]byte) (domain.Config, []byte, error)
 }
+
+type CurrencyCatalog interface {
+	CurrencyAt(context.Context, db.Executor, foundation.Scope, string, time.Time) (string, int, error)
+}

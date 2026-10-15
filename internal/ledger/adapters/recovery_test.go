@@ -27,7 +27,7 @@ func TestRecoveryFIFOProofUniquenessAndAgentCurrencyIsolation(t *testing.T) {
 	}
 	s := foundation.Scope{Tenant: fmt.Sprint("test-recover-", time.Now().UnixNano()), App: "app"}
 	defer func() {
-		for _, table := range []string{"ledger_recoveries", "ledger_debt_ages", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
+		for _, table := range []string{"ledger_recoveries", "ledger_debt_ages", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", s.Tenant)
 		}
 	}()
@@ -95,6 +95,10 @@ func TestRecoveryFIFOProofUniquenessAndAgentCurrencyIsolation(t *testing.T) {
 	funding := create("funding", "a", "USD", false, now)
 	if err = recover(second, "FUTURE_OFFSET", "60", "valid-offset", "offset-two"); err != nil {
 		t.Fatal(err)
+	}
+	var linked string
+	if err = store.DB.QueryRow(`SELECT entitlement_id FROM ledger_journal_links WHERE tenant_id=? AND app_id=? AND journal_id=?`, s.Tenant, s.App, stableID("valid-offset", funding)).Scan(&linked); err != nil || linked != funding {
+		t.Fatal("offset journal lost funding lineage", linked, err)
 	}
 	e, err = r.Get(ctx, store.DB, s, second, false)
 	fund, err2 := r.Get(ctx, store.DB, s, funding, false)

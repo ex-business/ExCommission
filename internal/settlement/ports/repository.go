@@ -24,3 +24,7 @@ type Repository interface {
 	Claim(context.Context, db.Executor, foundation.Scope, model.Statement) error
 	State(context.Context, db.Executor, foundation.Scope, model.Statement, string) error
 }
+
+type CalendarPolicy interface {
+	ValidateCalendar(context.Context, db.Executor, foundation.Scope, string, time.Time) error
+}

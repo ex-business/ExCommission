@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	agents "github.com/ex-business/ExCommission/internal/agents/adapters"
 	tasks "github.com/ex-business/ExCommission/internal/calculation/adapters"
 	calculation "github.com/ex-business/ExCommission/internal/calculation/application"
@@ -13,6 +14,7 @@ import (
 	integration "github.com/ex-business/ExCommission/internal/integration/application"
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
 	plans "github.com/ex-business/ExCommission/internal/plans/adapters"
+	catalog "github.com/ex-business/ExCommission/internal/platform/adapters/catalog"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	response "github.com/ex-business/ExCommission/internal/platform/application"
@@ -30,7 +32,7 @@ func taskRepository(store *mysql.Store) tasks.Tasks {
 	return tasks.Tasks{DB: store.DB, Within: store.Within}
 }
 func buildWorker(store *mysql.Store) *calculation.Worker {
-	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Committer: ledger.Repository{}, TargetPolicy: refundService(store), Now: clockUTC, Lease: 30 * time.Second}
+	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Catalog: catalog.Repository{}, Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Committer: ledger.Repository{}, TargetPolicy: refundService(store), Now: clockUTC, Lease: 30 * time.Second}
 }
 func localScope() foundation.Scope {
 	tenant, app := os.Getenv("LOCAL_TENANT"), os.Getenv("LOCAL_APP")
@@ -72,7 +74,16 @@ func installEvents(mux *http.ServeMux, require func(string, authhttp.AuthorizedH
 		return err
 	}
 	repository := taskRepository(store)
-	service := integration.Service{Commands: store, Query: store.DB, Repo: source.Repository{}, Tasks: repository, Source: provider, Plans: plans.Repository{}, Now: clockUTC, ID: newID}
+	service := integration.Service{AllowNew: func(ctx context.Context, tx db.Executor, s foundation.Scope, source string) error {
+		enabled, _, err := (catalog.Repository{}).Component(ctx, tx, s, "SOURCE", source)
+		if err != nil {
+			return err
+		}
+		if !enabled {
+			return errors.New("UNSUPPORTED_CAPABILITY")
+		}
+		return nil
+	}, Commands: store, Query: store.DB, Repo: source.Repository{}, Tasks: repository, Source: provider, Plans: plans.Repository{}, Now: clockUTC, ID: newID}
 	mux.Handle("POST /v1/events", require("events:write", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 		if err != nil {

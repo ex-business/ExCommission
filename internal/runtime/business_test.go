@@ -39,7 +39,7 @@ func TestBusinessUsersRelationsAndApproval(t *testing.T) {
 	tenant := "test-" + newID()
 	scope := mysql.Scope{Tenant: tenant, App: "test"}
 	defer func() {
-		for _, table := range []string{"audit_handling_records", "audit_security_states", "audit_entries", "users_external", "user_sync_jobs", "agent_status_history", "agent_accounts", "agent_relation_spaces", "agent_relations", "agent_contracts", "workflow_requests", "identity_bootstraps", "identity_grants", "command_results"} {
+		for _, table := range []string{"audit_handling_records", "audit_security_states", "audit_entries", "users_external", "user_sync_jobs", "agent_status_history", "agent_accounts", "agent_relation_spaces", "agent_relations", "agent_contracts", "workflow_requests", "platform_catalog_versions", "platform_component_states", "platform_notifications", "reporting_exports", "identity_subject_revisions", "identity_bootstraps", "identity_grants", "command_results"} {
 			if _, err := store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", tenant); err != nil {
 				t.Error(err)
 			}

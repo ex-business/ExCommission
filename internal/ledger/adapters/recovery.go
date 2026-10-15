@@ -93,7 +93,7 @@ func (r Repository) Recover(ctx context.Context, tx db.Executor, s foundation.Sc
 			if _, err = tx.ExecContext(ctx, `UPDATE ledger_entitlements SET available=?,paid=?,revision=revision+1 WHERE tenant_id=? AND app_id=? AND entitlement_id=?`, available.String(), paid.String(), s.Tenant, s.App, fund.ID); err != nil {
 				return err
 			}
-			if err = appendJournal(ctx, tx, s, stableID(reference, fund.ID), reference, e.Currency, "PAYABLE_AVAILABLE", "AGENT_RECEIVABLE", take.String(), now); err != nil {
+			if err = appendJournal(ctx, tx, s, stableID(reference, fund.ID), reference, fund.ID, e.Currency, "PAYABLE_AVAILABLE", "AGENT_RECEIVABLE", take.String(), now); err != nil {
 				return err
 			}
 			remaining.Sub(remaining, take)
@@ -102,7 +102,7 @@ func (r Repository) Recover(ctx context.Context, tx db.Executor, s foundation.Sc
 			return errors.New("INSUFFICIENT_BALANCE")
 		}
 	} else {
-		if err = appendJournal(ctx, tx, s, stableID(reference, "cash"), reference, e.Currency, "CASH_CLEARING", "AGENT_RECEIVABLE", amount, now); err != nil {
+		if err = appendJournal(ctx, tx, s, stableID(reference, "cash"), reference, id, e.Currency, "CASH_CLEARING", "AGENT_RECEIVABLE", amount, now); err != nil {
 			return err
 		}
 	}

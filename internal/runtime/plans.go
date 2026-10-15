@@ -12,6 +12,7 @@ import (
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	planrepo "github.com/ex-business/ExCommission/internal/plans/adapters"
 	plans "github.com/ex-business/ExCommission/internal/plans/application"
+	catalog "github.com/ex-business/ExCommission/internal/platform/adapters/catalog"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	response "github.com/ex-business/ExCommission/internal/platform/application"
@@ -41,18 +42,22 @@ func installPlans(mux *http.ServeMux, require func(string, authhttp.AuthorizedHa
 			return err
 		}
 	}
-	validator, err := planrepo.NewValidator(map[string]int{"USD": 2, "BTC": 8, "POINT": 0}, map[string]bool{"UTC-v1": true})
-	if err != nil {
-		return err
-	}
-	service := plans.Service{Commands: store, Contracts: agentrepo.Repository{}, Participants: agentrepo.Repository{}, Query: store.DB, Repo: planrepo.Repository{}, Validator: validator, Simulations: planrepo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: validator.Exponents, Now: time.Now, ID: newID}
+	validator := catalogValidator{Query: store.DB, Scope: foundation.Scope{Tenant: tenant, App: app}}
+	service := plans.Service{Catalog: catalog.Repository{}, Commands: store, Contracts: agentrepo.Repository{}, Participants: agentrepo.Repository{}, Query: store.DB, Repo: planrepo.Repository{}, Validator: validator, Simulations: planrepo.Simulations{}, Workflow: workflowrepo.Repository{}, Exponents: foundation.CurrencyExponents(), Now: time.Now, ID: newID}
 	grades := plans.GradeService{Service: service, Grades: agentrepo.Repository{}, Subjects: agentrepo.Repository{}, Evaluations: planrepo.Evaluations{}, Statistics: planrepo.SandboxStatisticsFile{Path: os.Getenv("LOCAL_GRADE_STATISTICS_FILE")}}
 	publish := func(ctx context.Context, tx db.Executor, s foundation.Scope, r approval.Request, at time.Time) error {
 		var input plans.PublicationPayload
 		if err := json.Unmarshal(r.Payload, &input); err != nil {
 			return err
 		}
-		return service.Repo.Publish(ctx, tx, s, input.PlanID, input.Revision, input.Hash, newID(), input.EffectiveFrom, at)
+		draft, err := service.Repo.Read(ctx, tx, s, input.PlanID, true)
+		if err != nil {
+			return err
+		}
+		if err = (catalog.Repository{}).ValidateCalendar(ctx, tx, s, draft.Config.CalendarVersion, input.EffectiveFrom); err != nil {
+			return err
+		}
+		return service.ExecutePublication(ctx, tx, s, input, newID(), at)
 	}
 	workflowService.Executors["PLAN_PUBLISH"] = publish
 	workflowService.Executors["PLAN_ROLLBACK"] = publish

@@ -47,7 +47,7 @@ func database(t *testing.T) (*mysql.Store, foundation.Scope) {
 	}
 	scope := foundation.Scope{Tenant: "test-event-" + fmt.Sprint(time.Now().UnixNano()), App: "app"}
 	t.Cleanup(func() {
-		for _, table := range []string{"ledger_recoveries", "calculation_adjustments", "workflow_requests", "calculation_refund_order", "calculation_refunds", "calculation_refund_spaces", "ledger_debt_ages", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "integration_event_keys", "integration_inbox", "integration_raw_payloads", "calculation_tasks", "calculation_recoveries", "command_results", "users_external", "agent_status_history", "agent_accounts", "agent_relations", "agent_relation_spaces", "agent_grade_history", "agent_plan_states", "plan_drafts", "plan_versions", "plan_route_spaces", "user_agent_bindings"} {
+		for _, table := range []string{"ledger_recoveries", "calculation_adjustments", "workflow_requests", "calculation_refund_order", "calculation_refunds", "calculation_refund_spaces", "ledger_debt_ages", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "integration_event_keys", "integration_inbox", "integration_raw_payloads", "calculation_tasks", "calculation_recoveries", "command_results", "users_external", "agent_status_history", "agent_accounts", "agent_relations", "agent_relation_spaces", "agent_grade_history", "agent_plan_states", "plan_drafts", "plan_versions", "plan_route_spaces", "user_agent_bindings"} {
 			if _, err := store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant); err != nil {
 				t.Error(err)
 			}

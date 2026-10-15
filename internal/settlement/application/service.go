@@ -33,6 +33,7 @@ type approvalPayload struct {
 	Hash     string `json:"content_hash"`
 }
 type Service struct {
+	Calendar ports.CalendarPolicy
 	Commands db.Commands
 	Query    db.Executor
 	Repo     ports.Repository
@@ -44,7 +45,7 @@ type Service struct {
 
 func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, key, request string) (foundation.CommandResult, error) {
 	period, err := time.Parse("2006-01-02", input.Period)
-	if err != nil || input.Calendar != "UTC-v1" || period.Add(24*time.Hour).After(s.Now()) {
+	if err != nil || (s.Calendar == nil && input.Calendar != "UTC-v1") || period.Add(24*time.Hour).After(s.Now()) {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	if input.AgentIDs == nil {
@@ -59,6 +60,11 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 	}
 	sort.Strings(input.AgentIDs)
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
+	if s.Calendar != nil {
+		if err := s.Calendar.ValidateCalendar(ctx, s.Query, scope, input.Calendar, period); err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
 	return s.Commands.Execute(ctx, scope, "statement-run", key, input, func(tx db.Executor) (foundation.CommandResult, error) {
 		if err := s.Repo.Lock(ctx, tx, scope); err != nil {
 			return foundation.CommandResult{}, err
@@ -99,6 +105,31 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 				groups[group] = v
 				keys = append(keys, group)
 			}
+			min, _ := new(big.Int).SetString(e.Minimum, 10)
+			oldMin := new(big.Int)
+			if v.Minimum != "" {
+				oldMin.SetString(v.Minimum, 10)
+			}
+			if min.Cmp(oldMin) > 0 {
+				v.Minimum = e.Minimum
+			}
+			if v.Minimum == "" {
+				v.Minimum = "0"
+			}
+			if e.Maximum != nil {
+				take := v.Maximum
+				if take == nil {
+					value := *e.Maximum
+					v.Maximum = &value
+				} else {
+					old, _ := new(big.Int).SetString(*take, 10)
+					next, _ := new(big.Int).SetString(*e.Maximum, 10)
+					if next.Cmp(old) < 0 {
+						value := *e.Maximum
+						v.Maximum = &value
+					}
+				}
+			}
 			v.Items = append(v.Items, model.Item{ID: e.ID, Amount: e.Pending, Revision: e.Revision})
 			a, _ := new(big.Int).SetString(v.Total, 10)
 			b, _ := new(big.Int).SetString(e.Pending, 10)
@@ -112,11 +143,18 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 		sort.Strings(keys)
 		for _, key := range keys {
 			v := groups[key]
+			total, _ := new(big.Int).SetString(v.Total, 10)
+			minimum, _ := new(big.Int).SetString(v.Minimum, 10)
+			if total.Cmp(minimum) < 0 {
+				continue
+			}
 			sort.Slice(v.Items, func(i, j int) bool { return v.Items[i].ID < v.Items[j].ID })
 			body, _ := json.Marshal(struct {
 				Agent, Currency, Period string
+				Minimum                 string
+				Maximum                 *string
 				Items                   []model.Item
-			}{v.AgentID, v.Currency, v.Period, v.Items})
+			}{v.AgentID, v.Currency, v.Period, v.Minimum, v.Maximum, v.Items})
 			v.Hash = hash.Hash(body)
 			if err = s.Repo.Create(ctx, tx, scope, *v, s.Now()); err != nil {
 				return foundation.CommandResult{}, err

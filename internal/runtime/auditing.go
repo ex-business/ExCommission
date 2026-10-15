@@ -64,7 +64,7 @@ func auditHTTP(store *mysql.Store, provider *identity.LocalProvider, scope found
 			buffer.status = 200
 		}
 		kind := "OPERATION"
-		if buffer.status == 401 || buffer.status == 403 {
+		if buffer.status == 401 || buffer.status == 403 || action == "reports:export" || action == "reports:download" {
 			kind = "SECURITY"
 		}
 		auditCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)

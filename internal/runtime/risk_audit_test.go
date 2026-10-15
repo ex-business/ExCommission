@@ -33,7 +33,7 @@ func TestRiskReasonsHistoricalStatusAndAtomicAudit(t *testing.T) {
 	}
 	scope := foundation.Scope{Tenant: "test-risk-" + newID(), App: "app"}
 	defer func() {
-		for _, table := range []string{"identity_subject_revisions", "risk_appeals", "risk_requests", "audit_handling_records", "audit_security_states", "audit_entries", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "agent_status_history", "agent_accounts", "agent_relations", "workflow_requests", "identity_bootstraps", "identity_grants", "command_results"} {
+		for _, table := range []string{"identity_subject_revisions", "risk_appeals", "risk_requests", "audit_handling_records", "audit_security_states", "audit_entries", "ledger_payout_policies", "ledger_journal_links", "ledger_restrictions", "ledger_journals", "ledger_entitlements", "transaction_outbox", "agent_status_history", "agent_accounts", "agent_relations", "workflow_requests", "platform_catalog_versions", "platform_component_states", "platform_notifications", "reporting_exports", "identity_subject_revisions", "identity_bootstraps", "identity_grants", "command_results"} {
 			store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant)
 		}
 	}()

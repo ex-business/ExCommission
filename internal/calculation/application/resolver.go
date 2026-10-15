@@ -7,6 +7,7 @@ import (
 	"errors"
 	agents "github.com/ex-business/ExCommission/internal/agents/ports"
 	"github.com/ex-business/ExCommission/internal/calculation/domain"
+	ports "github.com/ex-business/ExCommission/internal/calculation/ports"
 	event "github.com/ex-business/ExCommission/internal/integration/domain"
 	plan "github.com/ex-business/ExCommission/internal/plans/domain"
 	plans "github.com/ex-business/ExCommission/internal/plans/ports"
@@ -17,6 +18,7 @@ import (
 )
 
 type Resolver struct {
+	Catalog       ports.CurrencyCatalog
 	Plans         plans.Repository
 	Users         users.BusinessUsers
 	Accounts      agents.HistoricalAccounts
@@ -39,7 +41,14 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 	if !ok {
 		return domain.Input{}, errors.New("UNSUPPORTED_CAPABILITY")
 	}
-	snapshot := domain.Input{TaskID: task.ID, SnapshotID: "snapshot_" + task.ID, StandardVersion: "1", PlanVersionID: version.ID, ConfigHash: version.Hash, CurrencyCatalogVersion: "currency-v1", CalendarVersion: version.Config.CalendarVersion, AlgorithmVersions: map[string]string{}, Plan: version.Config, Facts: domain.Facts{Basis: source.Payload.Basis, Currency: source.Payload.Currency, Quantity: source.Payload.Quantity, QuantityUnit: source.Payload.QuantityUnit, Product: source.Product, Scene: source.Scene, Confirmed: source.Payload.Confirmed, BusinessTime: source.Time}, Ancestors: []domain.Actor{}, Recipients: []domain.Actor{}, Contracts: map[string]domain.ContractFact{}, Exponent: exponent}
+	catalogVersion := "currency-v1"
+	if r.Catalog != nil {
+		catalogVersion, exponent, err = r.Catalog.CurrencyAt(ctx, tx, s, version.Config.Currency, task.BusinessTime)
+		if err != nil {
+			return domain.Input{}, err
+		}
+	}
+	snapshot := domain.Input{TaskID: task.ID, SnapshotID: "snapshot_" + task.ID, StandardVersion: "1", PlanVersionID: version.ID, ConfigHash: version.Hash, CurrencyCatalogVersion: catalogVersion, CalendarVersion: version.Config.CalendarVersion, AlgorithmVersions: map[string]string{}, Plan: version.Config, Facts: domain.Facts{Basis: source.Payload.Basis, Currency: source.Payload.Currency, Quantity: source.Payload.Quantity, QuantityUnit: source.Payload.QuantityUnit, Product: source.Product, Scene: source.Scene, Confirmed: source.Payload.Confirmed, BusinessTime: source.Time}, Ancestors: []domain.Actor{}, Recipients: []domain.Actor{}, Contracts: map[string]domain.ContractFact{}, Exponent: exponent}
 	for _, rule := range version.Config.Rules {
 		snapshot.AlgorithmVersions[rule.Algorithm] = rule.Version
 	}

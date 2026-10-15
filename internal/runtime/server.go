@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	audit "github.com/ex-business/ExCommission/internal/audit/adapters"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 )
@@ -74,33 +73,7 @@ func Run(service string) error {
 	defer stop()
 	if service == "worker" {
 		worker := buildWorker(store)
-		payments := paymentService(store)
-		refunds := refundService(store)
-		go func() {
-			ticker := time.NewTicker(5 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					jobCtx, cancel := context.WithTimeout(foundation.WithOperation(foundation.WithScope(foundation.WithRequest(ctx, newID(), "system-worker"), localScope()), "worker.execute", false), 20*time.Second)
-					err := payments.Recover(jobCtx, localScope())
-					if err == nil {
-						err = refunds.Recover(jobCtx, localScope())
-					}
-					if err == nil {
-						err = store.DeliverOutbox(jobCtx, localScope(), func(event mysql.OutboxEvent) error {
-							return audit.Deliver(jobCtx, store.DB, event.Scope, event.ID, event.Topic, event.Payload, event.CreatedAt)
-						})
-					}
-					cancel()
-					if err != nil && ctx.Err() == nil {
-						slog.Error("付款恢复失败，保留原资金号与占用", "service", service)
-					}
-				}
-			}
-		}()
+		startMaintenance(ctx, store)
 
 		go func() {
 			ticker := time.NewTicker(time.Second)
