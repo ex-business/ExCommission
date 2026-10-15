@@ -43,6 +43,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if os.Getenv("APP_MODE") != "local" {
 		return nil, errors.New("explicit local identity configuration required")
 	}
+	installAuditObserver(store)
 	operator, approver := os.Getenv("LOCAL_OPERATOR_TOKEN"), os.Getenv("LOCAL_APPROVER_TOKEN")
 	if len(operator) < 32 || len(approver) < 32 || operator == approver || len(os.Getenv("LOCAL_CURSOR_KEY")) < 32 {
 		return nil, errors.New("local credentials unavailable")
@@ -63,23 +64,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}{{p1.Subject, []string{"users:sync", "users:read", "agents:write", "agents:read", "relations:request", "workflow:read"}}, {p2.Subject, []string{"agents:read", "workflow:read", "relations:approve"}}} {
 
 		if err := store.Within(ctx, func(tx db.Executor) error {
-			inserted, err := tx.ExecContext(ctx, `INSERT IGNORE INTO identity_bootstraps VALUES(?,?,?,UTC_TIMESTAMP(6))`, tenant, app, item.subject)
-			if err != nil {
-				return err
-			}
-			count, err := inserted.RowsAffected()
-			if err != nil {
-				return err
-			}
-			if count == 0 {
-				return nil
-			}
-			for _, permission := range item.permissions {
-				if _, err = tx.ExecContext(ctx, `INSERT INTO identity_grants VALUES(?,?,?,?)`, tenant, app, item.subject, permission); err != nil {
-					return err
-				}
-			}
-			return nil
+			return identity.BootstrapOnce(ctx, tx, tenant, app, item.subject, item.subject, item.permissions)
 		}); err != nil {
 			return nil, err
 		}
@@ -87,7 +72,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	provider := identity.NewLocalProvider(map[string]principal.Principal{operator: p1, approver: p2})
 	authorize := identity.DatabaseAuthorizer{Query: store.DB}
 	require := func(permission string, handler authhttp.AuthorizedHandler) http.Handler {
-		return authhttp.Require(provider, authorize, permission, handler)
+		return auditHTTP(store, provider, foundation.Scope{Tenant: tenant, App: app}, permission, authhttp.Require(provider, authorize, permission, handler))
 	}
 	sources := map[users.SourceKey]userports.Source{}
 	// 可选显式沙箱数据；不生成看似真实的外部用户。
@@ -117,6 +102,12 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}}
 	mux := http.NewServeMux()
 	if err := installEvents(mux, require, store, tenant, app); err != nil {
+		return nil, err
+	}
+	if err := installIdentityChanges(mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
+	if err := installRiskAudit(mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}
 	if err := installRecovery(mux, require, store, &workflowService, tenant, app); err != nil {

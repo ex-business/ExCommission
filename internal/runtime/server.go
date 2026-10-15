@@ -12,7 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	audit "github.com/ex-business/ExCommission/internal/audit/adapters"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
+	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 )
 
 func Handler(service string) http.Handler { return handler(service, nil) }
@@ -55,6 +57,7 @@ func Run(service string) error {
 	if address == "" {
 		address = ":8080"
 	}
+	installAuditObserver(store)
 	health := handler(service, store.DB.PingContext)
 	router := http.NewServeMux()
 	router.Handle("/healthz", health)
@@ -81,10 +84,15 @@ func Run(service string) error {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					jobCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+					jobCtx, cancel := context.WithTimeout(foundation.WithOperation(foundation.WithScope(foundation.WithRequest(ctx, newID(), "system-worker"), localScope()), "worker.execute", false), 20*time.Second)
 					err := payments.Recover(jobCtx, localScope())
 					if err == nil {
 						err = refunds.Recover(jobCtx, localScope())
+					}
+					if err == nil {
+						err = store.DeliverOutbox(jobCtx, localScope(), func(event mysql.OutboxEvent) error {
+							return audit.Deliver(jobCtx, store.DB, event.Scope, event.ID, event.Topic, event.Payload, event.CreatedAt)
+						})
 					}
 					cancel()
 					if err != nil && ctx.Err() == nil {
@@ -102,7 +110,7 @@ func Run(service string) error {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					jobCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+					jobCtx, cancel := context.WithTimeout(foundation.WithOperation(foundation.WithScope(foundation.WithRequest(ctx, newID(), "system-worker"), localScope()), "worker.execute", false), 20*time.Second)
 					_, err := worker.RunOnce(jobCtx, localScope())
 					cancel()
 					if err != nil && ctx.Err() == nil {

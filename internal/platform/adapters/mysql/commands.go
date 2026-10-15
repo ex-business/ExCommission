@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	driver "github.com/go-sql-driver/mysql"
 	"strings"
 
@@ -49,6 +50,7 @@ func (s *Store) Command(ctx context.Context, scope Scope, operation, key string,
 	if err != nil || !bytes.Equal(normalized, canonical) {
 		return Result{}, ErrValidation
 	}
+	ctx = domain.WithOperation(domain.WithScope(ctx, scope), operation, true)
 	var result Result
 	sum := sha256.Sum256(canonical)
 	err = s.Within(ctx, func(tx ports.Executor) error {
@@ -82,6 +84,39 @@ func (s *Store) Command(ctx context.Context, scope Scope, operation, key string,
 		}
 		if result.Status < 200 || result.Status >= 500 || len(result.Body) == 0 || len(strings.TrimSpace(result.ResourceID)) == 0 {
 			return errors.New("invalid deterministic command result")
+		}
+		if s.Audit != nil {
+			var incoming struct {
+				Revision *uint64 `json:"expected_revision"`
+				Decision struct {
+					Revision *uint64 `json:"expected_revision"`
+				} `json:"decision"`
+			}
+			_ = json.Unmarshal(canonical, &incoming)
+			var outgoing struct {
+				Data struct {
+					Revision  *uint64 `json:"revision"`
+					Execution string  `json:"execution_status"`
+				} `json:"data"`
+			}
+			_ = json.Unmarshal(result.Body, &outgoing)
+			before, after := "", ""
+			if incoming.Revision != nil {
+				before = fmt.Sprint(*incoming.Revision)
+			} else if incoming.Decision.Revision != nil {
+				before = fmt.Sprint(*incoming.Decision.Revision)
+			}
+			if outgoing.Data.Revision != nil {
+				after = fmt.Sprint(*outgoing.Data.Revision)
+			}
+			auditCtx := domain.WithCommandEvidence(ctx, fmt.Sprintf("%x", sum[:]), before, after)
+			code := fmt.Sprint(result.Status)
+			if outgoing.Data.Execution != "" {
+				code += ":" + outgoing.Data.Execution
+			}
+			if err = s.Audit(auditCtx, tx, scope, operation, result.ResourceID, code); err != nil {
+				return err
+			}
 		}
 		_, err = tx.ExecContext(ctx, `UPDATE command_results SET http_status=?,result_body=?,resource_id=?
    WHERE tenant_id=? AND app_id=? AND operation=? AND idempotency_key=?`, result.Status, result.Body, result.ResourceID, scope.Tenant, scope.App, operation, key)

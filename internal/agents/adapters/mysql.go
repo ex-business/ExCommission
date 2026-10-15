@@ -19,6 +19,9 @@ func (Repository) Create(ctx context.Context, tx ports.Executor, s foundation.Sc
 	if _, err := tx.ExecContext(ctx, `INSERT INTO agent_accounts VALUES(?,?,?,?,?,'ACTIVE',0,?)`, s.Tenant, s.App, id, user, name, at.UTC()); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO agent_status_history VALUES(?,?,?,?,?,NULL,?)`, s.Tenant, s.App, id, "ACTIVE", at.UTC(), "account-created"); err != nil {
+		return err
+	}
 	_, err := tx.ExecContext(ctx, `INSERT INTO agent_relations VALUES(?,?,?,NULL,?,NULL)`, s.Tenant, s.App, id, at.UTC())
 	return err
 }
@@ -177,7 +180,7 @@ func (Repository) ContractAt(ctx context.Context, tx ports.Executor, s foundatio
 
 func (Repository) AccountAt(ctx context.Context, tx ports.Executor, s foundation.Scope, id string, at time.Time) (agent.Account, error) {
 	var account agent.Account
-	err := tx.QueryRowContext(ctx, `SELECT agent_id,user_id,status,created_at FROM agent_accounts WHERE tenant_id=? AND app_id=? AND agent_id=? AND created_at<=?`, s.Tenant, s.App, id, at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
+	err := tx.QueryRowContext(ctx, `SELECT a.agent_id,a.user_id,h.status,a.created_at FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.agent_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?)`, s.Tenant, s.App, id, at.UTC(), at.UTC(), at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
 	if errors.Is(err, sql.ErrNoRows) {
 		return account, agent.ErrHistory
 	}
@@ -185,7 +188,7 @@ func (Repository) AccountAt(ctx context.Context, tx ports.Executor, s foundation
 }
 func (Repository) ByUserAt(ctx context.Context, tx ports.Executor, s foundation.Scope, user string, at time.Time) (agent.Account, bool, error) {
 	var account agent.Account
-	err := tx.QueryRowContext(ctx, `SELECT agent_id,user_id,status,created_at FROM agent_accounts WHERE tenant_id=? AND app_id=? AND user_id=? AND created_at<=?`, s.Tenant, s.App, user, at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
+	err := tx.QueryRowContext(ctx, `SELECT a.agent_id,a.user_id,h.status,a.created_at FROM agent_accounts a JOIN agent_status_history h ON h.tenant_id=a.tenant_id AND h.app_id=a.app_id AND h.agent_id=a.agent_id WHERE a.tenant_id=? AND a.app_id=? AND a.user_id=? AND a.created_at<=? AND h.effective_from<=? AND (h.effective_to IS NULL OR h.effective_to>?)`, s.Tenant, s.App, user, at.UTC(), at.UTC(), at.UTC()).Scan(&account.ID, &account.UserID, &account.Status, &account.Created)
 	if errors.Is(err, sql.ErrNoRows) {
 		return account, false, nil
 	}

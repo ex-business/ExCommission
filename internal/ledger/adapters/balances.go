@@ -7,6 +7,7 @@ import (
 	"github.com/ex-business/ExCommission/internal/ledger/domain"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	riskmodel "github.com/ex-business/ExCommission/internal/risk/domain"
 	"math/big"
 	"time"
 )
@@ -30,6 +31,13 @@ func (Repository) Get(ctx context.Context, tx db.Executor, scope foundation.Scop
 	var n int
 	err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM ledger_restrictions WHERE tenant_id=? AND app_id=? AND entitlement_id=? AND closed_at IS NULL`, scope.Tenant, scope.App, id).Scan(&n)
 	e.Frozen = n > 0
+	e.RestrictedPending = "0"
+	e.RestrictedAvailable = "0"
+	if e.Frozen {
+		e.RestrictedPending = e.Pending
+		e.RestrictedAvailable = e.Available
+	}
+	e.PaymentHold = e.Frozen && e.Reserved != "0"
 	return e, err
 }
 
@@ -102,4 +110,71 @@ func (r Repository) CloseHold(ctx context.Context, tx db.Executor, s foundation.
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE ledger_restrictions SET closed_at=? WHERE tenant_id=? AND app_id=? AND entitlement_id=? AND risk_id=? AND closed_at IS NULL`, now, s.Tenant, s.App, id, risk)
 	return err
+}
+
+func (r Repository) Requeue(ctx context.Context, tx db.Executor, s foundation.Scope, id, reference string, now time.Time) error {
+	e, err := r.Get(ctx, tx, s, id, true)
+	if err != nil {
+		return err
+	}
+	if e.Available == "0" {
+		return nil
+	}
+	pending, _ := new(big.Int).SetString(e.Pending, 10)
+	a, _ := new(big.Int).SetString(e.Available, 10)
+	pending.Add(pending, a)
+	if len(pending.String()) > 38 {
+		return errors.New("AMOUNT_OUT_OF_RANGE")
+	}
+	if err = appendJournal(ctx, tx, s, stableID(id, reference, "requeue"), reference, e.Currency, "PAYABLE_AVAILABLE", "PAYABLE_PENDING", e.Available, now); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE ledger_entitlements SET pending=?,available=0,revision=revision+1 WHERE tenant_id=? AND app_id=? AND entitlement_id=?`, pending.String(), s.Tenant, s.App, id)
+	return err
+}
+func (r Repository) ForAgent(ctx context.Context, tx db.Executor, s foundation.Scope, agent string) ([]domain.Entitlement, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT entitlement_id FROM ledger_entitlements WHERE tenant_id=? AND app_id=? AND beneficiary_id=? AND (pending>0 OR available>0 OR reserved>0 OR debt>0) ORDER BY entitlement_id`, s.Tenant, s.App, agent)
+	if err != nil {
+		return nil, err
+	}
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	out := []domain.Entitlement{}
+	for _, id := range ids {
+		e, err := r.Get(ctx, tx, s, id, true)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, nil
+}
+
+func (Repository) Restrictions(ctx context.Context, tx db.Executor, s foundation.Scope, risk string) ([]riskmodel.Restriction, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT entitlement_id,risk_id,reason_code,created_at,closed_at FROM ledger_restrictions WHERE tenant_id=? AND app_id=? AND risk_id=? ORDER BY entitlement_id`, s.Tenant, s.App, risk)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []riskmodel.Restriction{}
+	for rows.Next() {
+		var r riskmodel.Restriction
+		if err = rows.Scan(&r.EntitlementID, &r.RiskID, &r.Reason, &r.Created, &r.Closed); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }

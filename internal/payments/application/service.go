@@ -23,6 +23,7 @@ type CreateInput struct {
 	Revision    uint64      `json:"expected_statement_revision"`
 }
 type Service struct {
+	Accounts   ports.PaymentAccounts
 	Commands   db.Commands
 	UOW        db.UnitOfWork
 	Query      db.Executor
@@ -59,6 +60,12 @@ func (s Service) Create(ctx context.Context, p identity.Principal, input CreateI
 		}
 		if (v.Status != "APPROVED" && v.Status != "PARTIALLY_PAID") || v.Currency != input.Amount.Currency {
 			return foundation.CommandResult{}, errors.New("STATE_CONFLICT")
+		}
+		if s.Accounts == nil {
+			return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
+		}
+		if err = s.Accounts.PaymentAllowed(ctx, tx, scope, v.AgentID); err != nil {
+			return foundation.CommandResult{}, err
 		}
 		payment := model.Payment{ID: s.ID(), StatementID: v.ID, ChannelID: input.Channel, Currency: v.Currency, Amount: input.Amount.Minor, Status: "CREATED", Reconciliation: "PENDING", Allocations: []model.Allocation{}}
 		b, _ := json.Marshal([]string{scope.Tenant, scope.App, payment.ID})

@@ -49,6 +49,15 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 		}
 		if s.Authorize != nil {
 			permission := "relations:approve"
+			if approval.Type == "IDENTITY_GRANT" {
+				permission = "identity:approve"
+			}
+			if approval.Type == "RISK_RELEASE" {
+				permission = "risk:approve"
+			}
+			if approval.Type == "AGENT_STATUS" {
+				permission = "agents:status:approve"
+			}
 			if approval.Type == "RECOVERY" {
 				permission = "recoveries:approve"
 			}

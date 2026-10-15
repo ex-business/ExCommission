@@ -38,7 +38,7 @@ func TestPlanLifecycleAndGrades(t *testing.T) {
 	}
 	scope := foundation.Scope{Tenant: "test-plan-" + time.Now().UTC().Format("150405.000000000"), App: "app"}
 	defer func() {
-		for _, table := range []string{"plan_drafts", "plan_versions", "plan_simulations", "plan_route_spaces", "workflow_requests", "command_results", "agent_accounts", "agent_relations", "agent_grade_history", "agent_plan_states", "grade_evaluations"} {
+		for _, table := range []string{"plan_drafts", "plan_versions", "plan_simulations", "plan_route_spaces", "workflow_requests", "command_results", "agent_status_history", "agent_accounts", "agent_relations", "agent_grade_history", "agent_plan_states", "grade_evaluations"} {
 			_, _ = store.DB.Exec("DELETE FROM "+table+" WHERE tenant_id=?", scope.Tenant)
 		}
 	}()

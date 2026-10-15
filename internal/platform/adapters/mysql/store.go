@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"github.com/ex-business/ExCommission/internal/platform/ports"
 	driver "github.com/go-sql-driver/mysql"
 )
@@ -17,7 +18,10 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-type Store struct{ DB *sql.DB }
+type Store struct {
+	DB    *sql.DB
+	Audit func(context.Context, ports.Executor, foundation.Scope, string, string, string) error
+}
 
 func Open(ctx context.Context, address, user, password, database string) (*Store, error) {
 	cfg := driver.NewConfig()
@@ -105,8 +109,35 @@ func (s *Store) Within(ctx context.Context, fn func(ports.Executor) error) error
 		return err
 	}
 	defer tx.Rollback()
-	if err = fn(tx); err != nil {
+	tracked := &trackedExecutor{Executor: tx}
+	if err = fn(tracked); err != nil {
 		return err
 	}
+	metadata := foundation.RequestFrom(ctx)
+	if tracked.mutated && s.Audit != nil && !metadata.Command && metadata.Scope.Valid() && metadata.Subject != "" {
+		action := metadata.Action
+		if action == "" {
+			action = "transaction"
+		}
+		if err = s.Audit(ctx, tx, metadata.Scope, action, "unit-of-work", "SUCCEEDED"); err != nil {
+			return err
+		}
+	}
 	return tx.Commit()
+}
+
+type trackedExecutor struct {
+	ports.Executor
+	mutated bool
+}
+
+func (t *trackedExecutor) ExecContext(ctx context.Context, q string, args ...any) (sql.Result, error) {
+	r, e := t.Executor.ExecContext(ctx, q, args...)
+	if e == nil {
+		n, err := r.RowsAffected()
+		if err == nil && n > 0 {
+			t.mutated = true
+		}
+	}
+	return r, e
 }

@@ -118,7 +118,7 @@ func TestPaymentUnknownOriginalIDCallbacksAndConservation(t *testing.T) {
 		t.Fatal(err, string(approved.Body))
 	}
 	provider := &testProvider{key: []byte("01234567890123456789012345678901")}
-	service := Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Statements: statements.Repository{}, Providers: map[string]providerports.Provider{"sandbox": provider}, Now: settle.Now, ID: id}
+	service := Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: paymentAccountsFixture{}, Statements: statements.Repository{}, Providers: map[string]providerports.Provider{"sandbox": provider}, Now: settle.Now, ID: id}
 	v, err = settle.Repo.Get(ctx, store.DB, scope, v.ID, false)
 	if err != nil {
 		t.Fatal(err)
@@ -227,4 +227,10 @@ func TestPaymentUnknownOriginalIDCallbacksAndConservation(t *testing.T) {
 	if err = service.Apply(ctx, other, "sandbox", provider.outcome); err == nil {
 		t.Fatal("cross tenant result accepted")
 	}
+}
+
+type paymentAccountsFixture struct{}
+
+func (paymentAccountsFixture) PaymentAllowed(context.Context, db.Executor, foundation.Scope, string) error {
+	return nil
 }

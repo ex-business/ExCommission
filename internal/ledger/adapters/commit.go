@@ -88,7 +88,7 @@ func (Repository) Commit(ctx context.Context, tx db.Executor, scope foundation.S
 			}
 		}
 		if frozen {
-			_, err = tx.ExecContext(ctx, `INSERT INTO ledger_restrictions(tenant_id,app_id,entitlement_id,risk_id,reason_code,created_at) VALUES(?,?,?,?,?,?)`, scope.Tenant, scope.App, id, "snapshot-frozen", "AGENT_FROZEN", now)
+			_, err = tx.ExecContext(ctx, `INSERT INTO ledger_restrictions(tenant_id,app_id,entitlement_id,risk_id,reason_code,created_at) VALUES(?,?,?,?,?,?)`, scope.Tenant, scope.App, id, "snapshot-frozen-"+id[:32], "AGENT_FROZEN", now)
 			if err != nil {
 				return err
 			}

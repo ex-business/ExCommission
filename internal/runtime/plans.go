@@ -7,6 +7,7 @@ import (
 	"errors"
 	agentrepo "github.com/ex-business/ExCommission/internal/agents/adapters"
 	agent "github.com/ex-business/ExCommission/internal/agents/domain"
+	identity "github.com/ex-business/ExCommission/internal/identity/adapters"
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	planrepo "github.com/ex-business/ExCommission/internal/plans/adapters"
@@ -28,20 +29,7 @@ import (
 
 func bootstrapFeature(ctx context.Context, store *mysql.Store, tenant, app, subject, feature string, permissions []string) error {
 	return store.Within(ctx, func(tx db.Executor) error {
-		result, err := tx.ExecContext(ctx, `INSERT IGNORE INTO identity_bootstraps VALUES(?,?,?,UTC_TIMESTAMP(6))`, tenant, app, subject+":"+feature)
-		if err != nil {
-			return err
-		}
-		count, err := result.RowsAffected()
-		if err != nil || count == 0 {
-			return err
-		}
-		for _, permission := range permissions {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO identity_grants VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE permission=permission`, tenant, app, subject, permission); err != nil {
-				return err
-			}
-		}
-		return nil
+		return identity.BootstrapOnce(ctx, tx, tenant, app, subject+":"+feature, subject, permissions)
 	})
 }
 func installPlans(mux *http.ServeMux, require func(string, authhttp.AuthorizedHandler) http.Handler, store *mysql.Store, workflowService *workflow.Service, tenant, app string) error {

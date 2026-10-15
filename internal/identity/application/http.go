@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/ex-business/ExCommission/internal/identity/domain"
 	"github.com/ex-business/ExCommission/internal/identity/ports"
+	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"net/http"
 	"time"
 )
@@ -24,7 +25,10 @@ func Require(provider ports.Provider, authorizer ports.Authorizer, permission st
 			http.Error(w, "dependency unavailable", 503)
 			return
 		}
-		requestID := hex.EncodeToString(bytes)
+		requestID := foundation.RequestFrom(r.Context()).RequestID
+		if requestID == "" {
+			requestID = hex.EncodeToString(bytes)
+		}
 		fail := func(status int, code string) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(status)
@@ -58,6 +62,7 @@ func Require(provider ports.Provider, authorizer ports.Authorizer, permission st
 			}
 			return
 		}
+		r = r.WithContext(foundation.WithScope(foundation.WithRequest(r.Context(), requestID, p.Subject), foundation.Scope{Tenant: p.Tenant, App: p.App}))
 		next(w, r, p, requestID)
 	})
 }

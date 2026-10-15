@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	accounts "github.com/ex-business/ExCommission/internal/agents/adapters"
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
@@ -21,7 +22,7 @@ import (
 )
 
 func paymentService(store *mysql.Store) payments.Service {
-	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Statements: statements.Repository{}, Providers: map[string]paymentports.Provider{"sandbox": adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}}, Now: clockUTC, ID: newID}
+	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: accounts.Repository{}, Statements: statements.Repository{}, Providers: map[string]paymentports.Provider{"sandbox": adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}}, Now: clockUTC, ID: newID}
 }
 func installPayments(mux *http.ServeMux, require func(string, authhttp.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, app string) error {
 	if len(os.Getenv("LOCAL_PAYMENT_KEY")) < 32 {
@@ -93,7 +94,7 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 		}
 		httpapi.Write(w, result)
 	}))
-	mux.HandleFunc("POST /v1/payment-callbacks/{channel_id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /v1/payment-callbacks/{channel_id}", auditHTTP(store, nil, foundation.Scope{Tenant: tenant, App: app}, "payment.callback", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := newID()
 		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 		if err != nil {
@@ -106,7 +107,7 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 		}
 		result, _ := response.Result(200, "callback", id, map[string]string{"status": "ACCEPTED"})
 		httpapi.Write(w, result)
-	})
+	})))
 	mux.Handle("POST /v1/reconciliation-runs", require("payments:reconcile", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		var input struct {
 			Channel string `json:"channel_id"`

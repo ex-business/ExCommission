@@ -28,3 +28,7 @@ type Statements interface {
 	Get(context.Context, db.Executor, foundation.Scope, string, bool) (statement.Statement, error)
 	PaymentState(context.Context, db.Executor, foundation.Scope, statement.Statement, string) error
 }
+
+type PaymentAccounts interface {
+	PaymentAllowed(context.Context, db.Executor, foundation.Scope, string) error
+}
