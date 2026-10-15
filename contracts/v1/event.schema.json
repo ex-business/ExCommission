@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:event",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "business_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "FEE_CONFIRMED",
+        "TRADE_CLOSED",
+        "ORDER_CONFIRMED"
+      ]
+    },
+    "business_time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "external_user_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "product_code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "scene": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source_revision": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "basis_amount": {
+          "type": "string",
+          "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+        },
+        "basis_currency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "confirmed": {
+          "const": true
+        }
+      },
+      "required": [
+        "basis_amount",
+        "basis_currency"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "quantity": [
+          "quantity_unit"
+        ],
+        "quantity_unit": [
+          "quantity"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "source_id",
+    "event_id",
+    "business_id",
+    "event_type",
+    "business_time",
+    "external_user_id",
+    "product_code",
+    "scene",
+    "source_revision",
+    "payload"
+  ],
+  "additionalProperties": false
+}

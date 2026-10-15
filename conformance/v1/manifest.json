@@ -1,0 +1,2462 @@
+{
+  "standard_version": "1",
+  "prototype_baseline": "e61555dbb1e470fbb76d5936640a341b76848ad5",
+  "source_hashes": {
+    "00_阅读与执行顺序.txt": "17c95e79b1fcdc72d572b87209d70e0f6ca52ca3c4d43de8f64ca0f4a0d70b5b",
+    "01_业务标准.txt": "6dfb05d3e9055898afa82a2e7661c8bc48eb1106ddbbf8da36200535e6b3285d",
+    "02_模块与Go实现约束.txt": "1e971d1149de8c0ac2fe40e9302cc885a9b325c763e89045b62f1698e405f5d7",
+    "03_接口与配置契约.txt": "59e60083cbcec96b4247566c9f9dcdde9fb3a5ac1dec1f3aa3ed5e6eda70540b",
+    "04_顺序实施与验收.txt": "d6f7d844b4b757fc2fe52b56cd4083217e3f396fd1bc82f446b6afb55a2b9862",
+    "05_配置与能力决策表.txt": "98d5baefcc719a1bc99f86ae7150d38a2669d151f78fd320c707c6df8184955b",
+    "06_文档校验记录.txt": "180700233f40f0b05a1a7cdd8bd59144349d564b249a7695cc168eb76908912b",
+    "acceptance-vectors.json": "5ed194a3cd32520349ef415392d88b5ce504c699326affe0095f5902845e48e3",
+    "verify-vectors.py": "378b0d315c41d10895d8c8a7b229782fae939818938b955153418b4516eb901c"
+  },
+  "requirements": [
+    {
+      "id": "V1-D01-S01-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S01-010",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S01-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S02-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "13",
+      "planned_test_id": "T-V1-D01-S02-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S03-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S03-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-010",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S04-011",
+      "source": "01_业务标准.txt",
+      "implementation_task": "04",
+      "planned_test_id": "T-V1-D01-S04-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S05-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "05",
+      "planned_test_id": "T-V1-D01-S05-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-010",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-011",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-012",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-012",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S06-013",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S06-013",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S07-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "07",
+      "planned_test_id": "T-V1-D01-S07-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S08-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "09",
+      "planned_test_id": "T-V1-D01-S08-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S08-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "09",
+      "planned_test_id": "T-V1-D01-S08-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S08-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "09",
+      "planned_test_id": "T-V1-D01-S08-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S08-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "09",
+      "planned_test_id": "T-V1-D01-S08-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S08-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "09",
+      "planned_test_id": "T-V1-D01-S08-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S08-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "09",
+      "planned_test_id": "T-V1-D01-S08-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S09-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "10",
+      "planned_test_id": "T-V1-D01-S09-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S09-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "10",
+      "planned_test_id": "T-V1-D01-S09-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S09-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "10",
+      "planned_test_id": "T-V1-D01-S09-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S09-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "10",
+      "planned_test_id": "T-V1-D01-S09-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S09-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "10",
+      "planned_test_id": "T-V1-D01-S09-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S10-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "11",
+      "planned_test_id": "T-V1-D01-S10-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S11-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "08",
+      "planned_test_id": "T-V1-D01-S11-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S12-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "12",
+      "planned_test_id": "T-V1-D01-S12-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S12-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "12",
+      "planned_test_id": "T-V1-D01-S12-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S12-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "12",
+      "planned_test_id": "T-V1-D01-S12-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S12-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "12",
+      "planned_test_id": "T-V1-D01-S12-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S12-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "12",
+      "planned_test_id": "T-V1-D01-S12-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S12-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "12",
+      "planned_test_id": "T-V1-D01-S12-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S13-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D01-S13-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S13-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D01-S13-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S13-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D01-S13-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-007",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-008",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-009",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S14-010",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S14-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S15-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S15-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S15-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S15-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S15-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S15-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S15-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S15-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S15-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S15-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S15-006",
+      "source": "01_业务标准.txt",
+      "implementation_task": "03",
+      "planned_test_id": "T-V1-D01-S15-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S16-001",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S16-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S16-002",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S16-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S16-003",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S16-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S16-004",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S16-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D01-S16-005",
+      "source": "01_业务标准.txt",
+      "implementation_task": "06",
+      "planned_test_id": "T-V1-D01-S16-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S01-001",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S01-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S01-002",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S01-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S01-003",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S01-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-001",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-002",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-003",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-004",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-005",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-006",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-007",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-008",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-009",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-010",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-011",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-012",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-012",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-013",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-013",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-014",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-014",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-015",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-015",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-016",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-016",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-017",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-017",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-018",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-018",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-019",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-019",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-020",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-020",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S02-021",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S02-021",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-001",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-002",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-003",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-004",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-005",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-006",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-007",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S03-008",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S03-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-001",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-002",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-003",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-004",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-005",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-006",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-007",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-008",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-009",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S04-010",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S04-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S05-001",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S05-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S05-002",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S05-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S05-003",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S05-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S05-004",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S05-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S05-005",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S05-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S05-006",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S05-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S06-001",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S06-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S06-002",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S06-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S06-003",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S06-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S06-004",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S06-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D02-S06-005",
+      "source": "02_模块与Go实现约束.txt",
+      "implementation_task": "02",
+      "planned_test_id": "T-V1-D02-S06-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S01-007",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S01-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S02-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S02-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S02-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S02-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S02-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S02-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S02-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S02-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S02-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S02-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S02-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S02-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S03-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S03-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S03-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S03-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S03-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S03-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S03-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S03-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S03-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S03-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S03-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S03-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S04-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S04-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S04-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S04-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S04-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S04-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S04-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S04-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S04-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S04-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S04-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S04-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-007",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-008",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-009",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-010",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S05-011",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S05-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S06-007",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S06-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-007",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-008",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S07-009",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S07-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S08-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S08-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S08-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S08-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S08-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S08-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S08-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S08-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S08-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S08-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S08-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S08-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-003",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-004",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-005",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-006",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S09-007",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S09-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S10-001",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S10-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D03-S10-002",
+      "source": "03_接口与配置契约.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D03-S10-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S01-001",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S01-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S01-002",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S01-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S01-003",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S01-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S01-004",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S01-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-001",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-002",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-003",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-004",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-005",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-006",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-007",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-008",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-009",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-010",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-011",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-012",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-012",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-013",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-013",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-014",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-014",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-015",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-015",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-016",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-016",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-017",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-017",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-018",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-018",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-019",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-019",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-020",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-020",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-021",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-021",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-022",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-022",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-023",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-023",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-024",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-024",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-025",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-025",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-026",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-026",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-027",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-027",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-028",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-028",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-029",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-029",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S02-030",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S02-030",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-001",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-002",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-003",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-004",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-005",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-006",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-007",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-008",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-009",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-010",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-011",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-012",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-012",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-013",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-013",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-014",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-014",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-015",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-015",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-016",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-016",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-017",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-017",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-018",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-018",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-019",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-019",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S03-020",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S03-020",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-001",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-002",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-003",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-004",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-005",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-006",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-007",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-008",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-009",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D04-S04-010",
+      "source": "04_顺序实施与验收.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D04-S04-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-001",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-002",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-003",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-004",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-005",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-006",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-007",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-008",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-009",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S01-010",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S01-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-001",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-002",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-003",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-004",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-005",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-006",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-007",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S02-008",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S02-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-001",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-002",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-003",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-004",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-004",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-005",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-005",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-006",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-006",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-007",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-007",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-008",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-008",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-009",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-009",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-010",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-010",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-011",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-011",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-012",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-012",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-013",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-013",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S03-014",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S03-014",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S04-001",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S04-001",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S04-002",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S04-002",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S04-003",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S04-003",
+      "test_status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "V1-D05-S04-004",
+      "source": "05_配置与能力决策表.txt",
+      "implementation_task": "01",
+      "planned_test_id": "T-V1-D05-S04-004",
+      "test_status": "NOT_IMPLEMENTED"
+    }
+  ],
+  "numeric_vector_count": 22,
+  "state_scenarios": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14",
+    "S15",
+    "S16",
+    "S17",
+    "S18",
+    "S19",
+    "S20"
+  ],
+  "clarifications": [
+    {
+      "id": "C01",
+      "decision": "scope={type,agent_ids}；ALL_ACTIVE_AGENTS要求空集合；EXPLICIT_AGENT_IDS要求非空唯一集合",
+      "authorized_by": "用户本次对话确认"
+    }
+  ]
+}

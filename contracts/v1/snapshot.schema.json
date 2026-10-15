@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:snapshot",
+  "type": "object",
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "standard_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "plan_version_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "config_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "business_time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "currency_catalog_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "calendar_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "facts": {
+      "type": "object",
+      "properties": {
+        "basis_amount": {
+          "type": "string",
+          "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+        },
+        "basis_currency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+        },
+        "quantity_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "product_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scene": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "business_time": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "ancestors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "grade_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "FROZEN",
+              "DISABLED",
+              "CLOSED"
+            ]
+          }
+        },
+        "required": [
+          "agent_id",
+          "depth",
+          "grade_id",
+          "eligible",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "qualification_facts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "eligibility": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "INELIGIBLE"
+            ]
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "eligibility",
+          "effective_from",
+          "effective_to"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "contract_facts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "contract_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "plan_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "contract_id",
+          "plan_id",
+          "effective_from",
+          "effective_to"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "algorithm_versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "1"
+        ]
+      }
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "standard_version",
+    "plan_id",
+    "plan_version_id",
+    "config_hash",
+    "business_time",
+    "currency_catalog_version",
+    "calendar_version",
+    "facts",
+    "ancestors",
+    "qualification_facts",
+    "contract_facts",
+    "algorithm_versions"
+  ],
+  "additionalProperties": false
+}

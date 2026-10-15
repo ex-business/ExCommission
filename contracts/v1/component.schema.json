@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:component",
+  "type": "object",
+  "properties": {
+    "component_type": {
+      "type": "string",
+      "enum": [
+        "Calculator",
+        "IdentityProvider",
+        "SourceAdapter",
+        "PaymentProvider",
+        "NotificationProvider",
+        "AuditSink"
+      ]
+    },
+    "component_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "implementation_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "contract_version": {
+      "type": "string",
+      "enum": [
+        "1"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "uniqueItems": true
+    },
+    "config_schema_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "credential_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "VALID",
+        "INVALID"
+      ]
+    }
+  },
+  "required": [
+    "component_type",
+    "component_id",
+    "implementation_version",
+    "contract_version",
+    "capabilities",
+    "config_schema_ref",
+    "credential_ref",
+    "enabled",
+    "validation_status"
+  ],
+  "additionalProperties": false
+}

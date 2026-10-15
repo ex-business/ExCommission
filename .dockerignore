@@ -1,0 +1,7 @@
+.git
+.env
+.venv
+.local
+AGENTS.md
+docs/local
+**/__pycache__
