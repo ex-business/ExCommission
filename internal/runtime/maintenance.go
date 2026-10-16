@@ -21,6 +21,7 @@ func maintenanceJobs(store *mysql.Store) []maintenanceJob {
 	jobs := []maintenanceJob{{"payment.recovery", func(job context.Context) error { return payments.Recover(job, localScope()) }}, {"refund.recovery", func(job context.Context) error { return refunds.Recover(job, localScope()) }}, {"outbox.delivery", func(job context.Context) error {
 		return deliverOutbox(job, store, localScope())
 	}}}
+	jobs = append(jobs, maintenanceJob{"payout.instructions", func(ctx context.Context) error { return disbursementService(store).Recover(ctx, localScope()) }})
 	jobs = append(jobs, maintenanceJob{"settlement.daily", func(ctx context.Context) error {
 		_, err := scheduledSettlement(store).RunOnce(ctx, localScope())
 		return err

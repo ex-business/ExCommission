@@ -10,10 +10,12 @@ POST /v1/payout-orders body={statement_id,amount:{currency,minor_units},channel_
 
 PUT /v1/payout-orders/{id} body={expected_revision,amount,remark}仅允许DRAFT，币种不变，保存修订及操作人。金额是本次派发额，减少不是扣除剩余佣金，增加不得超过批准剩余金额。原权益与结算总额不修改。
 
-POST /v1/payout-order-batches body={action:RELEASE|CANCEL,items:[{instruction_id,expected_revision,reason}]}，1至100项，独立报告结果。RELEASE令DRAFT变QUEUED，显式提交派发；CANCEL只允许DRAFT或尚未创建任何付款的BLOCKED，变CANCELLED，不产生借贷。QUEUED之后不可撤销或编辑，不能用本地取消冒充渠道撤单。
+POST /v1/payout-order-batches body={action:RELEASE|CANCEL,items:[{instruction_id,expected_revision,reason,remark?}]}，1至100项，独立报告结果。RELEASE令DRAFT变QUEUED，显式提交派发；CANCEL只允许DRAFT或尚未创建任何付款的BLOCKED，变CANCELLED，不产生借贷。QUEUED之后不可撤销或编辑，不能用本地取消冒充渠道撤单。
 
 后台独立任务每5秒取最多20条QUEUED，使用稳定指令键调用原payment-create。成功后链接原payment_id，变LINKED，解除活动指令占位；付款由原调度恢复/派发，UNKNOWN仅按原商户号查询。创建成功但链接前崩溃，下次重放稳定键只得到原付款。重复worker链接幂等，不重复占款。确定业务失败标记BLOCKED并保留错误码，可取消后重新准备；基础设施失败保留QUEUED重试。不同指令互不阻塞。
 
 批量父键冻结完整清单；同键换金额、备注、对象或动作409。子键按父批次和资源派生，不使用客户端提交任意子键。每项命令审计、备注和状态持久化；重试每项重新鉴权，不能缓存整批结果绕过撤权。批量结果不代表银行到账。
 
 审核查询和审核操作分别使用statements:read/statements:approve；派发查询与维护分别使用payments:read/payments:write。操作员不能通过批量入口自审，也不能提高批准权益。没有真实支付渠道时只验收沙箱。
+
+前端入口：独立ExCommission-Web项目的“结算与审核 → 佣金审核 → 佣金审核与派发”，有专用筛选表格、选择、逐项结果、金额/备注编辑和派发草稿操作。渠道结果继续通过原付款详情及核验接口查询，LINKED只表示关联到付款。

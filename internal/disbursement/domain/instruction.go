@@ -34,6 +34,7 @@ type Edit struct {
 	Remark   string      `json:"remark"`
 }
 type Action struct {
+	Remark   string `json:"remark,omitempty"`
 	ID       string `json:"instruction_id"`
 	Revision uint64 `json:"expected_revision"`
 	Reason   string `json:"reason"`

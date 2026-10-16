@@ -145,3 +145,11 @@ worker已装配 `settlement.daily`：按UTC每日01:00生成前一日全量结�
 详细合同见 `docs/integration/scheduled-settlement.md`。同周期手工全量运行可复用，已有审核不重提；不同筛选、已过时草稿或跳过的历史周期冲突明确失败并保留游标，禁止静默改写历史。冻结、最低额、迟到事实和后续周期收录仍遵循原结算规则。
 
 本次定时边界、100并发、审计异常回滚、漏跑补偿、手工审核记录复用、当前权限及状态接口结构已在隔离租户与现有Docker MySQL验证。Docker引擎管理接口仍返回500，本次镜像部署未成功；当前运行服务不代表新调度已经启用。验收边界见 `conformance/v1/scheduled-settlement-acceptance.json`。
+
+## 佣金审核与批量派发
+
+审核列表 `GET /v1/commission-reviews` 支持状态、代理、币种、日期及分页；`POST /v1/commission-review-batches` 每项独立复核修订、摘要、当前权限及禁止自审，保存审核备注，单项失败不回滚其他项。同键更换清单返回冲突。
+
+新增 payout-orders 派发草稿，已批准结算可准备本次金额、修改备注或取消。草稿不占款，不改原佣金权益；只有显式RELEASE后进入队列。后台 `payout.instructions` 复用原付款创建防重键，关联失败或worker重启只恢复原付款，批量逐项处理。QUEUED之后禁止编辑及本地取消，付款UNKNOWN继续原商户号查询。原付款操作接口保持兼容，不声称取消本地草稿等于银行撤单。
+
+详细契约见 `docs/integration/commission-review.md`。本次有独立前端专用审核页面，支持筛选、单笔/批量审核、逐项结果、金额与备注、草稿取消及批量提交；浏览器验收使用模拟HTTP，后端资金闭环独立使用现有Docker MySQL验证。Docker管理接口仍异常，新容器联部署尚未完成。

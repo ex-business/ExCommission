@@ -10,9 +10,11 @@ import (
 	"github.com/ex-business/ExCommission/internal/workflow/domain"
 	"github.com/ex-business/ExCommission/internal/workflow/ports"
 	"time"
+	"unicode/utf8"
 )
 
 type Decision struct {
+	Remark     string `json:"remark,omitempty"`
 	Decision   string `json:"decision"`
 	Revision   uint64 `json:"expected_revision"`
 	ObjectHash string `json:"object_hash"`
@@ -33,7 +35,7 @@ type Service struct {
 func (s Service) Decide(ctx context.Context, p identity.Principal, id string, input Decision, key, request string) (foundation.CommandResult, error) {
 	ctx = foundation.WithRequest(ctx, request, p.Subject)
 
-	if (input.Decision != "APPROVE" && input.Decision != "REJECT") || !foundation.ValidID(input.Reason) {
+	if (input.Decision != "APPROVE" && input.Decision != "REJECT") || !foundation.ValidID(input.Reason) || !utf8.ValidString(input.Remark) || utf8.RuneCountInString(input.Remark) > 1000 {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
@@ -102,6 +104,15 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 		}
 		if err = s.Repo.Finish(ctx, tx, scope, id, p.Subject, status, execution, input.Reason, s.Now()); err != nil {
 			return foundation.CommandResult{}, err
+		}
+		if input.Remark != "" {
+			notes, ok := s.Repo.(ports.DecisionNotes)
+			if !ok {
+				return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
+			}
+			if err = notes.Note(ctx, tx, scope, id, approval.Revision+1, p.Subject, input.Remark, s.Now()); err != nil {
+				return foundation.CommandResult{}, err
+			}
 		}
 		return result.Result(200, id, request, map[string]any{"approval_id": id, "approval_status": status, "execution_status": execution})
 	})

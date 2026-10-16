@@ -377,3 +377,25 @@ endpoint('/v1/settlement-schedule','get')
 scheduled_result=obj({'period':identifier,'run_id':identifier,'statement_ids':arr(identifier),'approval_ids':arr(identifier),'completed_at':time})
 actual_response('/v1/settlement-schedule','get',200,response_obj({'timezone':enum('UTC'),'hour':{'type':'integer','const':1},'poll_interval_seconds':{'type':'integer','const':5},'initialized':boolean,'next_period':nullable(identifier),'next_due_at':nullable(time),'last_result':nullable(scheduled_result)}))
 write('openapi.json',api)
+
+# 佣金审核与派发草稿；批量逐项结果保留原错误信封。
+review_row=obj({'approval_id':identifier,'applicant_id':identifier,'approval_status':identifier,'execution_status':identifier,'object_hash':identifier,'revision':revision,'statement_id':identifier,'statement_revision':revision,'statement_status':identifier,'agent_id':identifier,'currency':currency,'period':identifier,'total_minor':minor,'remark':{'type':'string'}})
+instruction=obj({'instruction_id':identifier,'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision,'remark':{'type':'string','maxLength':1000},'status':enum('DRAFT','QUEUED','LINKED','BLOCKED','CANCELLED'),'revision':revision,'payment_id':nullable(identifier),'error_code':nullable(identifier),'created_at':time})
+remark={'type':'string','maxLength':1000}
+decision_fields={'decision':enum('APPROVE','REJECT'),'expected_revision':revision,'object_hash':identifier,'reason':identifier,'remark':remark}
+api['paths']['/v1/approvals/{id}/decisions']['post']['requestBody']['content']['application/json']['schema']['properties']['remark']=remark
+review_item=obj({'approval_id':identifier,**decision_fields},['approval_id','decision','expected_revision','object_hash','reason'])
+action_item=obj({'instruction_id':identifier,'expected_revision':revision,'reason':identifier,'remark':remark},['instruction_id','expected_revision','reason'])
+item_array=lambda value:{'type':'array','items':value,'minItems':1,'maxItems':100}
+for path,body in [('/v1/commission-review-batches',obj({'items':item_array(review_item)})),('/v1/payout-order-batches',obj({'action':enum('RELEASE','CANCEL'),'items':item_array(action_item)}))]:
+    endpoint(path,'post',body)
+    actual_response(path,'post',200,response_obj({'batch_id':identifier,'results':arr(obj({'resource_id':identifier,'http_status':{'type':'integer','minimum':200,'maximum':599},'response':{'type':'object'}}),1)}))
+endpoint('/v1/payout-orders','post',obj({'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision,'remark':remark}),201)
+actual_response('/v1/payout-orders','post',201,response_obj(instruction['properties']))
+endpoint('/v1/payout-orders/{id}','put',obj({'expected_revision':revision,'amount':ref('Money'),'remark':remark}))
+actual_response('/v1/payout-orders/{id}','put',200,response_obj(instruction['properties']))
+endpoint('/v1/payout-orders/{id}','get');actual_response('/v1/payout-orders/{id}','get',200,response_obj(instruction['properties']))
+for path,row,filters in [('/v1/commission-reviews',review_row,['approval_status','agent_id','currency','period']),('/v1/payout-orders',instruction,['status','statement_id'])]:
+    endpoint(path,'get',query=[(key,identifier,False) for key in filters+['after_id']]+[('limit',{'type':'integer','minimum':1,'maximum':100,'default':50},False)])
+    actual_response(path,'get',200,response_obj({'rows':arr(row),'next_after_id':nullable(identifier)}))
+write('openapi.json',api)
