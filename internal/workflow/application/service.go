@@ -126,6 +126,8 @@ func ApprovalPermission(kind string) string {
 		return "agents:status:approve"
 	case "IDENTITY_GRANT":
 		return "identity:approve"
+	case "MILESTONE_PROGRAM":
+		return "milestones:approve"
 	case "PLATFORM_SETTING":
 		return "platform:approve"
 	default:

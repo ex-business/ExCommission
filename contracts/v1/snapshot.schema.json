@@ -371,7 +371,8 @@
             "type": "string",
             "enum": [
               "AGENT_RELATION",
-              "USER_BINDING"
+              "USER_BINDING",
+              "MILESTONE_BINDING"
             ]
           },
           "evidence_ref": {
@@ -390,6 +391,210 @@
         "additionalProperties": false
       },
       "minItems": 0
+    },
+    "trigger_evidence": {
+      "type": "object",
+      "properties": {
+        "program": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "source_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "starts_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+            },
+            "ends_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+            },
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "threshold": {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "unit",
+                  "threshold"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "maxItems": 16
+            },
+            "logic": {
+              "type": "string",
+              "enum": [
+                "ALL"
+              ]
+            },
+            "frequency": {
+              "type": "string",
+              "enum": [
+                "ONCE_PER_SUBJECT"
+              ]
+            },
+            "reward_plan_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "program_id",
+            "name",
+            "source_id",
+            "starts_at",
+            "ends_at",
+            "conditions",
+            "logic",
+            "frequency",
+            "reward_plan_id"
+          ],
+          "additionalProperties": false
+        },
+        "member": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "beneficiary_agent_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "bound_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+            },
+            "binding_evidence_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "facts": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "cumulative_value": {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                  },
+                  "observed_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                  },
+                  "evidence_ref": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "cumulative_value",
+                  "observed_at",
+                  "evidence_ref"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "task_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "qualified_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "user_id",
+            "beneficiary_agent_id",
+            "bound_at",
+            "binding_evidence_ref",
+            "facts",
+            "task_id",
+            "qualified_at"
+          ],
+          "additionalProperties": false
+        },
+        "qualified_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+        },
+        "config_hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "approval_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "program",
+        "member",
+        "qualified_at",
+        "config_hash",
+        "approval_id"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

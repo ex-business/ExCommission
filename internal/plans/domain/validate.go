@@ -45,7 +45,7 @@ func Validate(config Config, exponent int) error {
 	if config.StandardVersion != "1" || config.PlanID == "" || config.Name == "" || exponent < 0 || exponent > 8 {
 		return invalid("version or currency")
 	}
-	if config.Route.Product == "" || config.Route.Scene == "" || (config.Route.EventType != "FEE_CONFIRMED" && config.Route.EventType != "TRADE_CLOSED" && config.Route.EventType != "ORDER_CONFIRMED") {
+	if config.Route.Product == "" || config.Route.Scene == "" || (config.Route.EventType != "FEE_CONFIRMED" && config.Route.EventType != "TRADE_CLOSED" && config.Route.EventType != "ORDER_CONFIRMED" && config.Route.EventType != "MILESTONE_REACHED") {
 		return invalid("route")
 	}
 	policy := config.AgentPolicy

@@ -42,5 +42,9 @@ func publicSnapshot(input calc.Input) map[string]any {
 			algorithms[r.Algorithm] = r.Version
 		}
 	}
-	return map[string]any{"snapshot_id": input.SnapshotID, "standard_version": input.StandardVersion, "plan_id": input.Plan.PlanID, "plan_version_id": input.PlanVersionID, "config_hash": input.ConfigHash, "business_time": input.Facts.BusinessTime, "currency_catalog_version": input.CurrencyCatalogVersion, "calendar_version": input.CalendarVersion, "facts": input.Facts, "ancestors": input.Ancestors, "qualification_facts": qualifications, "contract_facts": contracts, "recipient_facts": recipients, "relationship_facts": relationships, "algorithm_versions": algorithms}
+	result := map[string]any{"snapshot_id": input.SnapshotID, "standard_version": input.StandardVersion, "plan_id": input.Plan.PlanID, "plan_version_id": input.PlanVersionID, "config_hash": input.ConfigHash, "business_time": input.Facts.BusinessTime, "currency_catalog_version": input.CurrencyCatalogVersion, "calendar_version": input.CalendarVersion, "facts": input.Facts, "ancestors": input.Ancestors, "qualification_facts": qualifications, "contract_facts": contracts, "recipient_facts": recipients, "relationship_facts": relationships, "algorithm_versions": algorithms}
+	if len(input.TriggerEvidence) > 0 {
+		result["trigger_evidence"] = input.TriggerEvidence
+	}
+	return result
 }

@@ -1,0 +1,61 @@
+{
+  "scope": {
+    "type": "ALL_ACTIVE_AGENTS",
+    "agent_ids": []
+  },
+  "plan_id": "MILESTONE_REWARD",
+  "name": "累计达标固定奖励示例",
+  "revision": 0,
+  "standard_version": "1",
+  "route": {
+    "product_code": "ACTIVITY_REWARD",
+    "event_type": "MILESTONE_REACHED",
+    "scene": "MILESTONE"
+  },
+  "currency": "USD",
+  "calendar_version": "UTC-v1",
+  "agent_policy": {
+    "max_depth": 3,
+    "self_reward": false,
+    "earn_while_frozen": false,
+    "require_contract": false,
+    "grade_window": "PREVIOUS_CALENDAR_MONTH",
+    "grade_evaluation": "DAILY",
+    "eligibility_required": true
+  },
+  "grade_definitions": [
+    {
+      "id": "G0",
+      "rank": 0,
+      "conditions": []
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "algorithm_id": "FIXED",
+      "algorithm_version": "1",
+      "recipient": "DIRECT",
+      "condition": {
+        "logic": "AND",
+        "children": []
+      },
+      "parameters": {
+        "amount_minor": "2500",
+        "reward_currency": "USD"
+      },
+      "funding_limit_ppm": null,
+      "per_beneficiary_cap_minor": null,
+      "per_event_total_cap_minor": null,
+      "frequency": "ONCE_PER_BUSINESS_RULE"
+    }
+  ],
+  "event_budget_minor": "2500",
+  "settlement_policy": {
+    "period": "DAILY",
+    "minimum_payout_minor": "0",
+    "max_payment_minor": null,
+    "late_policy": "NEXT_OPEN_PERIOD",
+    "channel_fee_bearer": "PLATFORM"
+  }
+}

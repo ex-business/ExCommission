@@ -1,13 +1,20 @@
 package domain
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Payload struct {
-	Basis        string `json:"basis_amount"`
-	Currency     string `json:"basis_currency"`
-	Quantity     string `json:"quantity,omitempty"`
-	QuantityUnit string `json:"quantity_unit,omitempty"`
-	Confirmed    *bool  `json:"confirmed,omitempty"`
+	Beneficiary     string          `json:"beneficiary_agent_id,omitempty"`
+	BindingFrom     *time.Time      `json:"binding_from,omitempty"`
+	BindingEvidence string          `json:"binding_evidence_ref,omitempty"`
+	TriggerEvidence json.RawMessage `json:"trigger_evidence,omitempty"`
+	Basis           string          `json:"basis_amount"`
+	Currency        string          `json:"basis_currency"`
+	Quantity        string          `json:"quantity,omitempty"`
+	QuantityUnit    string          `json:"quantity_unit,omitempty"`
+	Confirmed       *bool           `json:"confirmed,omitempty"`
 }
 type Event struct {
 	Schema       string    `json:"schema_version"`

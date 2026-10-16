@@ -150,6 +150,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err := installSettlement(mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}
+	if err := installMilestones(mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
 	if err := installPlans(mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}

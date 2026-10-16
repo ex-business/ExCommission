@@ -4,7 +4,7 @@
 
 ## 配置
 
-`POST /v1/milestone-program-requests` 提交 {program_id,name,source_id,starts_at,ends_at,conditions:[{metric,unit,threshold}],logic:"ALL",frequency:"ONCE_PER_SUBJECT",reward_plan_id,reason}。1至16个唯一指标，门槛必须大于零；非负18位整数及最多8位小数，无浮点。指标是来源定义的稳定编码（例如 CONFIRMED_DEPOSIT、VALID_TURNOVER），unit必须精确一致，不换汇、不把缺失当零。source_id是该活动唯一的权威来源。窗口为UTC半开区间，来源提供窗口内累计确认总量，不是逐笔增量。
+`POST /v1/milestone-program-requests` 提交 {program:{program_id,name,source_id,starts_at,ends_at,conditions:[{metric,unit,threshold}],logic:"ALL",frequency:"ONCE_PER_SUBJECT",reward_plan_id},reason}。1至16个唯一指标，门槛必须大于零；非负18位整数及最多8位小数，无浮点。指标是来源定义的稳定编码（例如 CONFIRMED_DEPOSIT、VALID_TURNOVER），unit必须精确一致，不换汇、不把缺失当零。source_id是该活动唯一的权威来源。窗口为UTC半开区间，来源提供窗口内累计确认总量，不是逐笔增量。
 
 申请人与批准人必须独立，复用审批流程，只有批准执行成功才可接收统计；批准时starts_at必须仍在未来。配置一经激活不可覆盖，活动ID不允许换名重新激活；调整门槛应建立新活动并重新审批。拒绝、撤回与失败恢复沿用统一审批机制。
 

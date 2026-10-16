@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:milestone-program",
+  "type": "object",
+  "properties": {
+    "program_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "threshold": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+          }
+        },
+        "required": [
+          "metric",
+          "unit",
+          "threshold"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "logic": {
+      "type": "string",
+      "enum": [
+        "ALL"
+      ]
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "ONCE_PER_SUBJECT"
+      ]
+    },
+    "reward_plan_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "required": [
+    "program_id",
+    "name",
+    "source_id",
+    "starts_at",
+    "ends_at",
+    "conditions",
+    "logic",
+    "frequency",
+    "reward_plan_id"
+  ],
+  "additionalProperties": false
+}

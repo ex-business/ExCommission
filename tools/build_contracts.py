@@ -342,3 +342,32 @@ for path,method,body,code,schema in [
 errors+=['LOGIN_RATE_LIMITED']
 write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
 write('openapi.json',api)
+
+# 外部事件仍只有三个受控来源类型；达标事件仅由内部原子触发。
+plan['properties']['route']['properties']['event_type']['enum'].append('MILESTONE_REACHED')
+components['PlanDraft']['properties']['route']['properties']['event_type']['enum'].append('MILESTONE_REACHED')
+components['PlanDocument']['properties']['route']['properties']['event_type']['enum'].append('MILESTONE_REACHED')
+write('plan.schema.json',plan)
+Path('internal/plans/adapters/schema/plan.schema.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2)+'\n')
+condition=obj({'metric':identifier,'unit':identifier,'threshold':decimal})
+program=obj({'program_id':identifier,'name':identifier,'source_id':identifier,'starts_at':time,'ends_at':time,'conditions':arr(condition,1),'logic':enum('ALL'),'frequency':enum('ONCE_PER_SUBJECT'),'reward_plan_id':identifier})
+program['properties']['conditions']['maxItems']=16
+observation=obj({'source_id':identifier,'event_id':identifier,'program_id':identifier,'external_user_id':identifier,'beneficiary_agent_id':identifier,'metric':identifier,'unit':identifier,'cumulative_value':decimal,'observed_at':time,'evidence_ref':identifier})
+progress=obj({'user_id':identifier,'beneficiary_agent_id':identifier,'bound_at':time,'binding_evidence_ref':identifier,'facts':{'type':'object','additionalProperties':obj({'cumulative_value':decimal,'observed_at':time,'evidence_ref':identifier})},'task_id':nullable(identifier),'qualified_at':nullable(time)})
+components['MilestoneProgram']=program;components['MilestoneProgress']=progress
+write('milestone-program.schema.json',{'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'urn:excommission:v1:milestone-program',**program});write('milestone-observation.schema.json',{'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'urn:excommission:v1:milestone-observation',**observation})
+endpoint('/v1/milestone-program-requests','post',obj({'program':program,'reason':identifier}),202)
+actual_response('/v1/milestone-program-requests','post',202,response_obj({'approval_id':identifier,'program_id':identifier,'object_hash':identifier,'revision':revision}))
+endpoint('/v1/milestone-observations','post',observation,202)
+api['paths']['/v1/milestone-observations']['post']['parameters'].append({'name':'X-Source-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-fA-F0-9]{64}$'}})
+actual_response('/v1/milestone-observations','post',202,response_obj({'program_id':identifier,'user_id':identifier,'observation_status':enum('UPDATED','NO_CHANGE','STALE_NOOP'),'status':enum('WAITING','TRIGGERED'),'task_id':nullable(identifier),'qualified_at':nullable(time)}))
+endpoint('/v1/milestone-programs/{id}','get')
+actual_response('/v1/milestone-programs/{id}','get',200,response_obj({'program':program,'config_hash':identifier,'approval_id':identifier}))
+endpoint('/v1/milestone-programs/{id}/members/{user_id}','get')
+actual_response('/v1/milestone-programs/{id}/members/{user_id}','get',200,response_obj({'program_id':identifier,'progress':progress,'conditions':arr(obj({'metric':identifier,'unit':identifier,'threshold':decimal,'known':boolean,'cumulative_value':nullable(decimal)}),1),'status':enum('WAITING','TRIGGERED'),'task_status':nullable(identifier)}))
+trigger=obj({'program':program,'member':progress,'qualified_at':time,'config_hash':identifier,'approval_id':identifier})
+snapshot['properties']['trigger_evidence']=trigger
+snapshot['properties']['relationship_facts']['items']['properties']['kind']['enum'].append('MILESTONE_BINDING')
+components['Snapshot']={k:v for k,v in snapshot.items() if k not in ('$schema','$id')}
+write('snapshot.schema.json',snapshot)
+write('openapi.json',api)

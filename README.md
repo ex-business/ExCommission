@@ -125,3 +125,13 @@ APPROVED/FAILED 审批可通过 `/v1/approvals/{id}/execution-retries` 附证据
 ## 简单登录与第三方身份
 
 账号密码登录与第三方令牌核验已接入，契约见 `docs/integration/authentication.md`。运行 `python3 tools/init_login.py` 生成本地 operator / approver 两个账号，密码仅保存在 `.local/login-credentials.json`（0600）。四个接口为 `/v1/auth/config`、`/v1/auth/login`、`/v1/auth/me`、`/v1/auth/logout`。本地会话8小时到期，重启失效；现有固定令牌只兼容服务调用。前端通过服务端代理保存令牌。第三方配置文件 `.local/external-identity.json` 默认空对象关闭，配置HTTPS令牌核验与显式账号绑定后启用；真实平台尚未接入。
+
+## 通用累计达标奖励
+
+新增 milestones 模块，配置活动、单一权威来源、1至16个累计指标、ALL 组合条件与 ONCE_PER_SUBJECT 次数限制。受邀会员充值和有效投注同时达标只是配置示例；件数等其他累计指标使用同一流程。详细契约见 `docs/integration/milestones.md`，示例见 `conformance/v1/plan-milestone.json`、`milestone-program.json`、`milestone-observation.json`。示例未来日期与标识必须替换为业务确认值，不是已激活活动。
+
+先发布 MILESTONE_REACHED 类型的 DIRECT/FIXED 方案，独立审批活动配置，再由可信来源签名提交会员累计快照。首次事实冻结活动内奖励代理及证据，不覆盖全局关系；累计值只增不减，来源必须按活动窗口统计确认量。全部指标达标时，活动会员进度、唯一触发记录和原生计佣事件/任务原子提交，100并发仍只有一个任务。外部普通事件接口拒绝伪造该内部事件。达标证据、活动摘要及审批引用写入冻结快照；付款仍需结算审批与渠道确认，任务触发不等于到账。
+
+新增接口：POST `/v1/milestone-program-requests`、POST `/v1/milestone-observations`、GET `/v1/milestone-programs/{id}`、GET `/v1/milestone-programs/{id}/members/{user_id}`。充值和有效投注的真实性由接入来源提供，本系统不自行推算不存在的数据；可回退净值及自动撤回已发权益不在本次单调累计合同中，纠错沿用独立审批更正/追回。
+
+本次使用独立HTTP服务与现有Docker MySQL验收，功能回归、竞态与接口结构检查通过；Docker管理/构建接口当前返回500，新容器构建及部署尚未完成，18080现有进程仍是此前版本。具体边界见 `conformance/v1/milestone-acceptance.json`。

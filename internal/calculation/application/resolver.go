@@ -60,7 +60,21 @@ func (r Resolver) Resolve(ctx context.Context, tx db.Executor, s foundation.Scop
 	if err != nil {
 		return snapshot, err
 	}
-	if isAgent {
+	snapshot.TriggerEvidence = source.Payload.TriggerEvidence
+	if source.Type == "MILESTONE_REACHED" {
+		if !foundation.ValidID(source.Payload.Beneficiary) || source.Payload.BindingFrom == nil || source.Payload.BindingFrom.After(source.Time) || !foundation.ValidID(source.Payload.BindingEvidence) || len(source.Payload.TriggerEvidence) == 0 {
+			return snapshot, foundation.ErrValidation
+		}
+		if isAgent && own.ID == source.Payload.Beneficiary {
+			return snapshot, errors.New("PERMISSION_DENIED")
+		}
+		actor, err := r.actor(ctx, tx, s, version.Config, source.Payload.Beneficiary, 1, source.Time)
+		if err != nil {
+			return snapshot, err
+		}
+		snapshot.Ancestors = append(snapshot.Ancestors, actor)
+		snapshot.RelationshipFacts = append(snapshot.RelationshipFacts, domain.RelationshipEvidence{AgentID: actor.ID, Depth: 1, From: *source.Payload.BindingFrom, Kind: "MILESTONE_BINDING", Evidence: source.Payload.BindingEvidence})
+	} else if isAgent {
 		ancestors, more, err := r.Relationships.Ancestors(ctx, tx, s, own.ID, source.Time, 0, version.Config.AgentPolicy.MaxDepth)
 		if err != nil {
 			return snapshot, err
