@@ -18,6 +18,7 @@ import (
 	response "github.com/ex-business/ExCommission/internal/platform/application"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	qmodel "github.com/ex-business/ExCommission/internal/qualification/domain"
 	qualification "github.com/ex-business/ExCommission/internal/qualification/ports"
 	"log/slog"
 	"math/big"
@@ -99,6 +100,11 @@ func (s Service) Freeze(ctx context.Context, p identity.Principal, input Request
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
+		// 有限自然周期与业务日使用相同时区，防止日终跨进另一个会员统计周期。
+		memberPolicy := qmodel.StatisticsFor(policy.Statistics)
+		if memberPolicy.Range != qmodel.Forever && memberPolicy.Timezone != d.Timezone {
+			return foundation.CommandResult{}, foundation.ErrValidation
+		}
 		if policy.Source != d.SourceID || policy.Currency != v.Config.Currency {
 			return foundation.CommandResult{}, foundation.ErrValidation
 		}
@@ -111,12 +117,13 @@ func (s Service) Freeze(ctx context.Context, p identity.Principal, input Request
 		for _, id := range subjects {
 			frozen.Agents[id] = model.Agent{Metrics: map[string]string{"TEAM_VALID_VOLUME": "0", "EFFECTIVE_MEMBER_COUNT": "0"}}
 		}
-		members, err := s.Members.EffectiveAt(ctx, tx, scope, d.QualificationPolicyID, d.SourceID, end)
+		members, err := s.Members.EffectiveStatisticsAt(ctx, tx, scope, d.QualificationPolicyID, d.SourceID, end)
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
 		counts := map[string]int{}
-		for _, id := range members {
+		frozen.MemberStatistics = &members.Window
+		for _, id := range members.AgentIDs {
 			chain, _, err := s.Relations.Ancestors(ctx, tx, scope, id, at, 0, 3)
 			if err != nil {
 				return foundation.CommandResult{}, err

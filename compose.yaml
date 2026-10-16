@@ -43,6 +43,8 @@ services:
       LOCAL_REGISTRATION_URL: ${LOCAL_REGISTRATION_URL:-}
       LOCAL_QUALIFICATION_ENABLED: ${LOCAL_QUALIFICATION_ENABLED:-false}
       LOCAL_QUALIFICATION_KEY: ${LOCAL_QUALIFICATION_KEY:-}
+      LOCAL_REFERRAL_REWARDS_ENABLED: ${LOCAL_REFERRAL_REWARDS_ENABLED:-false}
+      LOCAL_DAYEND_ENABLED: ${LOCAL_DAYEND_ENABLED:-false}
       AUTH_LOCAL_ACCOUNTS_FILE: /local/login-accounts.json
       AUTH_EXTERNAL_FILE: /local/external-identity.json
       LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}
@@ -76,6 +78,8 @@ services:
       api:
         condition: service_healthy
     environment:
+      LOCAL_REFERRAL_REWARDS_ENABLED: ${LOCAL_REFERRAL_REWARDS_ENABLED:-false}
+      LOCAL_DAYEND_ENABLED: ${LOCAL_DAYEND_ENABLED:-false}
       LOCAL_PAYMENT_KEY: ${LOCAL_PAYMENT_KEY:?请先生成本地凭据}
       LOCAL_PAYMENT_RESULTS_FILE: /local/payment-results.json
       DB_ADDRESS: mysql:3306

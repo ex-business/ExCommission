@@ -364,6 +364,8 @@ write('openapi.json',api)
 qualification_policy=obj({'policy_id':identifier,'source_id':identifier,'currency':currency,'deposit_threshold_minor':{'type':'string','pattern':'^[1-9][0-9]{0,37}$'},'valid_bet_threshold_minor':{'type':'string','pattern':'^[1-9][0-9]{0,37}$'},'venue_types':{'type':'array','items':identifier,'minItems':1,'maxItems':64,'uniqueItems':True}})
 qualification_state=response_obj({'policy_id':identifier,'source_id':identifier,'external_user_id':identifier,'user_id':identifier,'agent_id':identifier,'parent_agent_id':nullable(identifier),'currency':currency,'deposit_total_minor':minor,'valid_bet_total_minor':minor,'deposit_threshold_minor':minor,'valid_bet_threshold_minor':minor,'is_effective':boolean,'qualified_at':nullable(time),'first_observed_at':nullable(time),'revision':revision})
 qualification_fact=obj({'schema_version':enum('1'),'policy_id':identifier,'source_id':identifier,'event_id':identifier,'business_id':identifier,'event_type':enum('DEPOSIT_SUCCEEDED','BET_SETTLED'),'external_user_id':identifier,'business_time':time,'amount_minor':{'type':'string','pattern':'^(0|[1-9][0-9]{0,37})$'},'currency':currency,'venue_type':nullable(identifier)})
+member_statistics_policy=obj({'range':enum('NATURAL_DAY','NATURAL_WEEK','NATURAL_MONTH','FOREVER'),'timezone':identifier})
+qualification_policy['properties']['member_statistics']=member_statistics_policy
 endpoint('/v1/member-qualification-policies','post',qualification_policy)
 actual_response('/v1/member-qualification-policies','post',200,qualification_policy)
 endpoint('/v1/member-qualification-facts','post',qualification_fact)
@@ -388,3 +390,38 @@ write('openapi.json',api)
 
 errors+=['DAYEND_PENDING','DAYEND_LATE_FACT']
 write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+
+# 有效人数统计独立于达标累计；旧规则未配置时保留永久口径。
+statistics_window=obj({'range':enum('NATURAL_DAY','NATURAL_WEEK','NATURAL_MONTH','FOREVER'),'timezone':identifier,'start':nullable(time),'end':nullable(time),'as_of':time})
+endpoint('/v1/member-qualification-policies/{id}','get')
+actual_response('/v1/member-qualification-policies/{id}','get',200,qualification_policy)
+endpoint('/v1/member-qualification-statistics','get',query=[('policy_id',identifier,True),('source_id',identifier,True),('as_of',time,True)])
+actual_response('/v1/member-qualification-statistics','get',200,obj({'window':statistics_window,'agent_ids':arr(identifier),'count':{'type':'integer','minimum':0}}))
+dayend_snapshot['properties']['member_statistics']=statistics_window
+for method in ('get','post'):
+ actual_response('/v1/day-end-freezes',method,200,dayend_snapshot)
+write('openapi.json',api)
+
+# 独立推荐奖励：不可变阶梯配置、双人启用、永久解锁及受控领取。
+referral_tier=obj({'tier_id':identifier,'required_direct_members':{'type':'integer','minimum':1,'maximum':1000000000},'amount_minor':{'type':'string','pattern':'^[1-9][0-9]{0,37}$'}})
+referral_definition=obj({'rule_id':identifier,'name':identifier,'plan_id':identifier,'source_id':identifier,'qualification_policy_id':identifier,'currency':currency,'tiers':{'type':'array','items':referral_tier,'minItems':1,'maxItems':64}})
+referral_rule=obj({'definition':referral_definition,'config_hash':identifier,'created_by':identifier,'status':enum('PENDING_APPROVAL','ACTIVE','REJECTED'),'created_at':time,'activated_at':nullable(time),'reviewed_by':identifier,'review_reason':identifier,'reviewed_at':nullable(time)},['definition','config_hash','created_by','status','created_at','activated_at','reviewed_at'])
+statistics_result=obj({'window':statistics_window,'agent_ids':arr(identifier),'count':{'type':'integer','minimum':0}})
+referral_tier_state=obj({'tier':referral_tier,'status':enum('LOCKED','CLAIMABLE','CLAIMED'),'unlocked_at':nullable(time),'unlock_evidence':nullable(obj({'window':statistics_window,'count':{'type':'integer','minimum':0},'member_set_hash':identifier})),'claim_id':identifier,'entitlement_id':identifier,'claimed_at':nullable(time)},['tier','status','unlocked_at','unlock_evidence','claimed_at'])
+referral_tier_state['allOf']=[{'if':{'properties':{'status':{'const':'CLAIMED'}}},'then':{'required':['claim_id','entitlement_id'],'properties':{'claimed_at':time}}}]
+referral_progress=obj({'rule_id':identifier,'agent_id':identifier,'direct_effective_count':{'type':'integer','minimum':0},'statistics':statistics_window,'refreshed_at':nullable(time),'tiers':arr(referral_tier_state,1)},['rule_id','agent_id','direct_effective_count','refreshed_at','tiers'])
+for path,method,body,output,queries in [
+ ('/v1/referral-reward-rules','post',referral_definition,referral_rule,[]),
+ ('/v1/referral-reward-rules/{id}','get',None,referral_rule,[]),
+ ('/v1/referral-reward-rules/{id}/activation','post',obj({'expected_config_hash':identifier,'decision':enum('APPROVE','REJECT'),'reason':identifier}),referral_rule,[]),
+ ('/v1/referral-reward-rules/{id}/progress','get',None,referral_progress,[('agent_id',identifier,True)]),
+ ('/v1/referral-reward-rules/{id}/progress-refresh','post',obj({'agent_id':identifier}),referral_progress,[]),
+ ('/v1/referral-reward-claims','post',obj({'rule_id':identifier,'agent_id':identifier,'tier_id':identifier}),referral_tier_state,[])]:
+ endpoint(path,method,body,200,query=queries)
+ actual_response(path,method,200,output)
+ api['paths'][path][method]['description']='显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。'
+write('openapi.json',api)
+
+endpoint('/v1/referral-reward-claims/{id}','get')
+actual_response('/v1/referral-reward-claims/{id}','get',200,obj({'rule_id':identifier,'agent_id':identifier,'currency':currency,'plan_version_id':identifier,'config_hash':identifier,'reward':referral_tier_state}))
+write('openapi.json',api)

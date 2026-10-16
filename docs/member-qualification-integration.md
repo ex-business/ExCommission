@@ -4,6 +4,7 @@
 - [目标与模块边界](#scope)
 - [前置条件与配置](#preconditions)
 - [字段判断](#fields)
+- [可定义的人数统计范围](#member-statistics)
 - [调用顺序](#api)
 - [状态与达标时间](#status)
 - [接入流程](#flow)
@@ -33,7 +34,8 @@
 
 | 字段 | 产品与调用方的决策 |
 | --- | --- |
-| policy_id | 不可变规则编号；改变门槛或场馆必须建立新编号，不覆盖历史规则 |
+| policy_id | 不可变规则编号；改变门槛、场馆、统计范围或时区必须建立新编号，不覆盖历史规则 |
+| member_statistics | 可选人数统计策略，range 与 timezone 创建后锁定；旧请求未携带该字段仍保持原永久统计口径 |
 | source_id | 服务端明确装配的来源；事件、会员和规则必须属于同一来源 |
 | currency | 门槛及两种累计统一使用该币种；其他币种明确拒绝 |
 | amount_minor | 整数最小货币单位；USD 的 5000 表示50美元，不是5000美元 |
@@ -61,7 +63,8 @@
   "currency": "USD",
   "deposit_threshold_minor": "5000",
   "valid_bet_threshold_minor": "10000",
-  "venue_types": ["SPORTS"]
+  "venue_types": ["SPORTS"],
+  "member_statistics": {"range": "NATURAL_DAY", "timezone": "UTC"}
 }
 ```
 
@@ -171,3 +174,74 @@ qualification-v1\n{tenant_id}\n{app_id}\n{source_id}\n
 Go纯领域及来源测试、真实MySQL并发累计/双键防重/原子回滚/迟到事实测试通过；原用户、代理、注册与完整佣金链路race回归通过。接口结构检查通过。
 
 【涉及其他业务】调用链为会员注册证据 -> 可信充值/注单事实 -> 有效会员状态 -> 未来等级/邀请奖励消费。已验证本地沙箱注册及合成订单接入；真实充值、游戏结算、退款撤单、站点配置、团队等级消费和发奖未联调。本次没有修改它们的现有模块，不声称业务全链路上线完成。
+
+<a id="member-statistics"></a>
+## 可定义的人数统计范围
+
+口径依据：[代理配置原型](https://51z4k4.axshare.com/_4_1%E3%80%90admin%E3%80%91%E4%BB%A3%E7%90%86%E9%85%8D%E7%BD%AE.html)。
+
+此配置归属代理业务下的有效会员规则模块；等级模块引用规则结果，返佣模块继续按等级和层级比例计算。原型中的“范围”是按首次真实业务达标时间 `qualified_at` 筛选人数，不是清零充值或有效业务量累计。会员仍可以跨日、跨周完成双门槛。
+
+在创建规则请求中配置 `member_statistics`，新规则建议显式选择原型默认的 `NATURAL_DAY`：
+
+| range | 含义 |
+| --- | --- |
+| NATURAL_DAY | 当前自然日内首次达标的有效会员，下一天重新统计人数 |
+| NATURAL_WEEK | 周一零点至下一周一零点，下一周重新统计人数 |
+| NATURAL_MONTH | 月初零点至下月初零点，下月重新统计人数 |
+| FOREVER | 所有已达标有效会员，永久累计 |
+
+`timezone` 使用明确 IANA 时区，例如 `UTC`、`Asia/Shanghai`。不接受 `Local` 或未知时区。日终策略引用有限自然周期规则时，两者的时区字符串必须一致，避免业务日与会员统计日错位；规则与日终所用币种、来源也必须一致。
+
+同一 `policy_id` 的统计范围、时区、门槛、场馆全部不可覆盖：同配置重投返回原结果，改变任一配置返回409。需要新口径时创建新的规则编号，再通过原方案审批流程引用；新规则下需按接入流程重放其所需事实，不自动挪用旧规则的事实。已冻结的历史日终结果不重算。当前没有修改或删除规则的接口。
+
+兼容旧规则：持久化 JSON 或旧客户端未携带 `member_statistics` 时，仍按 `FOREVER` 统计，避免升级后原有会员人数骤降。不得把旧规则缺省解释为新规则推荐的按日口径。
+
+### 读取配置
+
+`GET /v1/member-qualification-policies/{id}`，需要 `agents:read`，返回原始不可变配置；不存在返回404。旧规则可能没有 `member_statistics` 字段，按上述兼容规则处理。
+
+### 预览人数
+
+`GET /v1/member-qualification-statistics?policy_id=demo-effective-v1&source_id=sandbox&as_of=2026-10-17T00%3A00%3A00Z`，需要 `users:read`。`as_of` 为排他截止点，不接受未来时间或超过微秒精度的值。
+
+```json
+{
+  "data": {
+    "window": {
+      "range": "NATURAL_DAY",
+      "timezone": "UTC",
+      "start": "2026-10-16T00:00:00Z",
+      "end": "2026-10-17T00:00:00Z",
+      "as_of": "2026-10-17T00:00:00Z"
+    },
+    "agent_ids": ["qualified-agent-id"],
+    "count": 1
+  },
+  "request_id": "request-id"
+}
+```
+
+自然周期按截止点之前一微秒定位：零点的日终请求统计刚结束的一天、周或月。只有 `qualified_at >= start`、`qualified_at < end` 且 `qualified_at < as_of` 的会员被选中。同一代理只计算一次，未达标会员和非邀请根代理不计入人数。永久范围的 `start/end` 均为null。
+
+周/月中途预览时，`end` 表示整个自然周期末尾，可能晚于 `as_of`，人数仍只统计截止点之前的达标会员。结果是该规则下的有效会员集合；等级模块另按代理关系和配置的下级层级归属统计。
+
+该预览读取当前已知达标状态，`as_of` 筛选业务达标时间，不代表当时已观测到的历史数据库快照；迟到事实可能校正 `qualified_at`。日终仍要求来源完成并停止该日投递后冻结，已冻结快照不随预览变化。
+
+```text
+Immutable qualification rule
+          |
+          v
+Successful facts -> lifetime threshold accumulation
+          |
+          v
+First business qualification time
+          |
+          v
+Configured day / week / month / forever selection
+          |
+          v
+Day-end grade statistics -> existing commission calculation
+```
+
+【涉及其他业务】日终模块改为消费有效会员模块的只读统计端口，快照新增可选 `member_statistics`，保存实际使用的范围、时区、自然周期及截止点。旧快照仍可读取；计佣费率算法、账簿和资格审批不变，公共 base 未修改。时区库随二进制嵌入，已在无系统时区文件的 scratch 容器验证 Asia/Shanghai 可用。本次只新增后端配置、读取与预览能力，管理页面控件尚未接入。

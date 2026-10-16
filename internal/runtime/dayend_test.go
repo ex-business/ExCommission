@@ -153,7 +153,7 @@ func runDayEndPipeline(t *testing.T, memberDepths, volumeDepths []int, expectedA
 			parent = id
 		}
 		qr := qualification.Repository{}
-		if e := qr.SavePolicy(ctx, tx, scope, qual.Policy{ID: "effective", Source: "sandbox", Currency: "USD", Deposit: "1", Bet: "1", Venues: []string{"SPORTS"}}, before); e != nil {
+		if e := qr.SavePolicy(ctx, tx, scope, qual.Policy{Statistics: &qual.StatisticsPolicy{Range: qual.NaturalDay, Timezone: "UTC"}, ID: "effective", Source: "sandbox", Currency: "USD", Deposit: "1", Bet: "1", Venues: []string{"SPORTS"}}, before); e != nil {
 			return e
 		}
 		for _, id := range []string{"B", "C"} {
@@ -221,6 +221,9 @@ func runDayEndPipeline(t *testing.T, memberDepths, volumeDepths []int, expectedA
 	frozen, err := (dayrepo.Repository{}).Get(ctx, store.DB, scope, config.PlanID, input.Day)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if frozen.MemberStatistics == nil || frozen.MemberStatistics.Range != qual.NaturalDay || frozen.MemberStatistics.Start == nil || !frozen.MemberStatistics.Start.Equal(start) {
+		t.Fatal("日终未冻结会员统计范围", frozen.MemberStatistics)
 	}
 	if frozen.Agents["A"].Grade != expectedAGrade || frozen.Agents["B"].Grade != "G1" || frozen.Agents["C"].Grade != "G0" {
 		t.Fatalf("各受益人等级错误 %+v", frozen.Agents)

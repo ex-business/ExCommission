@@ -131,4 +131,33 @@ class PlanContracts(unittest.TestCase):
         plan['rules'][0]['condition']={'logic':'NOT','children':[leaf]}
         self.validator.validate(plan)
 
+class MemberStatisticsContracts(unittest.TestCase):
+    def test_configurable_periods_and_legacy_compatibility(self):
+        api=json.loads((ROOT/'contracts/v1/openapi.json').read_text())
+        schema=api['paths']['/v1/member-qualification-policies']['post']['requestBody']['content']['application/json']['schema']
+        validator=Draft202012Validator(schema)
+        policy={'policy_id':'q1','source_id':'sandbox','currency':'USD','deposit_threshold_minor':'5000','valid_bet_threshold_minor':'10000','venue_types':['SPORTS']}
+        validator.validate(policy)
+        for period in ('NATURAL_DAY','NATURAL_WEEK','NATURAL_MONTH','FOREVER'):
+            policy['member_statistics']={'range':period,'timezone':'Asia/Shanghai'}
+            validator.validate(policy)
+        policy['member_statistics']['range']='ROLLING_WEEK'
+        self.assertTrue(list(validator.iter_errors(policy)))
+        policy['member_statistics']={'range':'NATURAL_DAY'}
+        self.assertTrue(list(validator.iter_errors(policy)))
+
+class ReferralContracts(unittest.TestCase):
+    def test_positive_minor_amounts_and_thresholds(self):
+        api=json.loads((ROOT/'contracts/v1/openapi.json').read_text())
+        schema=api['paths']['/v1/referral-reward-rules']['post']['requestBody']['content']['application/json']['schema']
+        validator=Draft202012Validator(schema)
+        rule={'rule_id':'r1','name':'推荐奖励','plan_id':'P1','source_id':'sandbox','qualification_policy_id':'q1','currency':'USD','tiers':[{'tier_id':'one','required_direct_members':1,'amount_minor':'500'}]}
+        validator.validate(rule)
+        for amount in ('0','-1','1.5','01'):
+            rule['tiers'][0]['amount_minor']=amount
+            self.assertTrue(list(validator.iter_errors(rule)))
+        rule['tiers'][0]['amount_minor']='500'
+        rule['tiers'][0]['required_direct_members']=0
+        self.assertTrue(list(validator.iter_errors(rule)))
+
 if __name__=='__main__': unittest.main(verbosity=2)

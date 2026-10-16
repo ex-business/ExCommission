@@ -43,8 +43,9 @@ func (s Service) CreatePolicy(ctx context.Context, p principal.Principal, input 
 	input.Venues = append([]string(nil), input.Venues...)
 	sort.Strings(input.Venues)
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
-	return s.Commands.Execute(ctx, scope, "qualification-policy-create", key, input, func(tx db.Executor) (foundation.CommandResult, error) {
-		// 同业务编号同配置可重投；改变门槛或场馆须创建新编号，禁止重写历史达标口径。
+	created := false
+	result, err := s.Commands.Execute(ctx, scope, "qualification-policy-create", key, input, func(tx db.Executor) (foundation.CommandResult, error) {
+		// 同业务编号同配置可重投；改变门槛、场馆或统计范围/时区须创建新编号，禁止重写历史达标口径。
 		existing, err := s.Repo.Policy(ctx, tx, scope, input.ID)
 		if err == nil {
 			a, _ := json.Marshal(existing)
@@ -60,8 +61,14 @@ func (s Service) CreatePolicy(ctx context.Context, p principal.Principal, input 
 		if err = s.Repo.SavePolicy(ctx, tx, scope, input, s.Now()); err != nil {
 			return foundation.CommandResult{}, err
 		}
+		created = true
 		return response.Result(200, input.ID, request, input)
 	})
+	if err == nil && result.Status == 200 && !result.Replayed && created {
+		config := model.StatisticsFor(input.Statistics)
+		slog.InfoContext(ctx, "有效会员规则已创建，统计口径已锁定", "request_id", request, "policy_id", input.ID, "source_id", input.Source, "statistics_range", config.Range, "timezone", config.Timezone, "result", "SUCCESS")
+	}
+	return result, err
 }
 func (s Service) Get(ctx context.Context, p principal.Principal, policy, source, external string) (model.Status, error) {
 	if !foundation.ValidID(policy) || !foundation.ValidID(source) || !foundation.ValidID(external) {

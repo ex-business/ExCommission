@@ -6,6 +6,7 @@ import (
 	model "github.com/ex-business/ExCommission/internal/dayend/domain"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	qualification "github.com/ex-business/ExCommission/internal/qualification/ports"
 	"time"
 )
 
@@ -19,7 +20,7 @@ type Tasks interface {
 	ReleaseDayEnd(context.Context, db.Executor, foundation.Scope, []string, time.Time) error
 }
 type EffectiveMembers interface {
-	EffectiveAt(context.Context, db.Executor, foundation.Scope, string, string, time.Time) ([]string, error)
+	qualification.StatisticsReader
 }
 
 type Subjects interface {

@@ -7,6 +7,8 @@
 
 启用 API 和 worker 的 `LOCAL_DAYEND_ENABLED=true`，默认关闭。配置通过现有方案草稿、模拟、发布审批生效，不绕过资格审批。原 `PREVIOUS_CALENDAR_MONTH` 策略继续使用原等级历史和月度统计。
 
+有效人数统计范围定义在所引用的有效会员规则中，创建后不可覆盖；详见[人数统计范围](member-qualification-integration.md#member-statistics)。有限自然周期的统计时区必须与日终时区一致，冻结快照的 `member_statistics` 保存当次实际统计边界。
+
 日终方案将 `agent_policy.grade_window` 设为 `BUSINESS_DAY`，`max_depth=3`，追加：
 
 ```json
@@ -26,7 +28,7 @@
 | timezone | 明确的 IANA 时区，例如 UTC、Asia/Shanghai；Local 不允许。当地自然日采用左闭右开边界，支持夏令时。此字段控制定级统计日，不改变现有账单 UTC 日历。 |
 | source_id | 计佣事实与有效会员事实的同一可信来源；来源扩展仍通过适配器接入。 |
 | qualification_policy_id | 已存在、不可变的双门槛有效会员规则，币种须与方案相同。 |
-| member_depths | 自定义统计哪些下级层级的有效会员人数，可选 1、2、3 的非空不重复组合。人数为业务日末之前已达标会员的累计去重人数。按日末关系归属统计。 |
+| member_depths | 自定义统计哪些下级层级的有效会员人数，可选 1、2、3 的非空不重复组合。人数按引用有效会员规则的 `member_statistics` 范围（日／周／月／永久）筛选首次达标时间，再按日末关系归属去重统计。旧规则没有范围配置时继续永久累计。 |
 | volume_depths | 自定义定级业务量统计哪些层级，与返佣层级分开；按订单业务时点关系归属统计。 |
 
 定级条件支持 `EFFECTIVE_MEMBER_COUNT`（单位 COUNT）和 `TEAM_VALID_VOLUME`（单位方案币种），同一等级内所有条件同时满足，取满足条件的最高 rank。基础等级 rank=0 不设条件。日终策略拒绝月度净额指标，避免把未知事实当零。

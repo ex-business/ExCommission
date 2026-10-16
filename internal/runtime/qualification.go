@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"database/sql"
+	"errors"
 	auth "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
@@ -14,6 +16,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 func installQualification(mux *http.ServeMux, require func(string, auth.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, app string) error {
@@ -40,6 +43,27 @@ func installQualification(mux *http.ServeMux, require func(string, auth.Authoriz
 		}
 		httpapi.Write(w, result)
 	}))
+	mux.Handle("GET /v1/member-qualification-policies/{id}", require("agents:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
+		policyID := r.PathValue("id")
+		if !foundation.ValidID(policyID) {
+			httpapi.Error(w, id, foundation.ErrValidation)
+			return
+		}
+		data, err := (adapters.Repository{}).Policy(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, policyID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				err = errors.New("NOT_FOUND")
+			}
+			httpapi.Error(w, id, err)
+			return
+		}
+		result, err := response.Result(200, policyID, id, data)
+		if err != nil {
+			httpapi.Error(w, id, err)
+			return
+		}
+		httpapi.Write(w, result)
+	}))
 	mux.Handle("POST /v1/member-qualification-facts", require("users:sync", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 		if err != nil {
@@ -60,6 +84,28 @@ func installQualification(mux *http.ServeMux, require func(string, auth.Authoriz
 			return
 		}
 		result, err := response.Result(200, data.AgentID, id, data)
+		if err != nil {
+			httpapi.Error(w, id, err)
+			return
+		}
+		httpapi.Write(w, result)
+	}))
+	mux.Handle("GET /v1/member-qualification-statistics", require("users:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
+		q := r.URL.Query()
+		at, err := time.Parse(time.RFC3339Nano, q.Get("as_of"))
+		if err != nil || at.After(clockUTC()) || at.Year() < 1000 || at.Nanosecond()%1000 != 0 || !foundation.ValidID(q.Get("policy_id")) || !foundation.ValidID(q.Get("source_id")) {
+			httpapi.Error(w, id, foundation.ErrValidation)
+			return
+		}
+		data, err := (adapters.Repository{}).EffectiveStatisticsAt(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, q.Get("policy_id"), q.Get("source_id"), at)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				err = errors.New("NOT_FOUND")
+			}
+			httpapi.Error(w, id, err)
+			return
+		}
+		result, err := response.Result(200, q.Get("policy_id"), id, data)
 		if err != nil {
 			httpapi.Error(w, id, err)
 			return

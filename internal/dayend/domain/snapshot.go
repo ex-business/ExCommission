@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	plan "github.com/ex-business/ExCommission/internal/plans/domain"
+	qualification "github.com/ex-business/ExCommission/internal/qualification/domain"
 	"time"
 )
 
@@ -11,16 +12,17 @@ type Agent struct {
 	Metrics map[string]string `json:"metrics"`
 }
 type Snapshot struct {
-	Watermark string            `json:"source_watermark"`
-	PlanID    string            `json:"plan_id"`
-	VersionID string            `json:"plan_version_id"`
-	Day       string            `json:"business_day"`
-	Start     time.Time         `json:"start"`
-	End       time.Time         `json:"end"`
-	Cutoff    time.Time         `json:"cutoff"`
-	Policy    plan.DayEndPolicy `json:"policy"`
-	TaskIDs   []string          `json:"task_ids"`
-	Agents    map[string]Agent  `json:"agents"`
+	MemberStatistics *qualification.StatisticsWindow `json:"member_statistics,omitempty"`
+	Watermark        string                          `json:"source_watermark"`
+	PlanID           string                          `json:"plan_id"`
+	VersionID        string                          `json:"plan_version_id"`
+	Day              string                          `json:"business_day"`
+	Start            time.Time                       `json:"start"`
+	End              time.Time                       `json:"end"`
+	Cutoff           time.Time                       `json:"cutoff"`
+	Policy           plan.DayEndPolicy               `json:"policy"`
+	TaskIDs          []string                        `json:"task_ids"`
+	Agents           map[string]Agent                `json:"agents"`
 }
 
 // Bounds 使用站点当地自然日，不使用固定24小时，确保夏令时的23/25小时日期正确。

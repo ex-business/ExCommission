@@ -9,6 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
+	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
+	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	qrepo "github.com/ex-business/ExCommission/internal/qualification/adapters"
 	q "github.com/ex-business/ExCommission/internal/qualification/domain"
 	registration "github.com/ex-business/ExCommission/internal/registration/domain"
 	"net/http/httptest"
@@ -255,6 +258,84 @@ func TestMemberQualificationFactsAndHistory(t *testing.T) {
 	rootState := check(send(rootBet))
 	if rootState["is_effective"] != false || rootState["qualified_at"] != nil {
 		t.Fatal("非邀请注册被算为有效邀请会员", rootState)
+	}
+
+	// 四类统计按真实达标时间筛选；累计身份仍永久有效，范围只影响当期人数。
+	cutoff := time.Date(2026, 10, 17, 0, 0, 0, 0, time.UTC)
+	for _, c := range []struct {
+		kind string
+		want int
+	}{{q.NaturalDay, 1}, {q.NaturalWeek, 2}, {q.NaturalMonth, 3}, {q.Forever, 4}} {
+		configured := policy
+		configured.ID = "stats-" + c.kind
+		configured.Statistics = &q.StatisticsPolicy{Range: c.kind, Timezone: "UTC"}
+		check(call("POST", "/v1/member-qualification-policies", newID(), configured, "", "", token))
+		got := check(call("GET", "/v1/member-qualification-policies/"+configured.ID, "", nil, "", "", token))
+		if got["member_statistics"].(map[string]any)["range"] != c.kind {
+			t.Fatal(got)
+		}
+		altered := configured
+		copy := *configured.Statistics
+		copy.Range = q.Forever
+		if c.kind == q.Forever {
+			copy.Range = q.NaturalDay
+		}
+		altered.Statistics = &copy
+		status, _ := call("POST", "/v1/member-qualification-policies", newID(), altered, "", "", token)
+		if status != 409 {
+			t.Fatal("创建后统计范围被覆盖", status)
+		}
+		copy = *configured.Statistics
+		copy.Timezone = "Asia/Shanghai"
+		altered.Statistics = &copy
+		status, _ = call("POST", "/v1/member-qualification-policies", newID(), altered, "", "", token)
+		if status != 409 {
+			t.Fatal("创建后统计时区被覆盖", status)
+		}
+		scope := foundation.Scope{Tenant: tenant, App: app}
+		err = store.Within(ctx, func(tx db.Executor) error {
+			repo := qrepo.Repository{}
+			times := []time.Time{cutoff.Add(-time.Hour), time.Date(2026, 10, 12, 8, 0, 0, 0, time.UTC), time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC), time.Date(2026, 9, 30, 8, 0, 0, 0, time.UTC), cutoff}
+			for i, at := range times {
+				id := fmt.Sprintf("stats-member-%d", i)
+				if e := repo.LockMember(ctx, tx, scope, configured.ID, "sandbox", id); e != nil {
+					return e
+				}
+				state := q.Status{PolicyID: configured.ID, Source: "sandbox", ExternalUser: id, AgentID: id, UserID: id, Currency: "USD", Effective: true, QualifiedAt: &at, FirstObservedAt: &clock, Revision: 1}
+				if e := repo.SaveStatus(ctx, tx, scope, state, clock); e != nil {
+					return e
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := "/v1/member-qualification-statistics?policy_id=" + configured.ID + "&source_id=sandbox&as_of=" + url.QueryEscape(cutoff.Format(time.RFC3339Nano))
+		data := check(call("GET", path, "", nil, "", "", token))
+		if data["count"] != float64(c.want) || len(data["agent_ids"].([]any)) != c.want {
+			t.Fatal("统计范围筛选错误", c.kind, data)
+		}
+		if data["window"].(map[string]any)["range"] != c.kind {
+			t.Fatal(data)
+		}
+	}
+	// 旧规则未携带范围继续永久口径，不能因升级丢失原累计会员。
+	legacy := check(call("GET", "/v1/member-qualification-statistics?policy_id=q1&source_id=sandbox&as_of="+url.QueryEscape(cutoff.Format(time.RFC3339Nano)), "", nil, "", "", token))
+	if legacy["window"].(map[string]any)["range"] != q.Forever || legacy["count"] != float64(1) {
+		t.Fatal("旧规则兼容失败", legacy)
+	}
+	code, _ = call("GET", "/v1/member-qualification-statistics?policy_id=q1&source_id=other&as_of="+url.QueryEscape(cutoff.Format(time.RFC3339Nano)), "", nil, "", "", token)
+	if code != 400 {
+		t.Fatal("跨来源读取未拒绝", code)
+	}
+	code, _ = call("GET", "/v1/member-qualification-statistics?policy_id=q1&source_id=sandbox&as_of=2099-01-01T00:00:00Z", "", nil, "", "", token)
+	if code != 400 {
+		t.Fatal("未来截止未拒绝", code)
+	}
+	code, _ = call("GET", "/v1/member-qualification-statistics?policy_id=q1&source_id=sandbox&as_of="+url.QueryEscape(cutoff.Format(time.RFC3339Nano)), "", nil, "", "", "")
+	if code != 401 {
+		t.Fatal("匿名统计未拒绝", code)
 	}
 	t.Log("双门槛、首次达标时点、迟到事实、并发累计、双键幂等、场馆/币种/来源隔离与原子回滚通过")
 }

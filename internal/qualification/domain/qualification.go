@@ -21,16 +21,20 @@ func Amount(value string) (*big.Int, error) {
 }
 
 type Policy struct {
-	ID       string   `json:"policy_id"`
-	Source   string   `json:"source_id"`
-	Currency string   `json:"currency"`
-	Deposit  string   `json:"deposit_threshold_minor"`
-	Bet      string   `json:"valid_bet_threshold_minor"`
-	Venues   []string `json:"venue_types"`
+	Statistics *StatisticsPolicy `json:"member_statistics,omitempty"`
+	ID         string            `json:"policy_id"`
+	Source     string            `json:"source_id"`
+	Currency   string            `json:"currency"`
+	Deposit    string            `json:"deposit_threshold_minor"`
+	Bet        string            `json:"valid_bet_threshold_minor"`
+	Venues     []string          `json:"venue_types"`
 }
 
 // ValidatePolicy 门槛和场馆集合一经发布不可覆盖；后续规则使用新的policy_id保留历史口径。
 func ValidatePolicy(p Policy) error {
+	if err := ValidateStatistics(p.Statistics); err != nil {
+		return err
+	}
 	d, err := Amount(p.Deposit)
 	if err != nil || d.Sign() <= 0 {
 		return ErrValidation

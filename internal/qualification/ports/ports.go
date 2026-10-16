@@ -27,3 +27,8 @@ type Repository interface {
 	Facts(context.Context, db.Executor, foundation.Scope, string, string, string) ([]model.Fact, error)
 	SaveStatus(context.Context, db.Executor, foundation.Scope, model.Status, time.Time) error
 }
+
+// StatisticsReader 由有效会员模块提供人数筛选；其他模块不得自行重新定义达标时间口径。
+type StatisticsReader interface {
+	EffectiveStatisticsAt(context.Context, db.Executor, foundation.Scope, string, string, time.Time) (model.StatisticsResult, error)
+}

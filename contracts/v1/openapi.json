@@ -13186,6 +13186,30 @@
                           "minItems": 1,
                           "maxItems": 64,
                           "uniqueItems": true
+                        },
+                        "member_statistics": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
@@ -13265,6 +13289,30 @@
                     "minItems": 1,
                     "maxItems": 64,
                     "uniqueItems": true
+                  },
+                  "member_statistics": {
+                    "type": "object",
+                    "properties": {
+                      "range": {
+                        "type": "string",
+                        "enum": [
+                          "NATURAL_DAY",
+                          "NATURAL_WEEK",
+                          "NATURAL_MONTH",
+                          "FOREVER"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      }
+                    },
+                    "required": [
+                      "range",
+                      "timezone"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -14075,6 +14123,62 @@
                             ],
                             "additionalProperties": false
                           }
+                        },
+                        "member_statistics": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "start": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "end": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "as_of": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone",
+                            "start",
+                            "end",
+                            "as_of"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
@@ -14365,6 +14469,62 @@
                             ],
                             "additionalProperties": false
                           }
+                        },
+                        "member_statistics": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "start": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "end": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "as_of": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone",
+                            "start",
+                            "end",
+                            "as_of"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
@@ -14415,6 +14575,2896 @@
             "schema": {
               "type": "string",
               "format": "date"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/member-qualification-policies/{id}": {
+      "get": {
+        "operationId": "get_v1_member_qualification_policies_id",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "policy_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "source_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "deposit_threshold_minor": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]{0,37}$"
+                        },
+                        "valid_bet_threshold_minor": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]{0,37}$"
+                        },
+                        "venue_types": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "minItems": 1,
+                          "maxItems": 64,
+                          "uniqueItems": true
+                        },
+                        "member_statistics": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "policy_id",
+                        "source_id",
+                        "currency",
+                        "deposit_threshold_minor",
+                        "valid_bet_threshold_minor",
+                        "venue_types"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ]
+      }
+    },
+    "/v1/member-qualification-statistics": {
+      "get": {
+        "operationId": "get_v1_member_qualification_statistics",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "window": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "start": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "end": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "as_of": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone",
+                            "start",
+                            "end",
+                            "as_of"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "agent_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "minItems": 0
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "agent_ids",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "as_of",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/referral-reward-rules": {
+      "post": {
+        "operationId": "post_v1_referral_reward_rules",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "definition": {
+                          "type": "object",
+                          "properties": {
+                            "rule_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "plan_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "qualification_policy_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "currency": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "tiers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "tier_id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "required_direct_members": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 1000000000
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^[1-9][0-9]{0,37}$"
+                                  }
+                                },
+                                "required": [
+                                  "tier_id",
+                                  "required_direct_members",
+                                  "amount_minor"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "minItems": 1,
+                              "maxItems": 64
+                            }
+                          },
+                          "required": [
+                            "rule_id",
+                            "name",
+                            "plan_id",
+                            "source_id",
+                            "qualification_policy_id",
+                            "currency",
+                            "tiers"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "config_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "created_by": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_APPROVAL",
+                            "ACTIVE",
+                            "REJECTED"
+                          ]
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "activated_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reviewed_by": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "review_reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "reviewed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "definition",
+                        "config_hash",
+                        "created_by",
+                        "status",
+                        "created_at",
+                        "activated_at",
+                        "reviewed_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rule_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "plan_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "qualification_policy_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "tiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "tier_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "required_direct_members": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000000000
+                        },
+                        "amount_minor": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]{0,37}$"
+                        }
+                      },
+                      "required": [
+                        "tier_id",
+                        "required_direct_members",
+                        "amount_minor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "required": [
+                  "rule_id",
+                  "name",
+                  "plan_id",
+                  "source_id",
+                  "qualification_policy_id",
+                  "currency",
+                  "tiers"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。"
+      }
+    },
+    "/v1/referral-reward-rules/{id}": {
+      "get": {
+        "operationId": "get_v1_referral_reward_rules_id",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "definition": {
+                          "type": "object",
+                          "properties": {
+                            "rule_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "plan_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "qualification_policy_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "currency": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "tiers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "tier_id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "required_direct_members": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 1000000000
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^[1-9][0-9]{0,37}$"
+                                  }
+                                },
+                                "required": [
+                                  "tier_id",
+                                  "required_direct_members",
+                                  "amount_minor"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "minItems": 1,
+                              "maxItems": 64
+                            }
+                          },
+                          "required": [
+                            "rule_id",
+                            "name",
+                            "plan_id",
+                            "source_id",
+                            "qualification_policy_id",
+                            "currency",
+                            "tiers"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "config_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "created_by": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_APPROVAL",
+                            "ACTIVE",
+                            "REJECTED"
+                          ]
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "activated_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reviewed_by": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "review_reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "reviewed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "definition",
+                        "config_hash",
+                        "created_by",
+                        "status",
+                        "created_at",
+                        "activated_at",
+                        "reviewed_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。"
+      }
+    },
+    "/v1/referral-reward-rules/{id}/activation": {
+      "post": {
+        "operationId": "post_v1_referral_reward_rules_id_activation",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "definition": {
+                          "type": "object",
+                          "properties": {
+                            "rule_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "plan_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "qualification_policy_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "currency": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "tiers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "tier_id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "required_direct_members": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 1000000000
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^[1-9][0-9]{0,37}$"
+                                  }
+                                },
+                                "required": [
+                                  "tier_id",
+                                  "required_direct_members",
+                                  "amount_minor"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "minItems": 1,
+                              "maxItems": 64
+                            }
+                          },
+                          "required": [
+                            "rule_id",
+                            "name",
+                            "plan_id",
+                            "source_id",
+                            "qualification_policy_id",
+                            "currency",
+                            "tiers"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "config_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "created_by": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_APPROVAL",
+                            "ACTIVE",
+                            "REJECTED"
+                          ]
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "activated_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reviewed_by": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "review_reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "reviewed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "definition",
+                        "config_hash",
+                        "created_by",
+                        "status",
+                        "created_at",
+                        "activated_at",
+                        "reviewed_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expected_config_hash": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVE",
+                      "REJECT"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "expected_config_hash",
+                  "decision",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。"
+      }
+    },
+    "/v1/referral-reward-rules/{id}/progress": {
+      "get": {
+        "operationId": "get_v1_referral_reward_rules_id_progress",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rule_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "agent_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "direct_effective_count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "statistics": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "start": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "end": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "as_of": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone",
+                            "start",
+                            "end",
+                            "as_of"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "refreshed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "tiers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "tier": {
+                                "type": "object",
+                                "properties": {
+                                  "tier_id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "required_direct_members": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 1000000000
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^[1-9][0-9]{0,37}$"
+                                  }
+                                },
+                                "required": [
+                                  "tier_id",
+                                  "required_direct_members",
+                                  "amount_minor"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "LOCKED",
+                                  "CLAIMABLE",
+                                  "CLAIMED"
+                                ]
+                              },
+                              "unlocked_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "unlock_evidence": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "window": {
+                                        "type": "object",
+                                        "properties": {
+                                          "range": {
+                                            "type": "string",
+                                            "enum": [
+                                              "NATURAL_DAY",
+                                              "NATURAL_WEEK",
+                                              "NATURAL_MONTH",
+                                              "FOREVER"
+                                            ]
+                                          },
+                                          "timezone": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          },
+                                          "start": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "end": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "as_of": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                          }
+                                        },
+                                        "required": [
+                                          "range",
+                                          "timezone",
+                                          "start",
+                                          "end",
+                                          "as_of"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "count": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "member_set_hash": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    },
+                                    "required": [
+                                      "window",
+                                      "count",
+                                      "member_set_hash"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "claim_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "entitlement_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "claimed_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "tier",
+                              "status",
+                              "unlocked_at",
+                              "unlock_evidence",
+                              "claimed_at"
+                            ],
+                            "additionalProperties": false,
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "status": {
+                                      "const": "CLAIMED"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "required": [
+                                    "claim_id",
+                                    "entitlement_id"
+                                  ],
+                                  "properties": {
+                                    "claimed_at": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": [
+                        "rule_id",
+                        "agent_id",
+                        "direct_effective_count",
+                        "refreshed_at",
+                        "tiers"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。"
+      }
+    },
+    "/v1/referral-reward-rules/{id}/progress-refresh": {
+      "post": {
+        "operationId": "post_v1_referral_reward_rules_id_progress_refresh",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rule_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "agent_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "direct_effective_count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "statistics": {
+                          "type": "object",
+                          "properties": {
+                            "range": {
+                              "type": "string",
+                              "enum": [
+                                "NATURAL_DAY",
+                                "NATURAL_WEEK",
+                                "NATURAL_MONTH",
+                                "FOREVER"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "start": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "end": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "as_of": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            }
+                          },
+                          "required": [
+                            "range",
+                            "timezone",
+                            "start",
+                            "end",
+                            "as_of"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "refreshed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "tiers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "tier": {
+                                "type": "object",
+                                "properties": {
+                                  "tier_id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "required_direct_members": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 1000000000
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^[1-9][0-9]{0,37}$"
+                                  }
+                                },
+                                "required": [
+                                  "tier_id",
+                                  "required_direct_members",
+                                  "amount_minor"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "LOCKED",
+                                  "CLAIMABLE",
+                                  "CLAIMED"
+                                ]
+                              },
+                              "unlocked_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "unlock_evidence": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "window": {
+                                        "type": "object",
+                                        "properties": {
+                                          "range": {
+                                            "type": "string",
+                                            "enum": [
+                                              "NATURAL_DAY",
+                                              "NATURAL_WEEK",
+                                              "NATURAL_MONTH",
+                                              "FOREVER"
+                                            ]
+                                          },
+                                          "timezone": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          },
+                                          "start": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "end": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "as_of": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                          }
+                                        },
+                                        "required": [
+                                          "range",
+                                          "timezone",
+                                          "start",
+                                          "end",
+                                          "as_of"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "count": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "member_set_hash": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    },
+                                    "required": [
+                                      "window",
+                                      "count",
+                                      "member_set_hash"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "claim_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "entitlement_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "claimed_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "tier",
+                              "status",
+                              "unlocked_at",
+                              "unlock_evidence",
+                              "claimed_at"
+                            ],
+                            "additionalProperties": false,
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "status": {
+                                      "const": "CLAIMED"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "required": [
+                                    "claim_id",
+                                    "entitlement_id"
+                                  ],
+                                  "properties": {
+                                    "claimed_at": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": [
+                        "rule_id",
+                        "agent_id",
+                        "direct_effective_count",
+                        "refreshed_at",
+                        "tiers"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agent_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "agent_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。"
+      }
+    },
+    "/v1/referral-reward-claims": {
+      "post": {
+        "operationId": "post_v1_referral_reward_claims",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tier": {
+                          "type": "object",
+                          "properties": {
+                            "tier_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "required_direct_members": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1000000000
+                            },
+                            "amount_minor": {
+                              "type": "string",
+                              "pattern": "^[1-9][0-9]{0,37}$"
+                            }
+                          },
+                          "required": [
+                            "tier_id",
+                            "required_direct_members",
+                            "amount_minor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "LOCKED",
+                            "CLAIMABLE",
+                            "CLAIMED"
+                          ]
+                        },
+                        "unlocked_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "unlock_evidence": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "window": {
+                                  "type": "object",
+                                  "properties": {
+                                    "range": {
+                                      "type": "string",
+                                      "enum": [
+                                        "NATURAL_DAY",
+                                        "NATURAL_WEEK",
+                                        "NATURAL_MONTH",
+                                        "FOREVER"
+                                      ]
+                                    },
+                                    "timezone": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "start": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "format": "date-time",
+                                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "end": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "format": "date-time",
+                                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "as_of": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                    }
+                                  },
+                                  "required": [
+                                    "range",
+                                    "timezone",
+                                    "start",
+                                    "end",
+                                    "as_of"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "member_set_hash": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                }
+                              },
+                              "required": [
+                                "window",
+                                "count",
+                                "member_set_hash"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "claim_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "entitlement_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "claimed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "tier",
+                        "status",
+                        "unlocked_at",
+                        "unlock_evidence",
+                        "claimed_at"
+                      ],
+                      "additionalProperties": false,
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "status": {
+                                "const": "CLAIMED"
+                              }
+                            }
+                          },
+                          "then": {
+                            "required": [
+                              "claim_id",
+                              "entitlement_id"
+                            ],
+                            "properties": {
+                              "claimed_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rule_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "agent_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "tier_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "rule_id",
+                  "agent_id",
+                  "tier_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "显式启用 LOCAL_REFERRAL_REWARDS_ENABLED 的服务端推荐奖励能力；配置和领取沿用管理权限，不将agent_id视为会员身份凭证。"
+      }
+    },
+    "/v1/referral-reward-claims/{id}": {
+      "get": {
+        "operationId": "get_v1_referral_reward_claims_id",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rule_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "agent_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "plan_version_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "config_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "reward": {
+                          "type": "object",
+                          "properties": {
+                            "tier": {
+                              "type": "object",
+                              "properties": {
+                                "tier_id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                },
+                                "required_direct_members": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 1000000000
+                                },
+                                "amount_minor": {
+                                  "type": "string",
+                                  "pattern": "^[1-9][0-9]{0,37}$"
+                                }
+                              },
+                              "required": [
+                                "tier_id",
+                                "required_direct_members",
+                                "amount_minor"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "LOCKED",
+                                "CLAIMABLE",
+                                "CLAIMED"
+                              ]
+                            },
+                            "unlocked_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "unlock_evidence": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "window": {
+                                      "type": "object",
+                                      "properties": {
+                                        "range": {
+                                          "type": "string",
+                                          "enum": [
+                                            "NATURAL_DAY",
+                                            "NATURAL_WEEK",
+                                            "NATURAL_MONTH",
+                                            "FOREVER"
+                                          ]
+                                        },
+                                        "timezone": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "start": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "end": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "as_of": {
+                                          "type": "string",
+                                          "format": "date-time",
+                                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                        }
+                                      },
+                                      "required": [
+                                        "range",
+                                        "timezone",
+                                        "start",
+                                        "end",
+                                        "as_of"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "count": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "member_set_hash": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "required": [
+                                    "window",
+                                    "count",
+                                    "member_set_hash"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "claim_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "entitlement_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "claimed_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tier",
+                            "status",
+                            "unlocked_at",
+                            "unlock_evidence",
+                            "claimed_at"
+                          ],
+                          "additionalProperties": false,
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "status": {
+                                    "const": "CLAIMED"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "required": [
+                                  "claim_id",
+                                  "entitlement_id"
+                                ],
+                                "properties": {
+                                  "claimed_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "rule_id",
+                        "agent_id",
+                        "currency",
+                        "plan_version_id",
+                        "config_hash",
+                        "reward"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
             }
           }
         ]

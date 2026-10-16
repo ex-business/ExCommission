@@ -105,6 +105,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}}
 	mux := http.NewServeMux()
 	installLogin(mux, store, provider, foundation.Scope{Tenant: tenant, App: app})
+	if err := installReferral(mux, require, store); err != nil {
+		return nil, err
+	}
 	if err := installRegistration(mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}
