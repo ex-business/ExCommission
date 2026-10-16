@@ -153,3 +153,5 @@ worker已装配 `settlement.daily`：按UTC每日01:00生成前一日全量结�
 新增 payout-orders 派发草稿，已批准结算可准备本次金额、修改备注或取消。草稿不占款，不改原佣金权益；只有显式RELEASE后进入队列。后台 `payout.instructions` 复用原付款创建防重键，关联失败或worker重启只恢复原付款，批量逐项处理。QUEUED之后禁止编辑及本地取消，付款UNKNOWN继续原商户号查询。原付款操作接口保持兼容，不声称取消本地草稿等于银行撤单。
 
 详细契约见 `docs/integration/commission-review.md`。本次有独立前端专用审核页面，支持筛选、单笔/批量审核、逐项结果、金额与备注、草稿取消及批量提交；浏览器验收使用模拟HTTP，后端资金闭环独立使用现有Docker MySQL验证。Docker管理接口仍异常，新容器联部署尚未完成。
+
+会员佣金领取：支持 MEMBER_CLAIM 与 DIRECT 两种派发模式。会员模式发布后等待本人领取，确认渠道成功后显示已领取，未知结果保留原单查询。可信身份绑定、接口与状态边界见 [会员佣金领取](docs/integration/member-commission-claims.md)。

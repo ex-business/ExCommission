@@ -73,6 +73,11 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err != nil {
 		return nil, err
 	}
+	for _, member := range provider.Members {
+		if err := bootstrapFeature(ctx, store, tenant, app, member.Subject, "member-claims-v1", []string{"member:read", "member:claim"}); err != nil {
+			return nil, err
+		}
+	}
 	authorize := identity.DatabaseAuthorizer{Query: store.DB}
 	require := func(permission string, handler authhttp.AuthorizedHandler) http.Handler {
 		return auditHTTP(store, provider, foundation.Scope{Tenant: tenant, App: app}, permission, authhttp.Require(provider, authorize, permission, handler))
@@ -157,6 +162,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 		return nil, err
 	}
 	installDisbursement(mux, require, store, &workflowService)
+	installMemberClaims(mux, require, store)
 	mux.Handle("POST /v1/user-sync-jobs", require("users:sync", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		var input users.SyncRequest
 		if err := httpapi.Decode(w, r, &input); err != nil {

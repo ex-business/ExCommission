@@ -9,6 +9,9 @@ import (
 )
 
 type Instruction struct {
+	DeliveryMode      string      `json:"delivery_mode,omitempty"`
+	BeneficiaryUserID string      `json:"beneficiary_user_id,omitempty"`
+	ClaimStatus       string      `json:"claim_status,omitempty"`
 	ID                string      `json:"instruction_id"`
 	StatementID       string      `json:"statement_id"`
 	Amount            money.Money `json:"amount"`
@@ -22,6 +25,7 @@ type Instruction struct {
 	Created           time.Time   `json:"created_at"`
 }
 type Prepare struct {
+	DeliveryMode      string      `json:"delivery_mode,omitempty"`
 	StatementID       string      `json:"statement_id"`
 	Amount            money.Money `json:"amount"`
 	Channel           string      `json:"channel_id"`

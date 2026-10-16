@@ -27,3 +27,25 @@ POST /v1/me/commission-orders/{id}/claim，body={expected_revision}，必须携�
 ## 验收
 
 覆盖待审核与拒绝、发布不付款、本人领取、跨会员/跨租户隔离、管理员不能冒领、并发和幂等、冻结或陈旧审批拒绝、UNKNOWN 不误报成功、成功重复回调只记账一次、失败和异常投影、取消后无法领取、旧直接派发兼容、撤权后缓存请求拒绝。会员界面属于独立前端项目。
+
+## 本地与第三方接入配置
+
+在已有 AUTH_LOCAL_ACCOUNTS_FILE 数组中增加会员项：username、salt（16字节十六进制）、hash（PBKDF2-HMAC-SHA256，600000次，32字节十六进制）、member_user_id（已同步的内部用户 ID）。禁止填写为 operator/approver；密码使用已有本地登录接口提交，会员权限自动做一次性初始化。不得在公开示例中填写真实密码或用户数据。
+
+第三方配置示意（占位值需部署时替换）：
+
+```json
+{
+  "endpoint": "https://identity.example/introspect",
+  "client_id": "commission-client",
+  "client_secret": "部署侧密钥",
+  "issuer": "https://identity.example",
+  "audience": "commission",
+  "bindings": {"external-member-subject": "member-registered-subject"},
+  "members": {"member-registered-subject": "内部用户ID"}
+}
+```
+
+第三方调用方携带其 Bearer token，直接访问本人查询和领取接口；发行方响应需满足现有 active、iss、aud、exp 检查。网页会员入口使用本地账号密码登录；第三方网页单点登录跳转不在本次新增范围内，后端已提供可信令牌接入。
+
+本次扩展沿用018中派发单 JSON 持久化和 active_slot 唯一约束，无需改写历史迁移；CLAIMABLE 同样占有 active_slot，避免同结算单同时发布多个待领取单。领取并发先锁派发单，付款模块再锁结算单与权益余额，保持原有资金守恒与稳定商户单号。

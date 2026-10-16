@@ -26,7 +26,13 @@ import (
 
 func disbursementService(store *mysql.Store) app.Service {
 	payments := paymentService(store)
-	return app.Service{Commands: store, UOW: store, Query: store.DB, Repo: repo.Repository{}, Now: clockUTC, ID: newID, CreatePayment: func(ctx context.Context, p principal.Principal, i model.Instruction, key string) (foundation.CommandResult, error) {
+	return app.Service{Commands: store, UOW: store, Query: store.DB, Repo: repo.Repository{}, Now: clockUTC, ID: newID, AuthorizeClaim: func(ctx context.Context, tx db.Executor, p principal.Principal) error {
+		return identity.Authorize(ctx, tx, p, p.Tenant, p.App, "member:claim")
+	}, Beneficiary: func(ctx context.Context, tx db.Executor, scope foundation.Scope, id string) (string, error) {
+		var user string
+		err := tx.QueryRowContext(ctx, `SELECT a.user_id FROM settlement_statements s JOIN agent_accounts a ON a.tenant_id=s.tenant_id AND a.app_id=s.app_id AND a.agent_id=s.beneficiary_id WHERE s.tenant_id=? AND s.app_id=? AND s.statement_id=?`, scope.Tenant, scope.App, id).Scan(&user)
+		return user, err
+	}, CreatePayment: func(ctx context.Context, p principal.Principal, i model.Instruction, key string) (foundation.CommandResult, error) {
 		return payments.Create(ctx, p, pay.CreateInput{StatementID: i.StatementID, Amount: i.Amount, Channel: i.Channel, Revision: i.StatementRevision}, key, newID())
 	}, Validate: func(ctx context.Context, tx db.Executor, s foundation.Scope, i model.Instruction) error {
 		provider, ok := payments.Providers[i.Channel]
@@ -253,6 +259,11 @@ func installDisbursement(mux *http.ServeMux, require func(string, authhttp.Autho
 			httpapi.Error(w, rid, e)
 			return
 		}
+		i.ClaimStatus, e = commissionClaimStatus(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, i)
+		if e != nil {
+			httpapi.Error(w, rid, e)
+			return
+		}
 		result, _ := response.Result(200, i.ID, rid, i)
 		httpapi.Write(w, result)
 	}))
@@ -272,6 +283,13 @@ func installDisbursement(mux *http.ServeMux, require func(string, authhttp.Autho
 			rows = rows[:f.Limit]
 			id := rows[len(rows)-1].ID
 			next = &id
+		}
+		for j := range rows {
+			rows[j].ClaimStatus, e = commissionClaimStatus(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, rows[j])
+			if e != nil {
+				httpapi.Error(w, rid, e)
+				return
+			}
 		}
 		result, _ := response.Result(200, "payout-orders", rid, map[string]any{"rows": rows, "next_after_id": next})
 		httpapi.Write(w, result)

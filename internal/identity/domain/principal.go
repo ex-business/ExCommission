@@ -7,6 +7,7 @@ var ErrUnauthenticated = errors.New("UNAUTHENTICATED")
 
 type Principal struct {
 	Tenant, App, Subject string
+	MemberUserID         string
 	Permissions          []string
 }
 

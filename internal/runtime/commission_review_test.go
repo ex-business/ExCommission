@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/pbkdf2"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -35,7 +36,9 @@ func (f payoutLinkFailure) Within(ctx context.Context, fn func(ports.Executor) e
 		return foundation.ErrValidation
 	})
 }
-func TestCommissionReviewAndBatchPayout(t *testing.T) {
+func TestCommissionReviewAndBatchPayout(t *testing.T) { commissionReviewFixture(t, false) }
+func TestMemberCommissionClaims(t *testing.T)         { commissionReviewFixture(t, true) }
+func commissionReviewFixture(t *testing.T, memberMode bool) {
 	if os.Getenv("TEST_MYSQL_ADDRESS") == "" {
 		t.Skip("Docker MySQL required")
 	}
@@ -98,6 +101,23 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 	for key, value := range map[string]string{"APP_MODE": "local", "LOCAL_OPERATOR_TOKEN": token, "LOCAL_APPROVER_TOKEN": checker, "LOCAL_CURSOR_KEY": strings.Repeat("c", 32), "LOCAL_SOURCE_KEY": sourceKey, "LOCAL_PAYMENT_KEY": paymentKey, "LOCAL_TENANT": scope.Tenant, "LOCAL_APP": scope.App, "LOCAL_USERS_FILE": usersFile, "LOCAL_GRADE_STATISTICS_FILE": statsFile, "LOCAL_PAYMENT_RESULTS_FILE": resultsFile, "LOCAL_RECOVERY_EVIDENCE_FILE": evidenceFile} {
 		t.Setenv(key, value)
 	}
+	memberToken, otherToken := "", ""
+	if memberMode {
+		var accounts []map[string]string
+		salt := make([]byte, 16)
+		hash, _ := pbkdf2.Key(sha256.New, "claim-test-password", salt, 600000, 32)
+		for _, name := range []string{"parent", "trader"} {
+			b, _ := json.Marshal([]string{"sandbox", name})
+			sum := sha256.Sum256(b)
+			accounts = append(accounts, map[string]string{"username": name, "member_user_id": "usr_" + hex.EncodeToString(sum[:16]), "salt": hex.EncodeToString(salt), "hash": hex.EncodeToString(hash)})
+		}
+		b, _ := json.Marshal(accounts)
+		file := filepath.Join(directory, "members.json")
+		if err := os.WriteFile(file, b, 0600); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("AUTH_LOCAL_ACCOUNTS_FILE", file)
+	}
 	handler, err := businessHandler(ctx, store)
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +126,23 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 	defer server.Close()
 	client := server.Client()
 	client.Timeout = 15 * time.Second
+	if memberMode {
+		login := func(name string) string {
+			b, _ := json.Marshal(map[string]string{"username": name, "password": "claim-test-password"})
+			r, e := client.Post(server.URL+"/v1/auth/login", "application/json", bytes.NewReader(b))
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer r.Body.Close()
+			var v map[string]any
+			if e = json.NewDecoder(r.Body).Decode(&v); e != nil || r.StatusCode != 200 {
+				t.Fatal(v, e)
+			}
+			return v["access_token"].(string)
+		}
+		memberToken = login("parent")
+		otherToken = login("trader")
+	}
 	transcript := []httpEvidence{}
 	t.Cleanup(func() {
 		path := os.Getenv("REVIEW_HTTP_EVIDENCE_FILE")
@@ -137,6 +174,10 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 			r.Header.Set("Authorization", "Bearer "+token)
 		} else if role == "approver" {
 			r.Header.Set("Authorization", "Bearer "+checker)
+		} else if role == "member" {
+			r.Header.Set("Authorization", "Bearer "+memberToken)
+		} else if role == "other" {
+			r.Header.Set("Authorization", "Bearer "+otherToken)
 		}
 		if method != "GET" {
 			if key == "" {
@@ -287,6 +328,18 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 	statement := run["statements"].([]any)[0].(map[string]any)
 	sid := field(statement, "statement_id")
 	submission := call("POST", "/v1/statements/{id}/submission", "/v1/statements/"+sid+"/submission", "operator", map[string]any{"expected_revision": rev(statement), "content_hash": statement["content_hash"]}, 202)
+	if memberMode {
+		m := call("GET", "/v1/me/commissions", "/v1/me/commissions", "member", nil, 200)
+		if m["rows"].([]any)[0].(map[string]any)["review_status"] != "WAITING_REVIEW" {
+			t.Fatal(m)
+		}
+		o := call("GET", "/v1/me/commissions", "/v1/me/commissions", "other", nil, 200)
+		if len(o["rows"].([]any)) != 0 {
+			t.Fatal("foreign commission disclosed", o)
+		}
+		call("GET", "/v1/me/commissions", "/v1/me/commissions", "operator", nil, 403)
+		callRaw("GET", "/v1/me/commissions", "/v1/me/commissions", "member", "", nil, map[string]string{"X-Tenant-ID": "foreign"}, 403)
+	}
 	list := call("GET", "/v1/commission-reviews", "/v1/commission-reviews?approval_status=PENDING&limit=1", "operator", nil, 200)
 	rows := list["rows"].([]any)
 	if len(rows) != 1 {
@@ -313,7 +366,11 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 	statement = call("GET", "/v1/statements/{id}", "/v1/statements/"+sid, "operator", nil, 200)
 	prepare := func(amount string, want int) map[string]any {
 		t.Helper()
-		return call("POST", "/v1/payout-orders", "/v1/payout-orders", "operator", map[string]any{"statement_id": sid, "amount": map[string]string{"currency": "USD", "minor_units": amount}, "channel_id": "sandbox", "expected_statement_revision": rev(statement), "remark": "本次派发备注"}, want)
+		mode := "DIRECT"
+		if memberMode {
+			mode = "MEMBER_CLAIM"
+		}
+		return call("POST", "/v1/payout-orders", "/v1/payout-orders", "operator", map[string]any{"delivery_mode": mode, "statement_id": sid, "amount": map[string]string{"currency": "USD", "minor_units": amount}, "channel_id": "sandbox", "expected_statement_revision": rev(statement), "remark": "本次派发备注"}, want)
 	}
 	prepare("10001", 422)
 	draftOrder := prepare("6000", 201)
@@ -329,11 +386,69 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 	if cancelled["status"] != "CANCELLED" {
 		t.Fatal(cancelled)
 	}
+	if memberMode {
+		draftOrder = prepare("5000", 201)
+		action("RELEASE", draftOrder, "publish-cancel")
+		ready := call("GET", "/v1/payout-orders/{id}", "/v1/payout-orders/"+field(draftOrder, "instruction_id"), "operator", nil, 200)
+		action("CANCEL", ready, "cancel-claimable")
+		call("POST", "/v1/me/commission-orders/{id}/claim", "/v1/me/commission-orders/"+field(ready, "instruction_id")+"/claim", "member", map[string]any{"expected_revision": 2}, 409)
+	}
 	draftOrder = prepare("5000", 201)
 	iid = field(draftOrder, "instruction_id")
 	action("RELEASE", draftOrder, "release-batch")
 	action("RELEASE", draftOrder, "release-batch")
 	call("PUT", "/v1/payout-orders/{id}", "/v1/payout-orders/"+iid, "operator", map[string]any{"expected_revision": 1, "amount": map[string]string{"currency": "USD", "minor_units": "4000"}, "remark": "不能修改已提交"}, 409)
+	if memberMode {
+		ready := call("GET", "/v1/payout-orders/{id}", "/v1/payout-orders/"+iid, "operator", nil, 200)
+		if ready["status"] != "CLAIMABLE" || ready["claim_status"] != "CLAIMABLE" {
+			t.Fatal(ready)
+		}
+		if err := disbursementService(store).Recover(ctx, scope); err != nil {
+			t.Fatal(err)
+		}
+		var n int
+		store.DB.QueryRow("SELECT COUNT(*) FROM payment_orders WHERE tenant_id=?", scope.Tenant).Scan(&n)
+		if n != 0 {
+			t.Fatal("paid before member claim")
+		}
+		body, _ := json.Marshal(map[string]any{"expected_revision": rev(ready)})
+		path := "/v1/me/commission-orders/" + iid + "/claim"
+		callRaw("POST", "/v1/me/commission-orders/{id}/claim", path, "other", "member-claim", body, nil, 404)
+		// Ownership failure must not poison the legitimate member's command key.
+		callRaw("POST", "/v1/me/commission-orders/{id}/claim", path, "member", "member-claim", body, nil, 202)
+		callRaw("POST", "/v1/me/commission-orders/{id}/claim", path, "member", "member-claim", body, nil, 202)
+		changed, _ := json.Marshal(map[string]any{"expected_revision": 99})
+		callRaw("POST", "/v1/me/commission-orders/{id}/claim", path, "member", "member-claim", changed, nil, 409)
+		var claims sync.WaitGroup
+		for range 12 {
+			claims.Go(func() {
+				r, _ := http.NewRequest("POST", server.URL+path, bytes.NewReader(body))
+				r.Header.Set("Authorization", "Bearer "+memberToken)
+				r.Header.Set("Content-Type", "application/json")
+				r.Header.Set("Idempotency-Key", newID())
+				res, e := client.Do(r)
+				if e != nil {
+					t.Error(e)
+					return
+				}
+				defer res.Body.Close()
+				b, _ := io.ReadAll(res.Body)
+				if res.StatusCode != 202 {
+					t.Errorf("claim concurrency: %d %s", res.StatusCode, b)
+				}
+			})
+		}
+		claims.Wait()
+		queued := call("GET", "/v1/payout-orders/{id}", "/v1/payout-orders/"+iid, "operator", nil, 200)
+		cancellation := action("CANCEL", queued, "cannot-cancel-processing")
+		if cancellation["results"].([]any)[0].(map[string]any)["http_status"].(json.Number).String() != "409" {
+			t.Fatal(cancellation)
+		}
+		if _, err := store.DB.Exec("DELETE FROM identity_grants WHERE tenant_id=? AND subject_id LIKE 'member-%' AND permission='member:claim'", scope.Tenant); err != nil {
+			t.Fatal(err)
+		}
+		callRaw("POST", "/v1/me/commission-orders/{id}/claim", path, "member", "member-claim", body, nil, 403)
+	}
 	broken := disbursementService(store)
 	broken.UOW = payoutLinkFailure{store}
 	if err := broken.Recover(ctx, scope); err == nil {
@@ -367,9 +482,90 @@ func TestCommissionReviewAndBatchPayout(t *testing.T) {
 	if payment["status"] != "UNKNOWN" || payment["amount"].(map[string]any)["minor_units"] != "5000" {
 		t.Fatal(payment)
 	}
+	if memberMode {
+		m := call("GET", "/v1/me/commissions", "/v1/me/commissions", "member", nil, 200)
+		orders := m["rows"].([]any)[0].(map[string]any)["orders"].([]any)
+		found := false
+		for _, o := range orders {
+			v := o.(map[string]any)
+			if v["instruction_id"] == iid {
+				found = true
+				if v["claim_status"] != "PROCESSING" {
+					t.Fatal(v)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("claim missing", m)
+		}
+	}
 	callback, _ := json.Marshal(map[string]any{"callback_id": "batch-paid", "merchant_payment_id": payment["merchant_payment_id"], "currency": "USD", "minor_units": "5000", "status": "SUCCEEDED", "receipt_ref": nil})
 	for range 2 {
 		callRaw("POST", "/v1/payment-callbacks/{channel_id}", "/v1/payment-callbacks/sandbox", "none", "", callback, map[string]string{"X-Payment-Signature": sign(callback, paymentKey)}, 200)
+	}
+	if memberMode {
+		m := call("GET", "/v1/me/commissions", "/v1/me/commissions", "member", nil, 200)
+		orders := m["rows"].([]any)[0].(map[string]any)["orders"].([]any)
+		found := false
+		for _, o := range orders {
+			v := o.(map[string]any)
+			if v["instruction_id"] == iid {
+				found = true
+				if v["claim_status"] != "CLAIMED" {
+					t.Fatal(v)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("paid claim missing", m)
+		}
+	}
+
+	if memberMode {
+		// Restore the intentionally revoked fixture permission, never a production grant.
+		sum := sha256.Sum256([]byte("parent"))
+		subject := "member-" + hex.EncodeToString(sum[:])
+		if _, e := store.DB.Exec("INSERT INTO identity_grants VALUES(?,?,?,?)", scope.Tenant, scope.App, subject, "member:claim"); e != nil {
+			t.Fatal(e)
+		}
+		statement = call("GET", "/v1/statements/{id}", "/v1/statements/"+sid, "operator", nil, 200)
+		nextOrder := prepare("2000", 201)
+		action("RELEASE", nextOrder, "publish-final-failure")
+		nextID := field(nextOrder, "instruction_id")
+		call("POST", "/v1/me/commission-orders/{id}/claim", "/v1/me/commission-orders/"+nextID+"/claim", "member", map[string]any{"expected_revision": 1}, 202)
+		if e := disbursementService(store).Recover(ctx, scope); e != nil {
+			t.Fatal(e)
+		}
+		nextLinked := call("GET", "/v1/payout-orders/{id}", "/v1/payout-orders/"+nextID, "operator", nil, 200)
+		nextPayment := call("GET", "/v1/payments/{id}", "/v1/payments/"+field(nextLinked, "payment_id"), "operator", nil, 200)
+		failed, _ := json.Marshal(map[string]any{"callback_id": "claim-final-failure", "merchant_payment_id": nextPayment["merchant_payment_id"], "currency": "USD", "minor_units": "2000", "status": "FAILED_FINAL", "receipt_ref": nil})
+		callRaw("POST", "/v1/payment-callbacks/{channel_id}", "/v1/payment-callbacks/sandbox", "none", "", failed, map[string]string{"X-Payment-Signature": sign(failed, paymentKey)}, 200)
+		m := call("GET", "/v1/me/commissions", "/v1/me/commissions", "member", nil, 200)
+		found := false
+		for _, o := range m["rows"].([]any)[0].(map[string]any)["orders"].([]any) {
+			v := o.(map[string]any)
+			if v["instruction_id"] == nextID {
+				found = true
+				if v["claim_status"] != "FAILED" {
+					t.Fatal(v)
+				}
+			}
+		}
+		if !found {
+			t.Fatal(m)
+		}
+	}
+
+	if memberMode {
+		statement = call("GET", "/v1/statements/{id}", "/v1/statements/"+sid, "operator", nil, 200)
+		frozenOrder := prepare("1000", 201)
+		action("RELEASE", frozenOrder, "publish-freeze-check")
+		var entitlement string
+		if e := store.DB.QueryRow("SELECT entitlement_id FROM ledger_entitlements WHERE tenant_id=? LIMIT 1", scope.Tenant).Scan(&entitlement); e != nil {
+			t.Fatal(e)
+		}
+		call("POST", "/v1/risk-holds", "/v1/risk-holds", "operator", map[string]any{"entitlement_id": entitlement, "reason_code": "CLAIM_TEST", "evidence_ref": "test-freeze"}, 201)
+		call("POST", "/v1/me/commission-orders/{id}/claim", "/v1/me/commission-orders/"+field(frozenOrder, "instruction_id")+"/claim", "member", map[string]any{"expected_revision": 1}, 409)
 	}
 	var paid, available, target string
 	if e := store.DB.QueryRow("SELECT CAST(SUM(paid) AS CHAR),CAST(SUM(available) AS CHAR),CAST(SUM(target) AS CHAR) FROM ledger_entitlements WHERE tenant_id=?", scope.Tenant).Scan(&paid, &available, &target); e != nil || paid != "5000" || available != "5000" || target != "10000" {

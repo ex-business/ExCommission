@@ -14,6 +14,7 @@ import (
 )
 
 type ExternalConfig struct {
+	Members      map[string]string `json:"members,omitempty"`
 	Endpoint     string            `json:"endpoint"`
 	ClientID     string            `json:"client_id"`
 	ClientSecret string            `json:"client_secret"`

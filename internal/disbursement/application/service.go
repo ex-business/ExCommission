@@ -16,26 +16,35 @@ import (
 )
 
 type Service struct {
-	Commands      db.Commands
-	UOW           db.UnitOfWork
-	Query         db.Executor
-	Repo          ports.Repository
-	Now           func() time.Time
-	ID            func() string
-	Validate      func(context.Context, db.Executor, foundation.Scope, model.Instruction) error
-	CreatePayment func(context.Context, identity.Principal, model.Instruction, string) (foundation.CommandResult, error)
+	Commands       db.Commands
+	UOW            db.UnitOfWork
+	Query          db.Executor
+	Repo           ports.Repository
+	Now            func() time.Time
+	ID             func() string
+	Validate       func(context.Context, db.Executor, foundation.Scope, model.Instruction) error
+	AuthorizeClaim func(context.Context, db.Executor, identity.Principal) error
+	Beneficiary    func(context.Context, db.Executor, foundation.Scope, string) (string, error)
+	CreatePayment  func(context.Context, identity.Principal, model.Instruction, string) (foundation.CommandResult, error)
 }
 
 func (s Service) Prepare(ctx context.Context, p identity.Principal, in model.Prepare, key, rid string) (foundation.CommandResult, error) {
-	if !foundation.ValidID(in.StatementID) || !foundation.ValidID(in.Channel) || !model.ValidAmount(in.Amount) || !model.ValidRemark(in.Remark) {
+	if (in.DeliveryMode != "" && in.DeliveryMode != "DIRECT" && in.DeliveryMode != "MEMBER_CLAIM") || !foundation.ValidID(in.StatementID) || !foundation.ValidID(in.Channel) || !model.ValidAmount(in.Amount) || !model.ValidRemark(in.Remark) {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
 	ctx = foundation.WithRequest(ctx, rid, p.Subject)
 	return s.Commands.Execute(ctx, scope, "payout-prepare", key, in, func(tx db.Executor) (foundation.CommandResult, error) {
-		i := model.Instruction{ID: s.ID(), StatementID: in.StatementID, Amount: in.Amount, Channel: in.Channel, StatementRevision: in.StatementRevision, Remark: in.Remark, Status: "DRAFT", Created: s.Now()}
+		i := model.Instruction{DeliveryMode: in.DeliveryMode, ID: s.ID(), StatementID: in.StatementID, Amount: in.Amount, Channel: in.Channel, StatementRevision: in.StatementRevision, Remark: in.Remark, Status: "DRAFT", Created: s.Now()}
 		if err := s.Validate(ctx, tx, scope, i); err != nil {
 			return foundation.CommandResult{}, err
+		}
+		if i.DeliveryMode == "MEMBER_CLAIM" {
+			var err error
+			i.BeneficiaryUserID, err = s.Beneficiary(ctx, tx, scope, i.StatementID)
+			if err != nil {
+				return foundation.CommandResult{}, err
+			}
 		}
 		if err := s.Repo.Create(ctx, tx, scope, i); err != nil {
 			return foundation.CommandResult{}, err
@@ -102,8 +111,11 @@ func (s Service) Act(ctx context.Context, p identity.Principal, action string, i
 				return foundation.CommandResult{}, err
 			}
 			i.Status = "QUEUED"
+			if i.DeliveryMode == "MEMBER_CLAIM" {
+				i.Status = "CLAIMABLE"
+			}
 		} else {
-			if (i.Status != "DRAFT" && i.Status != "BLOCKED") || i.PaymentID != nil {
+			if (i.Status != "DRAFT" && i.Status != "BLOCKED" && i.Status != "CLAIMABLE") || i.PaymentID != nil {
 				return foundation.CommandResult{}, errors.New("STATE_CONFLICT")
 			}
 			i.Status = "CANCELLED"

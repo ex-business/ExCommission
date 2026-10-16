@@ -12512,6 +12512,9 @@
                     "revision": {
                       "type": "integer",
                       "minimum": 0
+                    },
+                    "member_user_id": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -14474,7 +14477,8 @@
                             "QUEUED",
                             "LINKED",
                             "BLOCKED",
-                            "CANCELLED"
+                            "CANCELLED",
+                            "CLAIMABLE"
                           ]
                         },
                         "revision": {
@@ -14509,6 +14513,28 @@
                           "type": "string",
                           "format": "date-time",
                           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "delivery_mode": {
+                          "type": "string",
+                          "enum": [
+                            "DIRECT",
+                            "MEMBER_CLAIM"
+                          ]
+                        },
+                        "beneficiary_user_id": {
+                          "type": "string"
+                        },
+                        "claim_status": {
+                          "type": "string",
+                          "enum": [
+                            "PREPARING",
+                            "CLAIMABLE",
+                            "PROCESSING",
+                            "CLAIMED",
+                            "CANCELLED",
+                            "FAILED",
+                            "RECONCILIATION_EXCEPTION"
+                          ]
                         }
                       },
                       "required": [
@@ -14580,6 +14606,13 @@
                   "remark": {
                     "type": "string",
                     "maxLength": 1000
+                  },
+                  "delivery_mode": {
+                    "type": "string",
+                    "enum": [
+                      "DIRECT",
+                      "MEMBER_CLAIM"
+                    ]
                   }
                 },
                 "required": [
@@ -14726,7 +14759,8 @@
                                   "QUEUED",
                                   "LINKED",
                                   "BLOCKED",
-                                  "CANCELLED"
+                                  "CANCELLED",
+                                  "CLAIMABLE"
                                 ]
                               },
                               "revision": {
@@ -14761,6 +14795,28 @@
                                 "type": "string",
                                 "format": "date-time",
                                 "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                              },
+                              "delivery_mode": {
+                                "type": "string",
+                                "enum": [
+                                  "DIRECT",
+                                  "MEMBER_CLAIM"
+                                ]
+                              },
+                              "beneficiary_user_id": {
+                                "type": "string"
+                              },
+                              "claim_status": {
+                                "type": "string",
+                                "enum": [
+                                  "PREPARING",
+                                  "CLAIMABLE",
+                                  "PROCESSING",
+                                  "CLAIMED",
+                                  "CANCELLED",
+                                  "FAILED",
+                                  "RECONCILIATION_EXCEPTION"
+                                ]
                               }
                             },
                             "required": [
@@ -14987,7 +15043,8 @@
                             "QUEUED",
                             "LINKED",
                             "BLOCKED",
-                            "CANCELLED"
+                            "CANCELLED",
+                            "CLAIMABLE"
                           ]
                         },
                         "revision": {
@@ -15022,6 +15079,28 @@
                           "type": "string",
                           "format": "date-time",
                           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "delivery_mode": {
+                          "type": "string",
+                          "enum": [
+                            "DIRECT",
+                            "MEMBER_CLAIM"
+                          ]
+                        },
+                        "beneficiary_user_id": {
+                          "type": "string"
+                        },
+                        "claim_status": {
+                          "type": "string",
+                          "enum": [
+                            "PREPARING",
+                            "CLAIMABLE",
+                            "PROCESSING",
+                            "CLAIMED",
+                            "CANCELLED",
+                            "FAILED",
+                            "RECONCILIATION_EXCEPTION"
+                          ]
                         }
                       },
                       "required": [
@@ -15232,7 +15311,8 @@
                             "QUEUED",
                             "LINKED",
                             "BLOCKED",
-                            "CANCELLED"
+                            "CANCELLED",
+                            "CLAIMABLE"
                           ]
                         },
                         "revision": {
@@ -15267,6 +15347,28 @@
                           "type": "string",
                           "format": "date-time",
                           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "delivery_mode": {
+                          "type": "string",
+                          "enum": [
+                            "DIRECT",
+                            "MEMBER_CLAIM"
+                          ]
+                        },
+                        "beneficiary_user_id": {
+                          "type": "string"
+                        },
+                        "claim_status": {
+                          "type": "string",
+                          "enum": [
+                            "PREPARING",
+                            "CLAIMABLE",
+                            "PROCESSING",
+                            "CLAIMED",
+                            "CANCELLED",
+                            "FAILED",
+                            "RECONCILIATION_EXCEPTION"
+                          ]
                         }
                       },
                       "required": [
@@ -15597,6 +15699,389 @@
             }
           }
         ]
+      }
+    },
+    "/v1/me/commissions": {
+      "get": {
+        "operationId": "get_v1_me_commissions",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；领取受理不代表到账，状态以查询为准",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "statement_id": {
+                                "type": "string"
+                              },
+                              "period": {
+                                "type": "string"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "total_minor": {
+                                "type": "string"
+                              },
+                              "review_status": {
+                                "type": "string",
+                                "enum": [
+                                  "WAITING_REVIEW",
+                                  "CANCELLED",
+                                  "APPROVED",
+                                  "PREPARING"
+                                ]
+                              },
+                              "orders": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "instruction_id": {
+                                      "type": "string"
+                                    },
+                                    "amount_minor": {
+                                      "type": "string"
+                                    },
+                                    "revision": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "claim_status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PREPARING",
+                                        "CLAIMABLE",
+                                        "PROCESSING",
+                                        "CLAIMED",
+                                        "CANCELLED",
+                                        "FAILED",
+                                        "RECONCILIATION_EXCEPTION"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "instruction_id",
+                                    "amount_minor",
+                                    "revision",
+                                    "claim_status"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "statement_id",
+                              "period",
+                              "currency",
+                              "total_minor",
+                              "review_status",
+                              "orders"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "next_after_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "next_after_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
+    "/v1/me/commission-orders/{id}/claim": {
+      "post": {
+        "operationId": "post_v1_me_commission_orders_id_claim",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "成功；领取受理不代表到账，状态以查询为准",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "instruction_id": {
+                          "type": "string"
+                        },
+                        "claim_status": {
+                          "const": "PROCESSING"
+                        }
+                      },
+                      "required": [
+                        "instruction_id",
+                        "claim_status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "expected_revision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
       }
     }
   },

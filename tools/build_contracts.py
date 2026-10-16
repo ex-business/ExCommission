@@ -399,3 +399,37 @@ for path,row,filters in [('/v1/commission-reviews',review_row,['approval_status'
     endpoint(path,'get',query=[(key,identifier,False) for key in filters+['after_id']]+[('limit',{'type':'integer','minimum':1,'maximum':100,'default':50},False)])
     actual_response(path,'get',200,response_obj({'rows':arr(row),'next_after_id':nullable(identifier)}))
 write('openapi.json',api)
+
+# 会员领取模式与只读业务状态投影。
+from copy import deepcopy
+x=api
+string={'type':'string'}; states=['PREPARING','CLAIMABLE','PROCESSING','CLAIMED','CANCELLED','FAILED','RECONCILIATION_EXCEPTION']
+def patch(v):
+ if isinstance(v,dict):
+  props=v.get('properties',{})
+  if 'instruction_id' in props and 'amount' in props:
+   props.update(delivery_mode={'type':'string','enum':['DIRECT','MEMBER_CLAIM']},beneficiary_user_id=string,claim_status={'type':'string','enum':states})
+   if 'status' in props and 'enum' in props['status'] and 'CLAIMABLE' not in props['status']['enum']:props['status']['enum'].append('CLAIMABLE')
+  for z in list(v.values()):patch(z)
+ elif isinstance(v,list):
+  for z in v:patch(z)
+patch(x)
+x['paths']['/v1/payout-orders']['post']['requestBody']['content']['application/json']['schema']['properties']['delivery_mode']={'type':'string','enum':['DIRECT','MEMBER_CLAIM']}
+def envelope(data):return obj({'data':data,'request_id':string})
+base=x['paths']['/v1/payout-orders']
+def operation(method,name,status,data):
+ op=deepcopy(base['get' if method=='get' else 'post']);op['operationId']=name
+ op['responses']={k:v for k,v in op['responses'].items() if not k.startswith('2')}
+ op['responses'][str(status)]={'description':'成功；领取受理不代表到账，状态以查询为准','content':{'application/json':{'schema':envelope(data)}}}
+ if method=='get':op['parameters']=[q for q in op.get('parameters',[]) if q['name'] in ('after_id','limit')]
+ return op
+order=obj({'instruction_id':string,'amount_minor':string,'revision':{'type':'integer','minimum':0},'claim_status':{'type':'string','enum':states}})
+statement=obj({'statement_id':string,'period':string,'currency':string,'total_minor':string,'review_status':{'type':'string','enum':['WAITING_REVIEW','CANCELLED','APPROVED','PREPARING']},'orders':{'type':'array','items':order}})
+x['paths']['/v1/me/commissions']={'get':operation('get','get_v1_me_commissions',200,obj({'rows':{'type':'array','items':statement},'next_after_id':{'type':['string','null']}}))}
+claim=operation('post','post_v1_me_commission_orders_id_claim',202,obj({'instruction_id':string,'claim_status':{'const':'PROCESSING'}}))
+claim['requestBody']['content']['application/json']['schema']=obj({'expected_revision':{'type':'integer','minimum':0}})
+claim['parameters']=[q for q in claim.get('parameters',[]) if q.get('in')!='query']+[{'name':'id','in':'path','required':True,'schema':string}]
+x['paths']['/v1/me/commission-orders/{id}/claim']={'post':claim}
+# /auth/me has a plain JSON response, retain existing contract fields.
+me=x['paths']['/v1/auth/me']['get']['responses']['200']['content']['application/json']['schema'];me['properties']['member_user_id']=string
+write('openapi.json',x)

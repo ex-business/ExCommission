@@ -13,7 +13,7 @@ import (
 type Repository struct{}
 
 func active(status string) any {
-	if status == "DRAFT" || status == "QUEUED" || status == "BLOCKED" {
+	if status == "DRAFT" || status == "QUEUED" || status == "BLOCKED" || status == "CLAIMABLE" {
 		return 1
 	}
 	return nil
