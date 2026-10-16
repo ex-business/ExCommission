@@ -19,6 +19,8 @@ services:
       retries: 30
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin"]
   api:
+    env_file:
+      - ./.local/totp.env
     build:
       context: .
       target: runtime

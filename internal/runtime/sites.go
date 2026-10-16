@@ -25,7 +25,9 @@ import (
 )
 
 func siteService(store *mysql.Store) app.Service {
-	return app.Service{Commands: store, Query: store.DB, Repo: repo.Repository{}, Plans: plans.Repository{}, Workflow: workflowrepo.Repository{}, Now: clockUTC, ID: newID}
+	return app.Service{StepUp: func(ctx context.Context, p principal.Principal, key string, in any) error {
+		return verifyStepUp(store, ctx, p, "site-config-request", key, in)
+	}, Commands: store, Query: store.DB, Repo: repo.Repository{}, Plans: plans.Repository{}, Workflow: workflowrepo.Repository{}, Now: clockUTC, ID: newID}
 }
 func siteAllow(ctx context.Context, tx db.Executor, scope foundation.Scope) error {
 	return (app.Service{Repo: repo.Repository{}}).Allow(ctx, tx, scope)

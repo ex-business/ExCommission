@@ -22,6 +22,7 @@ type Decision struct {
 }
 type Executor func(context.Context, db.Executor, foundation.Scope, domain.Request, time.Time) error
 type Service struct {
+	StepUp     func(context.Context, identity.Principal, domain.Request, string, string, any) error
 	Commands   db.Commands
 	Repo       ports.Repository
 	Query      db.Executor
@@ -39,15 +40,24 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
+	preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
 	if s.Authorize != nil {
-		preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
-		if err != nil {
-			return foundation.CommandResult{}, err
-		}
 		if err = s.Authorize(ctx, s.Query, p, ApprovalPermission(preview.Type)); err != nil {
 			return foundation.CommandResult{}, err
 		}
 	}
+	if preview.Type == "SITE_AGENT_CONFIG" && input.Decision == "APPROVE" {
+		if s.StepUp == nil {
+			return foundation.CommandResult{}, errors.New("TOTP_REQUIRED")
+		}
+		if err = s.StepUp(ctx, p, preview, "APPROVE", key, input); err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
+
 	// 资源ID纳入命令内容，避免同键跨审批对象错误重放。
 	payload := struct {
 		ID       string   `json:"approval_id"`

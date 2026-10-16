@@ -4474,6 +4474,16 @@
               "minLength": 1,
               "maxLength": 128
             }
+          },
+          {
+            "name": "X-TOTP-Code",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$"
+            },
+            "description": "站点配置批准或执行恢复时必填"
           }
         ],
         "requestBody": {
@@ -4908,6 +4918,16 @@
               "minLength": 1,
               "maxLength": 128
             }
+          },
+          {
+            "name": "X-TOTP-Code",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$"
+            },
+            "description": "站点配置批准或执行恢复时必填"
           }
         ],
         "requestBody": {
@@ -18107,6 +18127,16 @@
               "type": "string",
               "pattern": "^[ -~]{1,128}$"
             }
+          },
+          {
+            "name": "X-TOTP-Code",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$"
+            },
+            "description": "本人谷歌验证码；站点变更必填，不写入命令正文"
           }
         ],
         "requestBody": {

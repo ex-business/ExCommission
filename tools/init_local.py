@@ -32,3 +32,6 @@ if not recovery_evidence.exists():
 # 初始化独立密码账号，不打印或覆盖已有凭据。
 import runpy
 runpy.run_path(str(root / "tools/init_login.py"), run_name="__main__")
+
+# 谷歌验证种子仅保存在受保护的本地配置中。
+runpy.run_path(str(root / "tools/init_totp.py"), run_name="__main__")

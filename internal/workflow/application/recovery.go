@@ -23,15 +23,24 @@ func (s Service) RetryExecution(ctx context.Context, p identity.Principal, id st
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
+	preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
 	if s.Authorize != nil {
-		preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
-		if err != nil {
-			return foundation.CommandResult{}, err
-		}
 		if err = s.Authorize(ctx, s.Query, p, ApprovalPermission(preview.Type)); err != nil {
 			return foundation.CommandResult{}, err
 		}
 	}
+	if preview.Type == "SITE_AGENT_CONFIG" {
+		if s.StepUp == nil {
+			return foundation.CommandResult{}, errors.New("TOTP_REQUIRED")
+		}
+		if err = s.StepUp(ctx, p, preview, "RECOVER", key, input); err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
+
 	payload := struct {
 		ID string `json:"approval_id"`
 		RecoveryInput

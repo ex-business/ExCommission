@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	security "github.com/ex-business/ExCommission/internal/security/domain"
 	"net/http"
 	"os"
 	"strconv"
@@ -80,7 +81,10 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}
 	authorize := identity.DatabaseAuthorizer{Query: store.DB}
 	require := func(permission string, handler authhttp.AuthorizedHandler) http.Handler {
-		return auditHTTP(store, provider, foundation.Scope{Tenant: tenant, App: app}, permission, authhttp.Require(provider, authorize, permission, handler))
+		wrapped := func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
+			handler(w, r.WithContext(security.WithCode(r.Context(), r.Header.Get("X-TOTP-Code"))), p, id)
+		}
+		return auditHTTP(store, provider, foundation.Scope{Tenant: tenant, App: app}, permission, authhttp.Require(provider, authorize, permission, wrapped))
 	}
 	sources := map[users.SourceKey]userports.Source{}
 	// 可选显式沙箱数据；不生成看似真实的外部用户。
@@ -97,7 +101,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}
 	userService := users.Service{Commands: store, Repo: userrepo.Repository{}, Query: store.DB, Sources: sources, Now: clockUTC, ID: newID}
 	agentService := agents.Service{Commands: store, Repo: agentrepo.Repository{}, Users: userrepo.Repository{}, Workflow: workflowrepo.Repository{}, Query: store.DB, Now: clockUTC, ID: newID}
-	workflowService := workflow.Service{Commands: store, Repo: workflowrepo.Repository{}, Query: store.DB, Now: clockUTC, Authorize: func(ctx context.Context, tx db.Executor, p principal.Principal, permission string) error {
+	workflowService := workflow.Service{StepUp: func(ctx context.Context, p principal.Principal, a approval.Request, action, key string, payload any) error {
+		return verifyStepUp(store, ctx, p, "site-config-"+action, key, map[string]any{"approval_id": a.ID, "payload": payload})
+	}, Commands: store, Repo: workflowrepo.Repository{}, Query: store.DB, Now: clockUTC, Authorize: func(ctx context.Context, tx db.Executor, p principal.Principal, permission string) error {
 		return identity.Authorize(ctx, tx, p, p.Tenant, p.App, permission)
 	}, Executors: map[string]workflow.Executor{
 		"RELATIONSHIP": func(ctx context.Context, tx db.Executor, s foundation.Scope, r approval.Request, at time.Time) error {

@@ -18,6 +18,7 @@ import (
 )
 
 type Service struct {
+	StepUp   func(context.Context, identity.Principal, string, any) error
 	Commands db.Commands
 	Query    db.Executor
 	Repo     ports.Repository
@@ -29,6 +30,12 @@ type Service struct {
 
 func (s Service) Request(ctx context.Context, p identity.Principal, in model.Change, key, rid string) (foundation.CommandResult, error) {
 	if err := in.Validate(); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	if s.StepUp == nil {
+		return foundation.CommandResult{}, errors.New("TOTP_REQUIRED")
+	}
+	if err := s.StepUp(ctx, p, key, in); err != nil {
 		return foundation.CommandResult{}, err
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}

@@ -467,3 +467,12 @@ actual_response('/v1/site-agent-options','get',200,response_obj({'rows':arr(obj(
 errors+=['SITE_AGENT_DISABLED','VENUE_NOT_PARTICIPATING']
 write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
 write('openapi.json',api)
+
+# 验证码只放请求头，绝不进入命令正文或幂等内容。
+totp_header={'name':'X-TOTP-Code','in':'header','required':True,'schema':{'type':'string','pattern':'^[0-9]{6}$'},'description':'本人谷歌验证码；站点变更必填，不写入命令正文'}
+api['paths']['/v1/site-agent-config-requests']['post']['parameters'].append(totp_header)
+for path in ['/v1/approvals/{id}/decisions','/v1/approvals/{id}/execution-retries']:
+    api['paths'][path]['post']['parameters'].append({**totp_header,'required':False,'description':'站点配置批准或执行恢复时必填'})
+errors+=['TOTP_REQUIRED','TOTP_INVALID','TOTP_NOT_CONFIGURED','TOTP_REPLAY','TOTP_RATE_LIMITED']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)

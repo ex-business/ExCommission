@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/pbkdf2"
 	"crypto/sha256"
+	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"github.com/ex-business/ExCommission/internal/platform/ports"
+	securitymodel "github.com/ex-business/ExCommission/internal/security/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -122,6 +124,18 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		}
 		t.Setenv("AUTH_LOCAL_ACCOUNTS_FILE", file)
 	}
+	if walletMode {
+		entries := []map[string]string{}
+		for subject, secret := range map[string]string{"local-operator": "12345678901234567890", "local-approver": "abcdefghijABCDEFGHIJ"} {
+			entries = append(entries, map[string]string{"tenant_id": scope.Tenant, "app_id": scope.App, "subject_id": subject, "secret": base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString([]byte(secret))})
+		}
+		b, _ := json.Marshal(entries)
+		file := filepath.Join(directory, "totp.json")
+		if err := os.WriteFile(file, b, 0600); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("AUTH_TOTP_FILE", file)
+	}
 	handler, err := businessHandler(ctx, store)
 	if err != nil {
 		t.Fatal(err)
@@ -166,6 +180,7 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 			t.Error(err)
 		}
 	})
+	siteApprovals := map[string]bool{}
 	callRaw := func(method, template, path, role, key string, raw []byte, headers map[string]string, want int) map[string]any {
 		t.Helper()
 		clock.Add(1000)
@@ -188,6 +203,20 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 				key = newID()
 			}
 			r.Header.Set("Idempotency-Key", key)
+		}
+		isSite := method == "POST" && (path == "/v1/site-agent-config-requests" || (strings.HasPrefix(path, "/v1/approvals/") && strings.HasSuffix(path, "/decisions") && siteApprovals[strings.Split(path, "/")[3]]))
+		_, explicitCode := headers["X-TOTP-Code"]
+		if walletMode && isSite && !explicitCode {
+			clock.Add(int64(30 * time.Second))
+			secret := "12345678901234567890"
+			if role == "approver" {
+				secret = "abcdefghijABCDEFGHIJ"
+			}
+			code, e := securitymodel.Code([]byte(secret), uint64(clockUTC().Unix()/30), 6)
+			if e != nil {
+				t.Fatal(e)
+			}
+			r.Header.Set("X-TOTP-Code", code)
 		}
 		for k, v := range headers {
 			r.Header.Set(k, v)
@@ -225,6 +254,9 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		if err = decoder.Decode(&answer); err != nil {
 			t.Fatal(err)
 		}
+		if path == "/v1/site-agent-config-requests" && want == 202 {
+			siteApprovals[answer.Data["approval_id"].(string)] = true
+		}
 		return answer.Data
 	}
 	call := func(method, template, path, role string, input any, want int) map[string]any {
@@ -261,6 +293,10 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		a := call("GET", "/v1/approvals/{id}", "/v1/approvals/"+id, "operator", nil, 200)
 		decision := map[string]any{"decision": "APPROVE", "expected_revision": rev(a), "object_hash": a["object_hash"], "reason": "独立复核"}
 		call("POST", "/v1/approvals/{id}/decisions", "/v1/approvals/"+id+"/decisions", "operator", decision, 403)
+		if walletMode && siteApprovals[id] {
+			b, _ := json.Marshal(decision)
+			callRaw("POST", "/v1/approvals/{id}/decisions", "/v1/approvals/"+id+"/decisions", "approver", "", b, map[string]string{"X-TOTP-Code": ""}, 403)
+		}
 		done := call("POST", "/v1/approvals/{id}/decisions", "/v1/approvals/"+id+"/decisions", "approver", decision, 200)
 		if done["execution_status"] != "SUCCEEDED" {
 			t.Fatal("approval failed", done)
@@ -304,9 +340,16 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 	call("GET", "/v1/plans/{id}/versions/{version_id}", "/v1/plans/P1/versions/"+versionID, "operator", nil, 200)
 	grade := call("POST", "/v1/grade-change-requests", "/v1/grade-change-requests", "operator", map[string]any{"agent_id": agents["parent"], "plan_id": "P1", "grade_id": "G0", "eligibility": "ELIGIBLE", "expected_revision": 0, "reason": "确认参与资格"}, 200)
 	approve(grade)
+	checkedTOTP := false
 	changeSite := func(enabled bool) {
 		t.Helper()
 		current := call("GET", "/v1/site-agent-config", "/v1/site-agent-config", "operator", nil, 200)
+		if !checkedTOTP {
+			body, _ := json.Marshal(map[string]any{"enabled": enabled, "plan_id": "P1", "venue_ids": []string{"BTC-USDT"}, "expected_revision": rev(current), "reason": "配置站点代理"})
+			callRaw("POST", "/v1/site-agent-config-requests", "/v1/site-agent-config-requests", "operator", "", body, map[string]string{"X-TOTP-Code": ""}, 403)
+			callRaw("POST", "/v1/site-agent-config-requests", "/v1/site-agent-config-requests", "operator", "", body, map[string]string{"X-TOTP-Code": "not-valid"}, 403)
+			checkedTOTP = true
+		}
 		request := call("POST", "/v1/site-agent-config-requests", "/v1/site-agent-config-requests", "operator", map[string]any{"enabled": enabled, "plan_id": "P1", "venue_ids": []string{"BTC-USDT"}, "expected_revision": rev(current), "reason": "配置站点代理"}, 202)
 		approve(request)
 	}
@@ -349,6 +392,7 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		b, _ := json.Marshal(bad)
 		callRaw("POST", "/v1/events", "/v1/events", "operator", "other-venue", b, map[string]string{"X-Source-Signature": sign(b, sourceKey)}, 409)
 		interrupted := buildWorker(store)
+		interrupted.Lease = 10 * time.Minute
 		interrupted.BeforeCommit = func(ctx context.Context, tx ports.Executor, scope foundation.Scope, task calcmodel.Task, snapshot calcmodel.Input) error {
 			changeSite(false)
 			return siteCommitGuard(ctx, tx, scope, task, snapshot)
