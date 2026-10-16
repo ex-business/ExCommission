@@ -105,6 +105,9 @@ func (s GradeService) Evaluate(ctx context.Context, p identity.Principal, input 
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
+		if version.Config.AgentPolicy.GradeWindow != "PREVIOUS_CALENDAR_MONTH" {
+			return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
+		}
 		_ = draft
 		previous, err := s.Evaluations.Latest(ctx, tx, scope, input.PlanID)
 		if err != nil {

@@ -108,6 +108,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err := installRegistration(mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}
+	if err := installDayEnd(mux, require, store, tenant, app); err != nil {
+		return nil, err
+	}
 	if err := installQualification(mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}

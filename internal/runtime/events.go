@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	agents "github.com/ex-business/ExCommission/internal/agents/adapters"
 	tasks "github.com/ex-business/ExCommission/internal/calculation/adapters"
 	calculation "github.com/ex-business/ExCommission/internal/calculation/application"
 	model "github.com/ex-business/ExCommission/internal/calculation/domain"
@@ -20,7 +19,6 @@ import (
 	response "github.com/ex-business/ExCommission/internal/platform/application"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
-	users "github.com/ex-business/ExCommission/internal/users/adapters"
 	"io"
 	"net/http"
 	"os"
@@ -34,7 +32,7 @@ func taskRepository(store *mysql.Store) tasks.Tasks {
 	return tasks.Tasks{DB: store.DB, Within: store.Within}
 }
 func buildWorker(store *mysql.Store) *calculation.Worker {
-	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: calculation.Resolver{Catalog: catalog.Repository{}, Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: map[string]int{"USD": 2, "BTC": 8, "POINT": 0}}, Committer: ledger.Repository{}, TargetPolicy: refundService(store), Now: clockUTC, Lease: 30 * time.Second}
+	return &calculation.Worker{UOW: store, Tasks: taskRepository(store), Resolver: dayendResolver(store), Committer: ledger.Repository{}, TargetPolicy: refundService(store), Now: clockUTC, Lease: 30 * time.Second}
 }
 func localScope() foundation.Scope {
 	tenant, app := os.Getenv("LOCAL_TENANT"), os.Getenv("LOCAL_APP")

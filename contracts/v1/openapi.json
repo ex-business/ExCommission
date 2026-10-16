@@ -13865,6 +13865,560 @@
           }
         ]
       }
+    },
+    "/v1/day-end-freezes": {
+      "post": {
+        "operationId": "post_v1_day_end_freezes",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "plan_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "plan_version_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "business_day": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "cutoff": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "policy": {
+                          "type": "object",
+                          "properties": {
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "qualification_policy_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "member_depths": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3
+                              },
+                              "minItems": 1,
+                              "uniqueItems": true
+                            },
+                            "volume_depths": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3
+                              },
+                              "minItems": 1,
+                              "uniqueItems": true
+                            }
+                          },
+                          "required": [
+                            "timezone",
+                            "source_id",
+                            "qualification_policy_id",
+                            "member_depths",
+                            "volume_depths"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "source_watermark": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "task_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "minItems": 0
+                        },
+                        "agents": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "grade_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "metrics": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string",
+                                  "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                                }
+                              }
+                            },
+                            "required": [
+                              "grade_id",
+                              "metrics"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "plan_id",
+                        "plan_version_id",
+                        "business_day",
+                        "start",
+                        "end",
+                        "cutoff",
+                        "policy",
+                        "source_watermark",
+                        "task_ids",
+                        "agents"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plan_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "expected_plan_version_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "business_day": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "source_watermark": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "plan_id",
+                  "expected_plan_version_id",
+                  "business_day",
+                  "source_watermark"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "get_v1_day_end_freezes",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "plan_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "plan_version_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "business_day": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "cutoff": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "policy": {
+                          "type": "object",
+                          "properties": {
+                            "timezone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "qualification_policy_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "member_depths": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3
+                              },
+                              "minItems": 1,
+                              "uniqueItems": true
+                            },
+                            "volume_depths": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3
+                              },
+                              "minItems": 1,
+                              "uniqueItems": true
+                            }
+                          },
+                          "required": [
+                            "timezone",
+                            "source_id",
+                            "qualification_policy_id",
+                            "member_depths",
+                            "volume_depths"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "source_watermark": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "task_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "minItems": 0
+                        },
+                        "agents": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "grade_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "metrics": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string",
+                                  "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+                                }
+                              }
+                            },
+                            "required": [
+                              "grade_id",
+                              "metrics"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "plan_id",
+                        "plan_version_id",
+                        "business_day",
+                        "start",
+                        "end",
+                        "cutoff",
+                        "policy",
+                        "source_watermark",
+                        "task_ids",
+                        "agents"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "business_day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -14411,7 +14965,8 @@
               "grade_window": {
                 "type": "string",
                 "enum": [
-                  "PREVIOUS_CALENDAR_MONTH"
+                  "PREVIOUS_CALENDAR_MONTH",
+                  "BUSINESS_DAY"
                 ]
               },
               "grade_evaluation": {
@@ -14422,6 +14977,54 @@
               },
               "eligibility_required": {
                 "const": true
+              },
+              "day_end": {
+                "type": "object",
+                "properties": {
+                  "timezone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "qualification_policy_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "member_depths": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "volume_depths": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "timezone",
+                  "source_id",
+                  "qualification_policy_id",
+                  "member_depths",
+                  "volume_depths"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -14433,7 +15036,35 @@
               "grade_evaluation",
               "eligibility_required"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "grade_window": {
+                      "const": "BUSINESS_DAY"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "day_end"
+                  ],
+                  "properties": {
+                    "max_depth": {
+                      "const": 3
+                    }
+                  }
+                },
+                "else": {
+                  "not": {
+                    "required": [
+                      "day_end"
+                    ]
+                  }
+                }
+              }
+            ]
           },
           "grade_definitions": {
             "type": "array",
@@ -14459,7 +15090,9 @@
                         "enum": [
                           "PERSONAL_NET_BASIS",
                           "TEAM_NET_BASIS",
-                          "ACTIVE_DIRECT_COUNT"
+                          "ACTIVE_DIRECT_COUNT",
+                          "EFFECTIVE_MEMBER_COUNT",
+                          "TEAM_VALID_VOLUME"
                         ]
                       },
                       "operator": {
@@ -16310,6 +16943,46 @@
               "additionalProperties": false
             },
             "minItems": 0
+          },
+          "day_end_evidence": {
+            "type": "object",
+            "properties": {
+              "business_day": {
+                "type": "string",
+                "format": "date"
+              },
+              "plan_version_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "cutoff": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+              },
+              "source_watermark": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "grades": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            },
+            "required": [
+              "business_day",
+              "plan_version_id",
+              "cutoff",
+              "source_watermark",
+              "grades"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -16495,7 +17168,8 @@
               "grade_window": {
                 "type": "string",
                 "enum": [
-                  "PREVIOUS_CALENDAR_MONTH"
+                  "PREVIOUS_CALENDAR_MONTH",
+                  "BUSINESS_DAY"
                 ]
               },
               "grade_evaluation": {
@@ -16506,6 +17180,54 @@
               },
               "eligibility_required": {
                 "const": true
+              },
+              "day_end": {
+                "type": "object",
+                "properties": {
+                  "timezone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "qualification_policy_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "member_depths": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "volume_depths": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "timezone",
+                  "source_id",
+                  "qualification_policy_id",
+                  "member_depths",
+                  "volume_depths"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -16517,7 +17239,35 @@
               "grade_evaluation",
               "eligibility_required"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "grade_window": {
+                      "const": "BUSINESS_DAY"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "day_end"
+                  ],
+                  "properties": {
+                    "max_depth": {
+                      "const": 3
+                    }
+                  }
+                },
+                "else": {
+                  "not": {
+                    "required": [
+                      "day_end"
+                    ]
+                  }
+                }
+              }
+            ]
           },
           "grade_definitions": {
             "type": "array",
@@ -16543,7 +17293,9 @@
                         "enum": [
                           "PERSONAL_NET_BASIS",
                           "TEAM_NET_BASIS",
-                          "ACTIVE_DIRECT_COUNT"
+                          "ACTIVE_DIRECT_COUNT",
+                          "EFFECTIVE_MEMBER_COUNT",
+                          "TEAM_VALID_VOLUME"
                         ]
                       },
                       "operator": {

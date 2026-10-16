@@ -30,11 +30,15 @@ func Normalize(config *Config) error {
 		}
 		return integer(value)
 	}
+	if config.AgentPolicy.DayEnd != nil {
+		sort.Ints(config.AgentPolicy.DayEnd.MemberDepths)
+		sort.Ints(config.AgentPolicy.DayEnd.VolumeDepths)
+	}
 	sort.Strings(config.Scope.AgentIDs)
 	for i := range config.Grades {
 		for j := range config.Grades[i].Conditions {
 			condition := &config.Grades[i].Conditions[j]
-			if condition.Metric == "ACTIVE_DIRECT_COUNT" {
+			if condition.Metric == "ACTIVE_DIRECT_COUNT" || condition.Metric == "EFFECTIVE_MEMBER_COUNT" {
 				if err := integer(&condition.Value); err != nil {
 					return err
 				}

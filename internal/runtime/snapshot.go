@@ -2,7 +2,7 @@ package runtime
 
 import calc "github.com/ex-business/ExCommission/internal/calculation/domain"
 
-// publicSnapshot exposes the frozen business contract without coupling clients to Go field names.
+// publicSnapshot 输出冻结业务契约，日终等级证据与原资格审批证据分别保留。
 func publicSnapshot(input calc.Input) map[string]any {
 	qualifications := map[string]any{}
 	for id, q := range input.QualificationFacts {
@@ -42,5 +42,9 @@ func publicSnapshot(input calc.Input) map[string]any {
 			algorithms[r.Algorithm] = r.Version
 		}
 	}
-	return map[string]any{"snapshot_id": input.SnapshotID, "standard_version": input.StandardVersion, "plan_id": input.Plan.PlanID, "plan_version_id": input.PlanVersionID, "config_hash": input.ConfigHash, "business_time": input.Facts.BusinessTime, "currency_catalog_version": input.CurrencyCatalogVersion, "calendar_version": input.CalendarVersion, "facts": input.Facts, "ancestors": input.Ancestors, "qualification_facts": qualifications, "contract_facts": contracts, "recipient_facts": recipients, "relationship_facts": relationships, "algorithm_versions": algorithms}
+	result := map[string]any{"snapshot_id": input.SnapshotID, "standard_version": input.StandardVersion, "plan_id": input.Plan.PlanID, "plan_version_id": input.PlanVersionID, "config_hash": input.ConfigHash, "business_time": input.Facts.BusinessTime, "currency_catalog_version": input.CurrencyCatalogVersion, "calendar_version": input.CalendarVersion, "facts": input.Facts, "ancestors": input.Ancestors, "qualification_facts": qualifications, "contract_facts": contracts, "recipient_facts": recipients, "relationship_facts": relationships, "algorithm_versions": algorithms}
+	if input.DayEnd != nil {
+		result["day_end_evidence"] = input.DayEnd
+	}
+	return result
 }

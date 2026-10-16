@@ -51,6 +51,13 @@ for algorithm,params in parameters.items():
 plan=schema('plan',obj({'plan_id':identifier,'name':identifier,'revision':revision,'standard_version':enum('1'),'route':obj({'product_code':identifier,'event_type':enum(*event_types),'scene':identifier}),'currency':currency,'calendar_version':identifier,'agent_policy':obj({'max_depth':{'type':'integer','minimum':1,'maximum':64,'default':3},'self_reward':{'const':False},'earn_while_frozen':boolean,'require_contract':boolean,'grade_window':enum('PREVIOUS_CALENDAR_MONTH'),'grade_evaluation':enum('DAILY'),'eligibility_required':{'const':True}}),'grade_definitions':arr(obj({'id':identifier,'rank':{'type':'integer','minimum':0},'conditions':arr(obj({'metric':enum('PERSONAL_NET_BASIS','TEAM_NET_BASIS','ACTIVE_DIRECT_COUNT'),'operator':enum('EQ','NE','GT','GTE','LT','LTE'),'value':decimal,'unit':identifier}))}),1),'rules':arr({'oneOf':variants},1),'event_budget_minor':nullable(minor),'settlement_policy':obj({'period':enum('DAILY'),'minimum_payout_minor':minor,'max_payment_minor':nullable(minor),'late_policy':enum('NEXT_OPEN_PERIOD'),'channel_fee_bearer':enum('PLATFORM')})}))
 plan['$defs']={'condition':condition}
 plan['x-domain-validation']=['条件深度<=8且叶子<=100；指标类型及单位匹配','等级rank唯一且存在rank0空条件；费率可达维度完整','阶梯从0连续且费率非递减，末档upper=null','固定、单价、加权要求显式方案预算','各规则预算和方案预算；禁止部分入账','范围、资格、合同、关系必须按业务时点冻结','发布摘要绑定试算与独立审批；版本区间不可重叠']
+# 日终是随发布版本审批的可选策略；旧月度方案字段保持兼容。
+day_end_policy=obj({'timezone':identifier,'source_id':identifier,'qualification_policy_id':identifier,'member_depths':{'type':'array','items':{'type':'integer','minimum':1,'maximum':3},'minItems':1,'uniqueItems':True},'volume_depths':{'type':'array','items':{'type':'integer','minimum':1,'maximum':3},'minItems':1,'uniqueItems':True}})
+agent_policy=plan['properties']['agent_policy']
+agent_policy['properties']['grade_window']=enum('PREVIOUS_CALENDAR_MONTH','BUSINESS_DAY')
+agent_policy['properties']['day_end']=day_end_policy
+agent_policy['allOf']=[{'if':{'properties':{'grade_window':{'const':'BUSINESS_DAY'}}},'then':{'required':['day_end'],'properties':{'max_depth':{'const':3}}},'else':{'not':{'required':['day_end']}}}]
+plan['properties']['grade_definitions']['items']['properties']['conditions']['items']['properties']['metric']=enum('PERSONAL_NET_BASIS','TEAM_NET_BASIS','ACTIVE_DIRECT_COUNT','EFFECTIVE_MEMBER_COUNT','TEAM_VALID_VOLUME')
 write('plan.schema.json',plan)
 refund=schema('refund',obj({'source_id':identifier,'refund_id':identifier,'original_business_id':identifier,'original_event_type':enum(*event_types),'refund_basis_total':decimal,'currency':currency,'business_time':time,'reason':identifier,'refund_quantity_total':decimal,'quantity_unit':identifier},['source_id','refund_id','original_business_id','original_event_type','refund_basis_total','currency','business_time','reason']))
 refund['dependentRequired']={'refund_quantity_total':['quantity_unit'],'quantity_unit':['refund_quantity_total']}
@@ -365,3 +372,19 @@ actual_response('/v1/member-qualification-facts','post',200,qualification_state)
 endpoint('/v1/member-qualifications','get',query=[('policy_id',identifier,True),('source_id',identifier,True),('external_user_id',identifier,True)])
 actual_response('/v1/member-qualifications','get',200,qualification_state)
 write('openapi.json',api)
+
+# 可选日终证据不替代审批资格证据。
+dayend_evidence=obj({'business_day':{'type':'string','format':'date'},'plan_version_id':identifier,'cutoff':time,'source_watermark':identifier,'grades':{'type':'object','additionalProperties':identifier}})
+snapshot['properties']['day_end_evidence']=dayend_evidence
+write('snapshot.schema.json',snapshot)
+components['Snapshot']={k:v for k,v in snapshot.items() if k not in ('$schema','$id')}
+dayend_agent=obj({'grade_id':identifier,'metrics':{'type':'object','additionalProperties':decimal}})
+dayend_snapshot=obj({'plan_id':identifier,'plan_version_id':identifier,'business_day':{'type':'string','format':'date'},'start':time,'end':time,'cutoff':time,'policy':day_end_policy,'source_watermark':identifier,'task_ids':arr(identifier),'agents':{'type':'object','additionalProperties':dayend_agent}})
+endpoint('/v1/day-end-freezes','post',obj({'plan_id':identifier,'expected_plan_version_id':identifier,'business_day':{'type':'string','format':'date'},'source_watermark':identifier}),200)
+endpoint('/v1/day-end-freezes','get',query=[('plan_id',identifier,True),('business_day',{'type':'string','format':'date'},True)])
+for method in ('get','post'):
+ actual_response('/v1/day-end-freezes',method,200,dayend_snapshot)
+write('openapi.json',api)
+
+errors+=['DAYEND_PENDING','DAYEND_LATE_FACT']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})

@@ -45,7 +45,17 @@ type ContractFact struct {
 	From     time.Time
 	To       *time.Time
 }
+
+// DayEndEvidence 单独保存计算等级来源，原资格证据仍保留审批等级，二者不能混淆。
+type DayEndEvidence struct {
+	BusinessDay   string            `json:"business_day"`
+	PlanVersionID string            `json:"plan_version_id"`
+	Cutoff        time.Time         `json:"cutoff"`
+	Watermark     string            `json:"source_watermark"`
+	Grades        map[string]string `json:"grades"`
+}
 type Input struct {
+	DayEnd                                                                              *DayEndEvidence `json:",omitempty"`
 	QualificationFacts                                                                  map[string]QualificationEvidence
 	RelationshipFacts                                                                   []RelationshipEvidence
 	StandardVersion, PlanVersionID, ConfigHash, CurrencyCatalogVersion, CalendarVersion string

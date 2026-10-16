@@ -60,6 +60,9 @@ func (s Service) Rollback(ctx context.Context, p identity.Principal, id string, 
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
+		if err = s.validateDayEndPublication(ctx, tx, scope, config, input.Effective); err != nil {
+			return foundation.CommandResult{}, err
+		}
 		if err = s.validateParticipants(ctx, tx, scope, config, input.Effective); err != nil {
 			return foundation.CommandResult{}, err
 		}

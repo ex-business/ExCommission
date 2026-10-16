@@ -49,8 +49,44 @@ func Validate(config Config, exponent int) error {
 		return invalid("route")
 	}
 	policy := config.AgentPolicy
-	if policy.MaxDepth < 1 || policy.MaxDepth > 64 || policy.SelfReward || !policy.EligibilityRequired || policy.GradeWindow != "PREVIOUS_CALENDAR_MONTH" || policy.GradeEvaluation != "DAILY" {
+	if policy.MaxDepth < 1 || policy.MaxDepth > 64 || policy.SelfReward || !policy.EligibilityRequired || (policy.GradeWindow != "PREVIOUS_CALENDAR_MONTH" && policy.GradeWindow != "BUSINESS_DAY") || policy.GradeEvaluation != "DAILY" {
 		return invalid("agent policy")
+	}
+	// 日终口径必须随方案审批发布；旧月度策略拒绝附带新配置，防止静默改变行为。
+	if policy.GradeWindow == "BUSINESS_DAY" {
+		d := policy.DayEnd
+		if d == nil || d.SourceID == "" || d.QualificationPolicyID == "" || policy.MaxDepth != 3 {
+			return invalid("day end policy")
+		}
+		if _, err := time.LoadLocation(d.Timezone); err != nil || d.Timezone == "" || d.Timezone == "Local" {
+			return invalid("day end timezone")
+		}
+		for _, depths := range [][]int{d.MemberDepths, d.VolumeDepths} {
+			seen := map[int]bool{}
+			if len(depths) == 0 {
+				return invalid("day end depths")
+			}
+			for _, depth := range depths {
+				if depth < 1 || depth > 3 || seen[depth] {
+					return invalid("day end depths")
+				}
+				seen[depth] = true
+			}
+		}
+		for _, g := range config.Grades {
+			for _, c := range g.Conditions {
+				if c.Metric != "EFFECTIVE_MEMBER_COUNT" && c.Metric != "TEAM_VALID_VOLUME" {
+					return invalid("day end grade metric")
+				}
+			}
+		}
+		for _, rule := range config.Rules {
+			if rule.Algorithm != "INDEPENDENT" || rule.Recipient != "ANCESTORS" {
+				return invalid("day end algorithm")
+			}
+		}
+	} else if policy.DayEnd != nil {
+		return invalid("unexpected day end policy")
 	}
 	if config.Scope.Type != "ALL_ACTIVE_AGENTS" && config.Scope.Type != "EXPLICIT_AGENT_IDS" {
 		return invalid("scope")
@@ -81,10 +117,10 @@ func Validate(config Config, exponent int) error {
 			base = true
 		}
 		for _, condition := range grade.Conditions {
-			if condition.Metric != "PERSONAL_NET_BASIS" && condition.Metric != "TEAM_NET_BASIS" && condition.Metric != "ACTIVE_DIRECT_COUNT" {
+			if condition.Metric != "PERSONAL_NET_BASIS" && condition.Metric != "TEAM_NET_BASIS" && condition.Metric != "ACTIVE_DIRECT_COUNT" && !(policy.GradeWindow == "BUSINESS_DAY" && (condition.Metric == "EFFECTIVE_MEMBER_COUNT" || condition.Metric == "TEAM_VALID_VOLUME")) {
 				return invalid("grade metric")
 			}
-			if condition.Metric == "ACTIVE_DIRECT_COUNT" {
+			if condition.Metric == "ACTIVE_DIRECT_COUNT" || condition.Metric == "EFFECTIVE_MEMBER_COUNT" {
 				if condition.Unit != "COUNT" || !integer.MatchString(condition.Value) {
 					return invalid("count units")
 				}

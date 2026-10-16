@@ -116,7 +116,15 @@ func (w Worker) failure(ctx context.Context, s foundation.Scope, t domain.Task, 
 	switch code {
 	case "REVISION_CONFLICT":
 		return cause
-	case "NO_EFFECTIVE_PLAN_VERSION", "RELATION_HISTORY_MISSING", "UNKNOWN_FACT", "RATE_MISSING", "UNIT_MISMATCH", "VALIDATION_FAILED", "BASIS_CURRENCY_MISMATCH", "BUDGET_EXCEEDED", "SNAPSHOT_INTEGRITY_FAILED", "LEDGER_NOT_READY", "UNSUPPORTED_CAPABILITY", "NOT_FOUND", "REFUND_QUANTITY_MISSING", "REFUND_EXCEEDS_ORIGINAL", "REFUND_TARGET_INCREASE":
+	case "DAYEND_PENDING":
+		// 日终扩展负责等待与冻结互斥，避免worker先读缺失、冻结后才挂起导致漏唤醒。
+		if pending, ok := w.Resolver.(interface {
+			WaitPending(context.Context, db.Executor, foundation.Scope, domain.Task, time.Time) error
+		}); ok {
+			return w.UOW.Within(ctx, func(tx db.Executor) error { return pending.WaitPending(ctx, tx, s, t, w.Now()) })
+		}
+		return w.UOW.Within(ctx, func(tx db.Executor) error { return w.Tasks.Finish(ctx, tx, s, t, "SUSPENDED", &code, nil, w.Now()) })
+	case "DAYEND_LATE_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RELATION_HISTORY_MISSING", "UNKNOWN_FACT", "RATE_MISSING", "UNIT_MISMATCH", "VALIDATION_FAILED", "BASIS_CURRENCY_MISMATCH", "BUDGET_EXCEEDED", "SNAPSHOT_INTEGRITY_FAILED", "LEDGER_NOT_READY", "UNSUPPORTED_CAPABILITY", "NOT_FOUND", "REFUND_QUANTITY_MISSING", "REFUND_EXCEEDS_ORIGINAL", "REFUND_TARGET_INCREASE":
 		return w.UOW.Within(ctx, func(tx db.Executor) error { return w.Tasks.Finish(ctx, tx, s, t, "SUSPENDED", &code, nil, w.Now()) })
 	default:
 		return w.Tasks.Retry(ctx, s, t, w.Now())

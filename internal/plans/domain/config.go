@@ -11,14 +11,24 @@ type Scope struct {
 	Type     string   `json:"type"`
 	AgentIDs []string `json:"agent_ids"`
 }
+
+// DayEndPolicy 随发布版本冻结，统计层级可独立选择，不改变实际返佣层级。
+type DayEndPolicy struct {
+	Timezone              string `json:"timezone"`
+	SourceID              string `json:"source_id"`
+	QualificationPolicyID string `json:"qualification_policy_id"`
+	MemberDepths          []int  `json:"member_depths"`
+	VolumeDepths          []int  `json:"volume_depths"`
+}
 type Policy struct {
-	MaxDepth            int    `json:"max_depth"`
-	SelfReward          bool   `json:"self_reward"`
-	EarnFrozen          bool   `json:"earn_while_frozen"`
-	RequireContract     bool   `json:"require_contract"`
-	GradeWindow         string `json:"grade_window"`
-	GradeEvaluation     string `json:"grade_evaluation"`
-	EligibilityRequired bool   `json:"eligibility_required"`
+	DayEnd              *DayEndPolicy `json:"day_end,omitempty"`
+	MaxDepth            int           `json:"max_depth"`
+	SelfReward          bool          `json:"self_reward"`
+	EarnFrozen          bool          `json:"earn_while_frozen"`
+	RequireContract     bool          `json:"require_contract"`
+	GradeWindow         string        `json:"grade_window"`
+	GradeEvaluation     string        `json:"grade_evaluation"`
+	EligibilityRequired bool          `json:"eligibility_required"`
 }
 type Condition struct {
 	Metric   string          `json:"metric,omitempty"`

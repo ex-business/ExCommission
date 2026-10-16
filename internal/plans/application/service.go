@@ -280,6 +280,9 @@ func (s Service) RequestPublication(ctx context.Context, p identity.Principal, i
 				return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
 			}
 		}
+		if err := s.validateDayEndPublication(ctx, tx, scope, draft.Config, input.EffectiveFrom); err != nil {
+			return foundation.CommandResult{}, err
+		}
 		if err := s.validateParticipants(ctx, tx, scope, draft.Config, input.EffectiveFrom); err != nil {
 			return foundation.CommandResult{}, err
 		}
@@ -344,7 +347,7 @@ func (s Service) validateParticipants(ctx context.Context, tx db.Executor, scope
 	return nil
 }
 
-// ExecutePublication rechecks participants under the approval transaction, not only at request time.
+// ExecutePublication 在审批事务内复查参与者与日终日界线，防止申请后条件变化造成错误发布。
 func (s Service) ExecutePublication(ctx context.Context, tx db.Executor, scope foundation.Scope, input PublicationPayload, version string, at time.Time) error {
 	draft, err := s.Repo.Read(ctx, tx, scope, input.PlanID, true)
 	if err != nil {
@@ -352,6 +355,9 @@ func (s Service) ExecutePublication(ctx context.Context, tx db.Executor, scope f
 	}
 	if draft.Hash != input.Hash || draft.Revision != input.Revision {
 		return errors.New("STALE_APPROVAL")
+	}
+	if err = s.validateDayEndPublication(ctx, tx, scope, draft.Config, input.EffectiveFrom); err != nil {
+		return err
 	}
 	if err = s.validateParticipants(ctx, tx, scope, draft.Config, input.EffectiveFrom); err != nil {
 		return err
