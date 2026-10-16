@@ -371,3 +371,9 @@ snapshot['properties']['relationship_facts']['items']['properties']['kind']['enu
 components['Snapshot']={k:v for k,v in snapshot.items() if k not in ('$schema','$id')}
 write('snapshot.schema.json',snapshot)
 write('openapi.json',api)
+
+# 每日UTC 01:00结算调度，仅暴露已持久化状态。
+endpoint('/v1/settlement-schedule','get')
+scheduled_result=obj({'period':identifier,'run_id':identifier,'statement_ids':arr(identifier),'approval_ids':arr(identifier),'completed_at':time})
+actual_response('/v1/settlement-schedule','get',200,response_obj({'timezone':enum('UTC'),'hour':{'type':'integer','const':1},'poll_interval_seconds':{'type':'integer','const':5},'initialized':boolean,'next_period':nullable(identifier),'next_due_at':nullable(time),'last_result':nullable(scheduled_result)}))
+write('openapi.json',api)

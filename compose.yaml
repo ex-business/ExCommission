@@ -38,6 +38,8 @@ services:
         condition: service_healthy
     environment:
       APP_MODE: local
+      LOCAL_TENANT: ${LOCAL_TENANT:-local-sandbox}
+      LOCAL_APP: ${LOCAL_APP:-commission}
       AUTH_LOCAL_ACCOUNTS_FILE: /local/login-accounts.json
       AUTH_EXTERNAL_FILE: /local/external-identity.json
       LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}
@@ -71,6 +73,8 @@ services:
       api:
         condition: service_healthy
     environment:
+      LOCAL_TENANT: ${LOCAL_TENANT:-local-sandbox}
+      LOCAL_APP: ${LOCAL_APP:-commission}
       LOCAL_PAYMENT_KEY: ${LOCAL_PAYMENT_KEY:?请先生成本地凭据}
       LOCAL_PAYMENT_RESULTS_FILE: /local/payment-results.json
       DB_ADDRESS: mysql:3306

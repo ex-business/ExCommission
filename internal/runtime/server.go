@@ -72,6 +72,7 @@ func Run(service string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if service == "worker" {
+		installAuditObserver(store)
 		worker := buildWorker(store)
 		startMaintenance(ctx, store)
 

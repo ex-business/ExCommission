@@ -135,3 +135,13 @@ APPROVED/FAILED 审批可通过 `/v1/approvals/{id}/execution-retries` 附证据
 新增接口：POST `/v1/milestone-program-requests`、POST `/v1/milestone-observations`、GET `/v1/milestone-programs/{id}`、GET `/v1/milestone-programs/{id}/members/{user_id}`。充值和有效投注的真实性由接入来源提供，本系统不自行推算不存在的数据；可回退净值及自动撤回已发权益不在本次单调累计合同中，纠错沿用独立审批更正/追回。
 
 本次使用独立HTTP服务与现有Docker MySQL验收，功能回归、竞态与接口结构检查通过；Docker管理/构建接口当前返回500，新容器构建及部署尚未完成，18080现有进程仍是此前版本。具体边界见 `conformance/v1/milestone-acceptance.json`。
+
+## 每日自动结算与审核
+
+worker已装配 `settlement.daily`：按UTC每日01:00生成前一日全量结算，并为首次提交的草稿自动生成STATEMENT待审核记录。只生成待审核，不自动批准或付款。结算、权益占用、审核、审计与持久游标同事务；并发与重启不重复生成。首次启用从昨日开始，之后离线跨日按游标逐日补齐，空周期也记录完成。首次失败保留起点，不因次日重启跳日。
+
+`GET /v1/settlement-schedule` 使用 `statements:read` 权限查询UTC调度时间、下一周期与最近生成记录。任务每5秒检查，按已注册的业务期日历选版。scope来自worker的LOCAL_TENANT/LOCAL_APP，与API一致；默认local-sandbox/commission，不扫描其他租户。
+
+详细合同见 `docs/integration/scheduled-settlement.md`。同周期手工全量运行可复用，已有审核不重提；不同筛选、已过时草稿或跳过的历史周期冲突明确失败并保留游标，禁止静默改写历史。冻结、最低额、迟到事实和后续周期收录仍遵循原结算规则。
+
+本次定时边界、100并发、审计异常回滚、漏跑补偿、手工审核记录复用、当前权限及状态接口结构已在隔离租户与现有Docker MySQL验证。Docker引擎管理接口仍返回500，本次镜像部署未成功；当前运行服务不代表新调度已经启用。验收边界见 `conformance/v1/scheduled-settlement-acceptance.json`。
