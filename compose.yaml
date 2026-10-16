@@ -44,6 +44,7 @@ services:
       LOCAL_APP: ${LOCAL_APP:-commission}
       AUTH_LOCAL_ACCOUNTS_FILE: /local/login-accounts.json
       AUTH_EXTERNAL_FILE: /local/external-identity.json
+      PUBLIC_MEMBER_URL: ${PUBLIC_MEMBER_URL:-http://127.0.0.1:18180/}
       LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}
       LOCAL_APPROVER_TOKEN: ${LOCAL_APPROVER_TOKEN:?请先生成本地凭据}
       LOCAL_CURSOR_KEY: ${LOCAL_CURSOR_KEY:?请先生成本地凭据}

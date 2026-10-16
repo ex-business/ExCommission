@@ -747,6 +747,14 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		call("POST", "/v1/risk-holds", "/v1/risk-holds", "operator", map[string]any{"entitlement_id": entitlement, "reason_code": "CLAIM_TEST", "evidence_ref": "test-freeze"}, 201)
 		call("POST", "/v1/me/commission-orders/{id}/claim", "/v1/me/commission-orders/"+field(frozenOrder, "instruction_id")+"/claim", "member", map[string]any{"expected_revision": 1}, 409)
 	}
+	if walletMode {
+		income := call("GET", "/v1/me/earnings", "/v1/me/earnings", "member", nil, 200)
+		rows := income["rows"].([]any)
+		if len(rows) != 1 || rows[0].(map[string]any)["paid_minor"] != "5000" || rows[0].(map[string]any)["frozen_minor"] != "5000" {
+			t.Fatal(income)
+		}
+		call("GET", "/v1/me/agent-rules", "/v1/me/agent-rules", "member", nil, 200)
+	}
 	var paid, available, target string
 	if e := store.DB.QueryRow("SELECT CAST(SUM(paid) AS CHAR),CAST(SUM(available) AS CHAR),CAST(SUM(target) AS CHAR) FROM ledger_entitlements WHERE tenant_id=?", scope.Tenant).Scan(&paid, &available, &target); e != nil || paid != "5000" || available != "5000" || target != "10000" {
 		t.Fatal(paid, available, target, e)

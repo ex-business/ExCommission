@@ -8,8 +8,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	principal "github.com/ex-business/ExCommission/internal/identity/domain"
+	memberrepo "github.com/ex-business/ExCommission/internal/members/adapters"
+	milestone "github.com/ex-business/ExCommission/internal/milestones/domain"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
+	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	sitesrepo "github.com/ex-business/ExCommission/internal/sites/adapters"
+	sitesmodel "github.com/ex-business/ExCommission/internal/sites/domain"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -81,9 +88,39 @@ func TestDirectoryThreeLevelsStatisticsPrivacyPagination(t *testing.T) {
 	for k, v := range map[string]string{"APP_MODE": "local", "LOCAL_OPERATOR_TOKEN": strings.Repeat("o", 32), "LOCAL_APPROVER_TOKEN": strings.Repeat("a", 32), "LOCAL_CURSOR_KEY": strings.Repeat("c", 32), "LOCAL_SOURCE_KEY": strings.Repeat("s", 32), "LOCAL_PAYMENT_KEY": strings.Repeat("p", 32), "LOCAL_TENANT": scope.Tenant, "LOCAL_APP": scope.App, "AUTH_LOCAL_ACCOUNTS_FILE": "", "AUTH_EXTERNAL_FILE": ""} {
 		t.Setenv(k, v)
 	}
+	if _, err = store.DB.Exec(`INSERT INTO users_external VALUES(?,?,'newcomer','sandbox','newcomer','新会员',?)`, scope.Tenant, scope.App, at); err != nil {
+		t.Fatal(err)
+	}
+	planBody, err := os.ReadFile("../../conformance/v1/plan-percent.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.DB.Exec(`INSERT INTO plan_versions VALUES(?,?,'P1','published',1,?,'fixture-hash','BTC-USDT','FEE_CONFIRMED','SPOT',?,NULL,?)`, scope.Tenant, scope.App, planBody, at, at); err != nil {
+		t.Fatal(err)
+	}
+	programBody, err := os.ReadFile("../../conformance/v1/milestone-program.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var program milestone.Program
+	if err = json.Unmarshal(programBody, &program); err != nil {
+		t.Fatal(err)
+	}
+	program.Starts = at
+	program.Ends = at.Add(24 * time.Hour)
+	programBody, _ = json.Marshal(program)
+	if _, err = store.DB.Exec(`INSERT INTO milestone_programs VALUES(?,?,?,?,?,?,?)`, scope.Tenant, scope.App, program.ID, programBody, "hash", "approval", at); err != nil {
+		t.Fatal(err)
+	}
+	taskID := "reward-task"
+	progress, _ := json.Marshal(milestone.Progress{UserID: "ordinary", Beneficiary: "a0", BoundAt: at, BindingEvidence: "proof", Facts: map[string]milestone.Fact{}, QualifiedAt: &at, TaskID: &taskID})
+	if _, err = store.DB.Exec(`INSERT INTO milestone_members VALUES(?,?,?,?,?,?,?)`, scope.Tenant, scope.App, program.ID, "ordinary", progress, taskID, at); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PUBLIC_MEMBER_URL", "http://127.0.0.1:18180/")
 	salt := make([]byte, 16)
 	hash, _ := pbkdf2.Key(sha256.New, "directory-password", salt, 600000, 32)
-	accounts, _ := json.Marshal([]map[string]string{{"username": "member", "member_user_id": "u0", "salt": hex.EncodeToString(salt), "hash": hex.EncodeToString(hash)}})
+	accounts, _ := json.Marshal([]map[string]string{{"username": "member", "member_user_id": "u0", "salt": hex.EncodeToString(salt), "hash": hex.EncodeToString(hash)}, {"username": "newcomer", "member_user_id": "newcomer", "salt": hex.EncodeToString(salt), "hash": hex.EncodeToString(hash)}, {"username": "other", "member_user_id": "u4", "salt": hex.EncodeToString(salt), "hash": hex.EncodeToString(hash)}})
 	accountsFile := filepath.Join(t.TempDir(), "accounts.json")
 	if err = os.WriteFile(accountsFile, accounts, 0600); err != nil {
 		t.Fatal(err)
@@ -104,7 +141,7 @@ func TestDirectoryThreeLevelsStatisticsPrivacyPagination(t *testing.T) {
 			}
 		}
 	}()
-	call := func(method, path, token string, in any, signed bool, want int) map[string]any {
+	call := func(method, path, token string, in any, signed bool, want int, keys ...string) map[string]any {
 		t.Helper()
 		var b []byte
 		if in != nil {
@@ -113,7 +150,11 @@ func TestDirectoryThreeLevelsStatisticsPrivacyPagination(t *testing.T) {
 		r, _ := http.NewRequest(method, server.URL+path, bytes.NewReader(b))
 		r.Header.Set("Authorization", "Bearer "+token)
 		r.Header.Set("Content-Type", "application/json")
-		r.Header.Set("Idempotency-Key", newID())
+		commandKey := newID()
+		if len(keys) > 0 {
+			commandKey = keys[0]
+		}
+		r.Header.Set("Idempotency-Key", commandKey)
 		if signed {
 			mac := hmac.New(sha256.New, []byte(strings.Repeat("s", 32)))
 			mac.Write(b)
@@ -205,6 +246,78 @@ func TestDirectoryThreeLevelsStatisticsPrivacyPagination(t *testing.T) {
 			t.Fatal("member IP leak", v)
 		}
 	}
+	member := signedIn["access_token"].(string)
+	loginMember := func(name string) string {
+		res, e := server.Client().Post(server.URL+"/v1/auth/login", "application/json", strings.NewReader(`{"username":"`+name+`","password":"directory-password"}`))
+		if e != nil {
+			t.Fatal(e)
+		}
+		defer res.Body.Close()
+		var v map[string]any
+		json.NewDecoder(res.Body).Decode(&v)
+		if res.StatusCode != 200 {
+			t.Fatal(v)
+		}
+		return v["access_token"].(string)
+	}
+	newcomer, other := loginMember("newcomer"), loginMember("other")
+	call("GET", "/v1/me/referral-link", member, nil, false, 404)
+	link := call("POST", "/v1/me/referral-links", member, map[string]any{}, false, 201, "shared-link-key")
+	code := link["code"].(string)
+	parsed, e := url.Parse(link["url"].(string))
+	if e != nil || parsed.Query().Get("invite") != code || parsed.Host != "127.0.0.1:18180" {
+		t.Fatal(link, e)
+	}
+	rootHash := sha256.Sum256([]byte("member"))
+	owner := principal.Principal{Tenant: scope.Tenant, App: scope.App, Subject: "member-" + hex.EncodeToString(rootHash[:]), MemberUserID: "u0"}
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Go(func() {
+			result, e := memberService(store).Create(ctx, owner, newID(), newID())
+			if e != nil || result.Status != 201 || result.ResourceID != code {
+				t.Errorf("concurrent link %d %v", result.Status, e)
+			}
+		})
+	}
+	wg.Wait()
+	if _, e := (memberrepo.Repository{}).Resolve(ctx, store.DB, foundation.Scope{Tenant: "foreign", App: scope.App}, code); e == nil || e.Error() != "NOT_FOUND" {
+		t.Fatal("foreign invite resolution", e)
+	}
+	again := call("POST", "/v1/me/referral-links", member, map[string]any{}, false, 201)
+	if again["code"] != code {
+		t.Fatal("unstable invitation", again)
+	}
+	call("GET", "/v1/me/referral-link", member, nil, false, 200)
+	call("GET", "/v1/me/referral-link", other, nil, false, 404)
+	call("POST", "/v1/me/referral-links", other, map[string]any{}, false, 409, "shared-link-key")
+	call("POST", "/v1/me/referral-binding", member, map[string]any{"code": code}, false, 409)
+	call("POST", "/v1/me/referral-binding", newcomer, map[string]any{"code": code, "user_id": "foreign"}, false, 400)
+	call("POST", "/v1/me/referral-binding", newcomer, map[string]any{"code": code}, false, 200, "bind-once")
+	call("POST", "/v1/me/referral-binding", newcomer, map[string]any{"code": code}, false, 200, "bind-once")
+	call("POST", "/v1/me/referral-binding", newcomer, map[string]any{"code": code}, false, 409)
+	team = call("GET", "/v1/me/team?depth=1", member, nil, false, 200)
+	if len(team["rows"].([]any)) != 2 {
+		t.Fatal("binding not in real team", team)
+	}
+	rules := call("GET", "/v1/me/agent-rules", member, nil, false, 200)
+	if len(rules["rows"].([]any)) != 1 {
+		t.Fatal(rules)
+	}
+	rewards := call("GET", "/v1/me/rewards", member, nil, false, 200)
+	if rewards["rows"].([]any)[0].(map[string]any)["triggered_members"].(json.Number).String() != "1" {
+		t.Fatal(rewards)
+	}
+	rewards = call("GET", "/v1/me/rewards", other, nil, false, 200)
+	if rewards["rows"].([]any)[0].(map[string]any)["triggered_members"].(json.Number).String() != "0" {
+		t.Fatal("foreign reward counts", rewards)
+	}
+	call("GET", "/v1/me/earnings", member, nil, false, 200)
+	if e = store.Within(ctx, func(tx db.Executor) error {
+		return (sitesrepo.Repository{}).Apply(ctx, tx, scope, sitesmodel.Change{Enabled: false, PlanID: "P1", Venues: []string{}, Reason: "test-disable"}, "fixture-approval", time.Now())
+	}); e != nil {
+		t.Fatal(e)
+	}
+	call("POST", "/v1/me/referral-links", member, map[string]any{}, false, 409)
 	call("POST", "/v1/member-statistics", operator, map[string]any{}, false, 403)
 	t.Log("three physical levels incl ordinary member, no fourth level, cumulative statistics, full summary across pages, missing-data and sensitive-IP permissions PASS")
 }

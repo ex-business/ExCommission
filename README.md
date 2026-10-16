@@ -155,3 +155,5 @@ worker已装配 `settlement.daily`：按UTC每日01:00生成前一日全量结�
 详细契约见 `docs/integration/commission-review.md`。本次有独立前端专用审核页面，支持筛选、单笔/批量审核、逐项结果、金额与备注、草稿取消及批量提交；浏览器验收使用模拟HTTP，后端资金闭环独立使用现有Docker MySQL验证。Docker管理接口仍异常，新容器联部署尚未完成。
 
 会员佣金领取：支持 MEMBER_CLAIM 与 DIRECT 两种派发模式。会员模式发布后等待本人领取，确认渠道成功后显示已领取，未知结果保留原单查询。可信身份绑定、接口与状态边界见 [会员佣金领取](docs/integration/member-commission-claims.md)。
+
+会员代理业务已按钱包联动、代理目录、站点配置、谷歌验证、PC/H5会员端顺序扩展。整体契约、验收和部署边界见 [会员代理业务说明](docs/integration/member-business-roadmap.md)。本地初始化执行 `python3 tools/init_local.py`，谷歌验证需各管理员绑定本地受保护配置。分享地址由 `PUBLIC_MEMBER_URL` 配置；当前Docker管理接口故障时，请勿将Host测试当作Docker新版已部署。

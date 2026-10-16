@@ -476,3 +476,17 @@ for path in ['/v1/approvals/{id}/decisions','/v1/approvals/{id}/execution-retrie
 errors+=['TOTP_REQUIRED','TOTP_INVALID','TOTP_NOT_CONFIGURED','TOTP_REPLAY','TOTP_RATE_LIMITED']
 write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
 write('openapi.json',api)
+
+# 会员PC/H5只使用本人资源和公开业务规则。
+member_earnings=obj({'currency':currency,**{field:{'type':'string'} for field in ['target_minor','pending_minor','available_minor','frozen_minor','reserved_minor','paid_minor','recovered_minor','debt_minor']}})
+member_reward=obj({'program_id':identifier,'name':identifier,'starts_at':time,'ends_at':time,'active':boolean,'conditions':arr(obj({'metric':identifier,'unit':identifier,'threshold':decimal})),'qualified_members':{'type':'integer','minimum':0},'triggered_members':{'type':'integer','minimum':0}})
+member_rule=obj({'plan_name':identifier,'currency':currency,'minimum_payout_minor':minor,'rules':arr(obj({'name':identifier,'description':{'type':'string'}}))})
+member_link=obj({'code':identifier,'url':{'type':'string','format':'uri'}})
+endpoint('/v1/me/earnings','get');actual_response('/v1/me/earnings','get',200,response_obj({'rows':arr(member_earnings)}))
+endpoint('/v1/me/rewards','get',query=[('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
+actual_response('/v1/me/rewards','get',200,response_obj({'rows':arr(member_reward),'next_after_id':nullable(identifier)}))
+endpoint('/v1/me/agent-rules','get');actual_response('/v1/me/agent-rules','get',200,response_obj({'rows':arr(member_rule),'agent_enabled':boolean,'configured':boolean,'is_agent':boolean}))
+endpoint('/v1/me/referral-link','get');actual_response('/v1/me/referral-link','get',200,response_obj(member_link['properties']))
+endpoint('/v1/me/referral-links','post',obj({}),201);actual_response('/v1/me/referral-links','post',201,response_obj(member_link['properties']))
+endpoint('/v1/me/referral-binding','post',obj({'code':identifier}));actual_response('/v1/me/referral-binding','post',200,response_obj({'status':enum('BOUND')}))
+write('openapi.json',api)

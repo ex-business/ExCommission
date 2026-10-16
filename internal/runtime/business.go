@@ -79,6 +79,11 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 			return nil, err
 		}
 	}
+	for _, member := range provider.Members {
+		if err := bootstrapFeature(ctx, store, tenant, app, member.Subject, "member-referrals-v1", []string{"member:refer"}); err != nil {
+			return nil, err
+		}
+	}
 	authorize := identity.DatabaseAuthorizer{Query: store.DB}
 	require := func(permission string, handler authhttp.AuthorizedHandler) http.Handler {
 		wrapped := func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
@@ -170,6 +175,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	installDisbursement(mux, require, store, &workflowService)
 	installMemberClaims(mux, require, store)
 	installWallet(mux, require, store)
+	installMemberPortal(mux, require, store)
 	if err := installSites(ctx, mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}
