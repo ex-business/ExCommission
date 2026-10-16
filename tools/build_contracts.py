@@ -443,3 +443,15 @@ for path in ['/v1/me/wallet-transactions','/v1/me/wallet-changes']:
     endpoint(path,'get',query=[('currency',currency,False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
     actual_response(path,'get',200,response_obj({'rows':arr(wallet_entry),'next_after_id':nullable(identifier)}))
 write('openapi.json',api)
+
+# 代理目录及可信累计统计快照。
+member_statistics=obj({'user_id':identifier,'currency':currency,'observed_at':time,'deposit_minor':minor,'withdrawal_minor':minor,'bet_minor':minor,'valid_bet_minor':minor,'vip':identifier,'login_ip':nullable({'type':'string','maxLength':64})})
+directory_row=obj({'user_id':identifier,'agent_id':nullable(identifier),'display_name':identifier,'depth':{'type':'integer','minimum':0,'maximum':3},'status':identifier,'statistics':nullable(member_statistics)})
+directory_summary=obj({'members':{'type':'integer','minimum':0},'missing_statistics':{'type':'integer','minimum':0},'complete':boolean,'currency':currency,'deposit_minor':{'type':'string'},'withdrawal_minor':{'type':'string'},'bet_minor':{'type':'string'},'valid_bet_minor':{'type':'string'}})
+endpoint('/v1/member-statistics','post',member_statistics)
+api['paths']['/v1/member-statistics']['post']['parameters'].append({'name':'X-Source-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-fA-F0-9]{64}$'}})
+actual_response('/v1/member-statistics','post',200,response_obj({'user_id':identifier,'status':enum('RECORDED')}))
+for path in ['/v1/agent-directory','/v1/agents/{id}/team','/v1/me/team']:
+    endpoint(path,'get',query=[('currency',currency,False),('as_of',time,False),('depth',{'type':'integer','minimum':1,'maximum':3},False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
+    actual_response(path,'get',200,response_obj({'rows':arr(directory_row),'summary':directory_summary,'next_after_id':nullable(identifier),'as_of':time}))
+write('openapi.json',api)
