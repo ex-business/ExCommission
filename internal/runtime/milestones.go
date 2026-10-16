@@ -36,6 +36,9 @@ import (
 
 func milestoneService(store *mysql.Store) milestones.Service {
 	return milestones.Service{Commands: store, Query: store.DB, Repo: repository.Repository{}, Workflow: workflowrepo.Repository{}, Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Now: clockUTC, ID: newID, AllowSource: func(ctx context.Context, tx db.Executor, s foundation.Scope, source string) error {
+		if err := siteAllow(ctx, tx, s); err != nil {
+			return err
+		}
 		if source != "sandbox" {
 			return errors.New("UNSUPPORTED_CAPABILITY")
 		}

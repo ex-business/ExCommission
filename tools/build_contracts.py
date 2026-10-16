@@ -455,3 +455,15 @@ for path in ['/v1/agent-directory','/v1/agents/{id}/team','/v1/me/team']:
     endpoint(path,'get',query=[('currency',currency,False),('as_of',time,False),('depth',{'type':'integer','minimum':1,'maximum':3},False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
     actual_response(path,'get',200,response_obj({'rows':arr(directory_row),'summary':directory_summary,'next_after_id':nullable(identifier),'as_of':time}))
 write('openapi.json',api)
+
+# 站点绑定、场馆与独立审批配置。
+site_change=obj({'enabled':boolean,'plan_id':identifier,'venue_ids':arr(identifier),'expected_revision':revision,'reason':identifier})
+endpoint('/v1/site-agent-config-requests','post',site_change,202)
+actual_response('/v1/site-agent-config-requests','post',202,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision}))
+endpoint('/v1/site-agent-config','get')
+actual_response('/v1/site-agent-config','get',200,response_obj({'configured':boolean,'enabled':boolean,'plan_id':{'type':'string'},'venue_ids':arr(identifier),'revision':revision,'effective_from':nullable(time)}))
+endpoint('/v1/site-agent-options','get')
+actual_response('/v1/site-agent-options','get',200,response_obj({'rows':arr(obj({'plan_id':identifier,'version_id':identifier,'venue_id':identifier,'event_type':identifier,'scene':identifier}))}))
+errors+=['SITE_AGENT_DISABLED','VENUE_NOT_PARTICIPATING']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)

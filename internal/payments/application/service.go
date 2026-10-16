@@ -23,17 +23,18 @@ type CreateInput struct {
 	Revision    uint64      `json:"expected_statement_revision"`
 }
 type Service struct {
-	Credit     func(context.Context, db.Executor, foundation.Scope, model.Payment) error
-	Accounts   ports.PaymentAccounts
-	Commands   db.Commands
-	UOW        db.UnitOfWork
-	Query      db.Executor
-	Repo       ports.Repository
-	Ledger     ports.Ledger
-	Statements ports.Statements
-	Providers  map[string]ports.Provider
-	Now        func() time.Time
-	ID         func() string
+	BeforeSubmit func(context.Context, db.Executor, foundation.Scope) error
+	Credit       func(context.Context, db.Executor, foundation.Scope, model.Payment) error
+	Accounts     ports.PaymentAccounts
+	Commands     db.Commands
+	UOW          db.UnitOfWork
+	Query        db.Executor
+	Repo         ports.Repository
+	Ledger       ports.Ledger
+	Statements   ports.Statements
+	Providers    map[string]ports.Provider
+	Now          func() time.Time
+	ID           func() string
 }
 
 func number(s string) (*big.Int, bool) {
@@ -145,6 +146,11 @@ func (s Service) Dispatch(ctx context.Context, scope foundation.Scope, id string
 		}
 		if p.Status != "CREATED" {
 			return nil
+		}
+		if s.BeforeSubmit != nil {
+			if err := s.BeforeSubmit(ctx, tx, scope); err != nil {
+				return err
+			}
 		}
 		provider, ok := s.Providers[p.ChannelID]
 		if !ok || !provider.Enabled() {

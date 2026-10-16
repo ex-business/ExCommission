@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"context"
-	accounts "github.com/ex-business/ExCommission/internal/agents/adapters"
+
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
@@ -27,7 +27,7 @@ import (
 )
 
 func paymentService(store *mysql.Store) payments.Service {
-	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: accounts.Repository{}, Statements: statements.Repository{}, Credit: func(ctx context.Context, tx db.Executor, scope foundation.Scope, p paymentmodel.Payment) error {
+	return payments.Service{BeforeSubmit: siteAllow, Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: sitePaymentAccounts{}, Statements: statements.Repository{}, Credit: func(ctx context.Context, tx db.Executor, scope foundation.Scope, p paymentmodel.Payment) error {
 		var user string
 		if err := tx.QueryRowContext(ctx, `SELECT a.user_id FROM settlement_statements s JOIN agent_accounts a ON a.tenant_id=s.tenant_id AND a.app_id=s.app_id AND a.agent_id=s.beneficiary_id WHERE s.tenant_id=? AND s.app_id=? AND s.statement_id=?`, scope.Tenant, scope.App, p.StatementID).Scan(&user); err != nil {
 			return err

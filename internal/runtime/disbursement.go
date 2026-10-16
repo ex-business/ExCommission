@@ -27,6 +27,9 @@ import (
 func disbursementService(store *mysql.Store) app.Service {
 	payments := paymentService(store)
 	return app.Service{Commands: store, UOW: store, Query: store.DB, Repo: repo.Repository{}, Now: clockUTC, ID: newID, AuthorizeClaim: func(ctx context.Context, tx db.Executor, p principal.Principal) error {
+		if err := siteAllow(ctx, tx, foundation.Scope{Tenant: p.Tenant, App: p.App}); err != nil {
+			return err
+		}
 		return identity.Authorize(ctx, tx, p, p.Tenant, p.App, "member:claim")
 	}, Beneficiary: func(ctx context.Context, tx db.Executor, scope foundation.Scope, id string) (string, error) {
 		var user string

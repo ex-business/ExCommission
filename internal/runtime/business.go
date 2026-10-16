@@ -164,6 +164,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	installDisbursement(mux, require, store, &workflowService)
 	installMemberClaims(mux, require, store)
 	installWallet(mux, require, store)
+	if err := installSites(ctx, mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
 	if err := installDirectory(ctx, mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}

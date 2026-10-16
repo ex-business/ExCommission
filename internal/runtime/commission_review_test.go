@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	calcmodel "github.com/ex-business/ExCommission/internal/calculation/domain"
 	paymentmodel "github.com/ex-business/ExCommission/internal/payments/domain"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
@@ -303,6 +304,24 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 	call("GET", "/v1/plans/{id}/versions/{version_id}", "/v1/plans/P1/versions/"+versionID, "operator", nil, 200)
 	grade := call("POST", "/v1/grade-change-requests", "/v1/grade-change-requests", "operator", map[string]any{"agent_id": agents["parent"], "plan_id": "P1", "grade_id": "G0", "eligibility": "ELIGIBLE", "expected_revision": 0, "reason": "确认参与资格"}, 200)
 	approve(grade)
+	changeSite := func(enabled bool) {
+		t.Helper()
+		current := call("GET", "/v1/site-agent-config", "/v1/site-agent-config", "operator", nil, 200)
+		request := call("POST", "/v1/site-agent-config-requests", "/v1/site-agent-config-requests", "operator", map[string]any{"enabled": enabled, "plan_id": "P1", "venue_ids": []string{"BTC-USDT"}, "expected_revision": rev(current), "reason": "配置站点代理"}, 202)
+		approve(request)
+	}
+	if walletMode {
+		initial := call("GET", "/v1/site-agent-config", "/v1/site-agent-config", "operator", nil, 200)
+		if initial["configured"] != false {
+			t.Fatal(initial)
+		}
+		options := call("GET", "/v1/site-agent-options", "/v1/site-agent-options", "operator", nil, 200)
+		if len(options["rows"].([]any)) != 1 {
+			t.Fatal(options)
+		}
+		changeSite(true)
+		call("POST", "/v1/site-agent-config-requests", "/v1/site-agent-config-requests", "operator", map[string]any{"enabled": true, "plan_id": "P1", "venue_ids": []string{"BTC-USDT"}, "expected_revision": 0, "reason": "陈旧配置"}, 409)
+	}
 	eventAt := clockUTC().Add(time.Microsecond)
 	eventBody := map[string]any{"schema_version": "1", "source_id": "sandbox", "event_id": "original", "business_id": "order", "event_type": "FEE_CONFIRMED", "business_time": eventAt, "external_user_id": "trader", "product_code": "BTC-USDT", "scene": "SPOT", "source_revision": "1", "payload": map[string]any{"basis_amount": "1000", "basis_currency": "USD", "confirmed": true}}
 	raw, _ := json.Marshal(eventBody)
@@ -318,7 +337,46 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 	if again["task_id"] != taskID {
 		t.Fatal("business alias duplicated task")
 	}
-	call("GET", "/v1/calculation-tasks/{id}/adjustments", "/v1/calculation-tasks/"+taskID+"/adjustments", "operator", nil, 409)
+	if walletMode {
+		bad := map[string]any{}
+		for k, v := range eventBody {
+			bad[k] = v
+		}
+		bad["event_id"] = "other-venue"
+		bad["business_id"] = "other-venue"
+		bad["product_code"] = "OTHER"
+		bad["business_time"] = clockUTC()
+		b, _ := json.Marshal(bad)
+		callRaw("POST", "/v1/events", "/v1/events", "operator", "other-venue", b, map[string]string{"X-Source-Signature": sign(b, sourceKey)}, 409)
+		interrupted := buildWorker(store)
+		interrupted.BeforeCommit = func(ctx context.Context, tx ports.Executor, scope foundation.Scope, task calcmodel.Task, snapshot calcmodel.Input) error {
+			changeSite(false)
+			return siteCommitGuard(ctx, tx, scope, task, snapshot)
+		}
+		if done, e := interrupted.RunOnce(ctx, scope); e != nil || !done {
+			t.Fatal(done, e)
+		}
+		stopped := call("GET", "/v1/calculation-tasks/{id}", "/v1/calculation-tasks/"+taskID, "operator", nil, 200)
+		if stopped["status"] != "SUSPENDED" || stopped["reason_code"] != "SITE_AGENT_DISABLED" {
+			t.Fatal(stopped)
+		}
+		if e := store.Within(ctx, func(tx ports.Executor) error { return milestoneService(store).AllowSource(ctx, tx, scope, "sandbox") }); e == nil || e.Error() != "SITE_AGENT_DISABLED" {
+			t.Fatal("milestone guard", e)
+		}
+		bad["event_id"] = "disabled"
+		bad["business_id"] = "disabled"
+		bad["product_code"] = "BTC-USDT"
+		bad["business_time"] = clockUTC()
+		b, _ = json.Marshal(bad)
+		callRaw("POST", "/v1/events", "/v1/events", "operator", "disabled", b, map[string]string{"X-Source-Signature": sign(b, sourceKey)}, 409)
+		changeSite(true)
+		call("POST", "/v1/calculation-tasks/{id}/resume", "/v1/calculation-tasks/"+taskID+"/resume", "operator", map[string]any{"expected_revision": rev(stopped), "evidence_ref": "site-reenabled", "reason": "人工核验后恢复原任务"}, 202)
+	}
+	adjustmentStatus := 409
+	if walletMode {
+		adjustmentStatus = 200
+	}
+	call("GET", "/v1/calculation-tasks/{id}/adjustments", "/v1/calculation-tasks/"+taskID+"/adjustments", "operator", nil, adjustmentStatus)
 	if done, err := buildWorker(store).RunOnce(ctx, scope); err != nil || !done {
 		t.Fatal(err)
 	}
@@ -417,6 +475,11 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		store.DB.QueryRow("SELECT COUNT(*) FROM payment_orders WHERE tenant_id=?", scope.Tenant).Scan(&n)
 		if n != 0 {
 			t.Fatal("paid before member claim")
+		}
+		if walletMode {
+			changeSite(false)
+			call("POST", "/v1/me/commission-orders/{id}/claim", "/v1/me/commission-orders/"+iid+"/claim", "member", map[string]any{"expected_revision": rev(ready)}, 409)
+			changeSite(true)
 		}
 		body, _ := json.Marshal(map[string]any{"expected_revision": rev(ready)})
 		path := "/v1/me/commission-orders/" + iid + "/claim"
