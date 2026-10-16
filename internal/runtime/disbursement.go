@@ -39,6 +39,9 @@ func disbursementService(store *mysql.Store) app.Service {
 		if !ok || !provider.Enabled() {
 			return foundation.ErrValidation
 		}
+		if capability, ok := provider.(interface{ Supports(string) bool }); ok && !capability.Supports(i.Amount.Currency) {
+			return foundation.ErrValidation
+		}
 		v, err := payments.Statements.Get(ctx, tx, s, i.StatementID, false)
 		if err != nil {
 			return err

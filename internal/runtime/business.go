@@ -163,6 +163,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}
 	installDisbursement(mux, require, store, &workflowService)
 	installMemberClaims(mux, require, store)
+	installWallet(mux, require, store)
 	mux.Handle("POST /v1/user-sync-jobs", require("users:sync", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		var input users.SyncRequest
 		if err := httpapi.Decode(w, r, &input); err != nil {

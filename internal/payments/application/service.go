@@ -23,6 +23,7 @@ type CreateInput struct {
 	Revision    uint64      `json:"expected_statement_revision"`
 }
 type Service struct {
+	Credit     func(context.Context, db.Executor, foundation.Scope, model.Payment) error
 	Accounts   ports.PaymentAccounts
 	Commands   db.Commands
 	UOW        db.UnitOfWork
@@ -47,6 +48,9 @@ func (s Service) Create(ctx context.Context, p identity.Principal, input CreateI
 	n, ok := number(input.Amount.Minor)
 	provider, exists := s.Providers[input.Channel]
 	if !ok || !exists || !provider.Enabled() {
+		return foundation.CommandResult{}, foundation.ErrValidation
+	}
+	if capability, ok := provider.(interface{ Supports(string) bool }); ok && !capability.Supports(input.Amount.Currency) {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
@@ -236,6 +240,14 @@ func (s Service) apply(ctx context.Context, scope foundation.Scope, channel stri
 		}
 		if outcome.Status == "UNKNOWN" {
 			return s.Repo.State(ctx, tx, scope, p, "UNKNOWN", "PENDING", outcome.Receipt, s.Now())
+		}
+		if outcome.Status == "SUCCEEDED" && p.ChannelID == "wallet" {
+			if s.Credit == nil {
+				return errors.New("UNSUPPORTED_CAPABILITY")
+			}
+			if err = s.Credit(ctx, tx, scope, p); err != nil {
+				return err
+			}
 		}
 		to := "paid"
 		if outcome.Status == "FAILED_FINAL" {

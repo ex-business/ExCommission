@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	paymentmodel "github.com/ex-business/ExCommission/internal/payments/domain"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"github.com/ex-business/ExCommission/internal/platform/ports"
@@ -36,9 +38,10 @@ func (f payoutLinkFailure) Within(ctx context.Context, fn func(ports.Executor) e
 		return foundation.ErrValidation
 	})
 }
-func TestCommissionReviewAndBatchPayout(t *testing.T) { commissionReviewFixture(t, false) }
-func TestMemberCommissionClaims(t *testing.T)         { commissionReviewFixture(t, true) }
-func commissionReviewFixture(t *testing.T, memberMode bool) {
+func TestCommissionReviewAndBatchPayout(t *testing.T) { commissionReviewFixture(t, false, false) }
+func TestMemberCommissionClaims(t *testing.T)         { commissionReviewFixture(t, true, false) }
+func TestWalletClaimAtomicCredit(t *testing.T)        { commissionReviewFixture(t, true, true) }
+func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 	if os.Getenv("TEST_MYSQL_ADDRESS") == "" {
 		t.Skip("Docker MySQL required")
 	}
@@ -370,7 +373,11 @@ func commissionReviewFixture(t *testing.T, memberMode bool) {
 		if memberMode {
 			mode = "MEMBER_CLAIM"
 		}
-		return call("POST", "/v1/payout-orders", "/v1/payout-orders", "operator", map[string]any{"delivery_mode": mode, "statement_id": sid, "amount": map[string]string{"currency": "USD", "minor_units": amount}, "channel_id": "sandbox", "expected_statement_revision": rev(statement), "remark": "本次派发备注"}, want)
+		channel := "sandbox"
+		if walletMode {
+			channel = "wallet"
+		}
+		return call("POST", "/v1/payout-orders", "/v1/payout-orders", "operator", map[string]any{"delivery_mode": mode, "statement_id": sid, "amount": map[string]string{"currency": "USD", "minor_units": amount}, "channel_id": channel, "expected_statement_revision": rev(statement), "remark": "本次派发备注"}, want)
 	}
 	prepare("10001", 422)
 	draftOrder := prepare("6000", 201)
@@ -475,11 +482,33 @@ func commissionReviewFixture(t *testing.T, memberMode bool) {
 	if e := store.DB.QueryRow("SELECT COUNT(*) FROM payment_orders WHERE tenant_id=?", scope.Tenant).Scan(&count); e != nil || count != 1 {
 		t.Fatal(count, e)
 	}
+	if walletMode {
+		// Credit and its history have been written before injected failure; all must roll back with the commission ledger.
+		failing := paymentService(store)
+		credit := failing.Credit
+		failing.Credit = func(ctx context.Context, tx ports.Executor, scope foundation.Scope, p paymentmodel.Payment) error {
+			if e := credit(ctx, tx, scope, p); e != nil {
+				return e
+			}
+			return errors.New("injected wallet transaction failure")
+		}
+		if e := failing.Dispatch(ctx, scope, linked["payment_id"].(string)); e == nil {
+			t.Fatal("expected atomic credit rollback")
+		}
+		var n int
+		if e := store.DB.QueryRow("SELECT COUNT(*) FROM wallet_transactions WHERE tenant_id=?", scope.Tenant).Scan(&n); e != nil || n != 0 {
+			t.Fatal("partial wallet commit", n, e)
+		}
+	}
 	if e := paymentService(store).Recover(ctx, scope); e != nil {
 		t.Fatal(e)
 	}
 	payment := call("GET", "/v1/payments/{id}", "/v1/payments/"+linked["payment_id"].(string), "operator", nil, 200)
-	if payment["status"] != "UNKNOWN" || payment["amount"].(map[string]any)["minor_units"] != "5000" {
+	expectedPayment := "UNKNOWN"
+	if walletMode {
+		expectedPayment = "SUCCEEDED"
+	}
+	if payment["status"] != expectedPayment || payment["amount"].(map[string]any)["minor_units"] != "5000" {
 		t.Fatal(payment)
 	}
 	if memberMode {
@@ -490,7 +519,11 @@ func commissionReviewFixture(t *testing.T, memberMode bool) {
 			v := o.(map[string]any)
 			if v["instruction_id"] == iid {
 				found = true
-				if v["claim_status"] != "PROCESSING" {
+				expected := "PROCESSING"
+				if walletMode {
+					expected = "CLAIMED"
+				}
+				if v["claim_status"] != expected {
 					t.Fatal(v)
 				}
 			}
@@ -500,8 +533,41 @@ func commissionReviewFixture(t *testing.T, memberMode bool) {
 		}
 	}
 	callback, _ := json.Marshal(map[string]any{"callback_id": "batch-paid", "merchant_payment_id": payment["merchant_payment_id"], "currency": "USD", "minor_units": "5000", "status": "SUCCEEDED", "receipt_ref": nil})
-	for range 2 {
-		callRaw("POST", "/v1/payment-callbacks/{channel_id}", "/v1/payment-callbacks/sandbox", "none", "", callback, map[string]string{"X-Payment-Signature": sign(callback, paymentKey)}, 200)
+	if !walletMode {
+		for range 2 {
+			callRaw("POST", "/v1/payment-callbacks/{channel_id}", "/v1/payment-callbacks/sandbox", "none", "", callback, map[string]string{"X-Payment-Signature": sign(callback, paymentKey)}, 200)
+		}
+	} else {
+		callRaw("POST", "/v1/payment-callbacks/{channel_id}", "/v1/payment-callbacks/wallet", "none", "", callback, map[string]string{"X-Payment-Signature": sign(callback, paymentKey)}, 403)
+		for range 3 {
+			if e := paymentService(store).Verify(ctx, scope, linked["payment_id"].(string)); e != nil {
+				t.Fatal(e)
+			}
+		}
+		for _, kind := range []string{"wallets", "wallet-transactions", "wallet-changes"} {
+			m := call("GET", "/v1/me/"+kind, "/v1/me/"+kind, "member", nil, 200)
+			rows := m["rows"].([]any)
+			if len(rows) != 1 {
+				t.Fatal(kind, m)
+			}
+			v := rows[0].(map[string]any)
+			if kind == "wallets" {
+				if v["balance_minor"] != "5000" || v["wallet_type"] != "REAL_MONEY" {
+					t.Fatal(v)
+				}
+			} else {
+				if v["amount_minor"] != "5000" {
+					t.Fatal(v)
+				}
+				if kind == "wallet-changes" && (v["balance_before_minor"] != "0" || v["balance_after_minor"] != "5000") {
+					t.Fatal(v)
+				}
+			}
+			other := call("GET", "/v1/me/"+kind, "/v1/me/"+kind, "other", nil, 200)
+			if len(other["rows"].([]any)) != 0 {
+				t.Fatal("foreign wallet exposed", other)
+			}
+		}
 	}
 	if memberMode {
 		m := call("GET", "/v1/me/commissions", "/v1/me/commissions", "member", nil, 200)
@@ -521,7 +587,7 @@ func commissionReviewFixture(t *testing.T, memberMode bool) {
 		}
 	}
 
-	if memberMode {
+	if memberMode && !walletMode {
 		// Restore the intentionally revoked fixture permission, never a production grant.
 		sum := sha256.Sum256([]byte("parent"))
 		subject := "member-" + hex.EncodeToString(sum[:])
@@ -557,6 +623,13 @@ func commissionReviewFixture(t *testing.T, memberMode bool) {
 	}
 
 	if memberMode {
+		if walletMode {
+			sum := sha256.Sum256([]byte("parent"))
+			subject := "member-" + hex.EncodeToString(sum[:])
+			if _, e := store.DB.Exec("INSERT INTO identity_grants VALUES(?,?,?,?)", scope.Tenant, scope.App, subject, "member:claim"); e != nil {
+				t.Fatal(e)
+			}
+		}
 		statement = call("GET", "/v1/statements/{id}", "/v1/statements/"+sid, "operator", nil, 200)
 		frozenOrder := prepare("1000", 201)
 		action("RELEASE", frozenOrder, "publish-freeze-check")

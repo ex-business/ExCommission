@@ -433,3 +433,13 @@ x['paths']['/v1/me/commission-orders/{id}/claim']={'post':claim}
 # /auth/me has a plain JSON response, retain existing contract fields.
 me=x['paths']['/v1/auth/me']['get']['responses']['200']['content']['application/json']['schema'];me['properties']['member_user_id']=string
 write('openapi.json',x)
+
+# 真金钱包、交易历史与账变仅可由本人读取。
+wallet_account=obj({'currency':currency,'balance_minor':minor,'revision':revision,'wallet_type':enum('REAL_MONEY')})
+wallet_entry=obj({'transaction_id':identifier,'currency':currency,'amount_minor':minor,'balance_before_minor':minor,'balance_after_minor':minor,'payment_id':identifier,'statement_id':identifier,'created_at':time},['transaction_id','currency','amount_minor','created_at'])
+endpoint('/v1/me/wallets','get')
+actual_response('/v1/me/wallets','get',200,response_obj({'rows':arr(wallet_account)}))
+for path in ['/v1/me/wallet-transactions','/v1/me/wallet-changes']:
+    endpoint(path,'get',query=[('currency',currency,False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
+    actual_response(path,'get',200,response_obj({'rows':arr(wallet_entry),'next_after_id':nullable(identifier)}))
+write('openapi.json',api)

@@ -8,6 +8,7 @@ import (
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
 	adapter "github.com/ex-business/ExCommission/internal/payments/adapters"
 	payments "github.com/ex-business/ExCommission/internal/payments/application"
+	paymentmodel "github.com/ex-business/ExCommission/internal/payments/domain"
 	paymentports "github.com/ex-business/ExCommission/internal/payments/ports"
 	catalog "github.com/ex-business/ExCommission/internal/platform/adapters/catalog"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
@@ -16,6 +17,9 @@ import (
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
 	statements "github.com/ex-business/ExCommission/internal/settlement/adapters"
+	walletrepo "github.com/ex-business/ExCommission/internal/wallet/adapters"
+	wallet "github.com/ex-business/ExCommission/internal/wallet/application"
+	walletmodel "github.com/ex-business/ExCommission/internal/wallet/domain"
 	"io"
 	"net/http"
 	"os"
@@ -23,7 +27,13 @@ import (
 )
 
 func paymentService(store *mysql.Store) payments.Service {
-	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: accounts.Repository{}, Statements: statements.Repository{}, Providers: map[string]paymentports.Provider{"sandbox": configuredPaymentProvider{Provider: adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}, Store: store, Scope: localScope()}}, Now: clockUTC, ID: newID}
+	return payments.Service{Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: accounts.Repository{}, Statements: statements.Repository{}, Credit: func(ctx context.Context, tx db.Executor, scope foundation.Scope, p paymentmodel.Payment) error {
+		var user string
+		if err := tx.QueryRowContext(ctx, `SELECT a.user_id FROM settlement_statements s JOIN agent_accounts a ON a.tenant_id=s.tenant_id AND a.app_id=s.app_id AND a.agent_id=s.beneficiary_id WHERE s.tenant_id=? AND s.app_id=? AND s.statement_id=?`, scope.Tenant, scope.App, p.StatementID).Scan(&user); err != nil {
+			return err
+		}
+		return (wallet.Service{Repo: walletrepo.Repository{}}).Credit(ctx, tx, scope, walletmodel.Credit{UserID: user, Currency: p.Currency, Amount: p.Amount, Reference: "wallet-" + p.MerchantID, PaymentID: p.ID, StatementID: p.StatementID}, clockUTC())
+	}, Providers: map[string]paymentports.Provider{"wallet": walletrepo.Provider{}, "sandbox": configuredPaymentProvider{Provider: adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}, Store: store, Scope: localScope()}}, Now: clockUTC, ID: newID}
 }
 func installPayments(mux *http.ServeMux, require func(string, authhttp.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, app string) error {
 	if len(os.Getenv("LOCAL_PAYMENT_KEY")) < 32 {
