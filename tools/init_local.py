@@ -4,7 +4,7 @@ import secrets
 root = Path(__file__).resolve().parents[1]
 env = root / '.env'
 content = env.read_text() if env.exists() else ''
-for key in ('MYSQL_ROOT_PASSWORD', 'MYSQL_PASSWORD', 'LOCAL_OPERATOR_TOKEN', 'LOCAL_APPROVER_TOKEN', 'LOCAL_CURSOR_KEY', 'LOCAL_SOURCE_KEY', 'LOCAL_PAYMENT_KEY'):
+for key in ('MYSQL_ROOT_PASSWORD', 'MYSQL_PASSWORD', 'LOCAL_OPERATOR_TOKEN', 'LOCAL_APPROVER_TOKEN', 'LOCAL_CURSOR_KEY', 'LOCAL_SOURCE_KEY', 'LOCAL_PAYMENT_KEY', 'LOCAL_REGISTRATION_KEY'):
     if not any(line.startswith(key + '=') for line in content.splitlines()):
         content += key + '=' + secrets.token_hex(32) + '\n'
 if not any(line.startswith('MYSQL_PORT=') for line in content.splitlines()):

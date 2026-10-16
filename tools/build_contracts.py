@@ -342,3 +342,13 @@ for path,method,body,code,schema in [
 errors+=['LOGIN_RATE_LIMITED']
 write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
 write('openapi.json',api)
+
+# 注册接入是显式启用的服务端能力；不承载会员账号密码或公开管理员注册。
+registration_event=obj({'schema_version':enum('1'),'source_id':identifier,'event_id':identifier,'external_user_id':identifier,'display_name':identifier,'registered_at':time,'invitation_code':nullable(identifier)},['schema_version','source_id','event_id','external_user_id','display_name','registered_at'])
+endpoint('/v1/registrations','post',registration_event)
+api['paths']['/v1/registrations']['post']['parameters'].append({'name':'X-Registration-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[0-9a-fA-F]{64}$'}})
+api['paths']['/v1/registrations']['post']['description']='受控来源注册事实接入；必须启用 LOCAL_REGISTRATION_ENABLED，来源验证后原子创建代理和首次关系。'
+actual_response('/v1/registrations','post',200,response_obj({'source_id':identifier,'event_id':identifier,'external_user_id':identifier,'user_id':identifier,'agent_id':identifier,'parent_agent_id':nullable(identifier),'registered_at':time}))
+endpoint('/v1/registration-invitations','post',obj({'source_id':identifier,'agent_id':identifier}))
+actual_response('/v1/registration-invitations','post',200,response_obj({'invitation_code':identifier,'source_id':identifier,'agent_id':identifier,'created_at':time,'registration_url':nullable({'type':'string','format':'uri'})}))
+write('openapi.json',api)

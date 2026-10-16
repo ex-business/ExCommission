@@ -125,3 +125,7 @@ APPROVED/FAILED 审批可通过 `/v1/approvals/{id}/execution-retries` 附证据
 ## 简单登录与第三方身份
 
 账号密码登录与第三方令牌核验已接入，契约见 `docs/integration/authentication.md`。运行 `python3 tools/init_login.py` 生成本地 operator / approver 两个账号，密码仅保存在 `.local/login-credentials.json`（0600）。四个接口为 `/v1/auth/config`、`/v1/auth/login`、`/v1/auth/me`、`/v1/auth/logout`。本地会话8小时到期，重启失效；现有固定令牌只兼容服务调用。前端通过服务端代理保存令牌。第三方配置文件 `.local/external-identity.json` 默认空对象关闭，配置HTTPS令牌核验与显式账号绑定后启用；真实平台尚未接入。
+
+## 注册与首次邀请归属接入
+
+新增可选 `POST /v1/registrations` 与 `POST /v1/registration-invitations`，用于已成功注册事实自动创建代理及一次性建立邀请关系。默认关闭，来源适配器、签名、幂等与本地启用方法见 `docs/registration-integration.md`。普通用户同步保持原行为，历史代理不自动回填；未接真实注册服务和会员注册页面，不自动授予计佣资格。

@@ -38,6 +38,9 @@ services:
         condition: service_healthy
     environment:
       APP_MODE: local
+      LOCAL_REGISTRATION_ENABLED: ${LOCAL_REGISTRATION_ENABLED:-false}
+      LOCAL_REGISTRATION_KEY: ${LOCAL_REGISTRATION_KEY:-}
+      LOCAL_REGISTRATION_URL: ${LOCAL_REGISTRATION_URL:-}
       AUTH_LOCAL_ACCOUNTS_FILE: /local/login-accounts.json
       AUTH_EXTERNAL_FILE: /local/external-identity.json
       LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}

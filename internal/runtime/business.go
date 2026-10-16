@@ -105,6 +105,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}}
 	mux := http.NewServeMux()
 	installLogin(mux, store, provider, foundation.Scope{Tenant: tenant, App: app})
+	if err := installRegistration(mux, require, store, tenant, app); err != nil {
+		return nil, err
+	}
 	mux.Handle("GET /v1/users/lookup", require("users:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		sourceID, externalID := r.URL.Query().Get("source_id"), r.URL.Query().Get("external_user_id")
 		if !foundation.ValidID(sourceID) || !foundation.ValidID(externalID) {
