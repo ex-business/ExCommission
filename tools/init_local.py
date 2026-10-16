@@ -28,3 +28,7 @@ if not payment_results.exists():
 recovery_evidence = local / 'recovery-evidence.json'
 if not recovery_evidence.exists():
     recovery_evidence.write_text('{}\n')
+
+# 初始化独立密码账号，不打印或覆盖已有凭据。
+import runpy
+runpy.run_path(str(root / "tools/init_login.py"), run_name="__main__")

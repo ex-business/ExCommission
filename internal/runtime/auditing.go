@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	audit "github.com/ex-business/ExCommission/internal/audit/adapters"
-	identity "github.com/ex-business/ExCommission/internal/identity/adapters"
+	identityports "github.com/ex-business/ExCommission/internal/identity/ports"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
@@ -47,7 +47,7 @@ func (b *bufferedResponse) Write(body []byte) (int, error) {
 	}
 	return b.body.Write(body)
 }
-func auditHTTP(store *mysql.Store, provider *identity.LocalProvider, scope foundation.Scope, action string, next http.Handler) http.Handler {
+func auditHTTP(store *mysql.Store, provider identityports.Provider, scope foundation.Scope, action string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rid := newID()
 		subject := "anonymous"

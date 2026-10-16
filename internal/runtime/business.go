@@ -69,7 +69,10 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 			return nil, err
 		}
 	}
-	provider := identity.NewLocalProvider(map[string]principal.Principal{operator: p1, approver: p2})
+	provider, err := loginProvider(identity.NewLocalProvider(map[string]principal.Principal{operator: p1, approver: p2}), p1, p2)
+	if err != nil {
+		return nil, err
+	}
 	authorize := identity.DatabaseAuthorizer{Query: store.DB}
 	require := func(permission string, handler authhttp.AuthorizedHandler) http.Handler {
 		return auditHTTP(store, provider, foundation.Scope{Tenant: tenant, App: app}, permission, authhttp.Require(provider, authorize, permission, handler))
@@ -101,6 +104,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 		},
 	}}
 	mux := http.NewServeMux()
+	installLogin(mux, store, provider, foundation.Scope{Tenant: tenant, App: app})
 	mux.Handle("GET /v1/users/lookup", require("users:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		sourceID, externalID := r.URL.Query().Get("source_id"), r.URL.Query().Get("external_user_id")
 		if !foundation.ValidID(sourceID) || !foundation.ValidID(externalID) {

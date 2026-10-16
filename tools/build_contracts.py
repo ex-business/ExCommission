@@ -325,3 +325,20 @@ for path,operations in api['paths'].items():
             if 'next_cursor' in data.get('properties',{}): data['properties']['next_cursor']=nullable(cursor_token)
 api['paths']['/v1/audit-logs']['get']['parameters'].append({'name':'as_of','in':'query','required':False,'schema':time})
 write('openapi.json',api)
+
+# 登录返回直接身份信封；与业务资源的 data 信封分别冻结。
+auth_principal=obj({'subject_id':identifier,'tenant_id':identifier,'app_id':identifier})
+for path,method,body,code,schema in [
+ ('/v1/auth/config','get',None,200,obj({'local_password':boolean,'external_bearer':boolean,'external_login_url':{'type':'null'}})),
+ ('/v1/auth/login','post',obj({'username':{'type':'string','minLength':1,'maxLength':128},'password':{'type':'string','minLength':1,'maxLength':1024}}),200,obj({'access_token':identifier,'token_type':enum('Bearer'),'expires_in':{'type':'integer','const':28800},'principal':auth_principal})),
+ ('/v1/auth/me','get',None,200,obj({'subject_id':identifier,'tenant_id':identifier,'app_id':identifier,'permissions':arr(identifier),'revision':revision})),
+ ('/v1/auth/logout','post',None,204,None)]:
+    endpoint(path,method,body,code)
+    op=api['paths'][path][method]
+    op['parameters']=[]
+    if path in ('/v1/auth/config','/v1/auth/login'):op['security']=[]
+    op['responses'][str(code)]={'description':'登录会话结果'}
+    if schema is not None:op['responses'][str(code)]['content']={'application/json':{'schema':schema}}
+errors+=['LOGIN_RATE_LIMITED']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)

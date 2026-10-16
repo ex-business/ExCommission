@@ -25,6 +25,8 @@ services:
     image: excommission-local-runtime:dev
     volumes:
       - ./.local/users.json:/local/users.json:ro
+      - ./.local/login-accounts.json:/local/login-accounts.json:ro
+      - ./.local/external-identity.json:/local/external-identity.json:ro
       - ./.local/recovery-evidence.json:/local/recovery-evidence.json:ro
       - ./.local/grade-statistics.json:/local/grade-statistics.json:ro
       - ./.local/payment-results.json:/local/payment-results.json:ro
@@ -36,6 +38,8 @@ services:
         condition: service_healthy
     environment:
       APP_MODE: local
+      AUTH_LOCAL_ACCOUNTS_FILE: /local/login-accounts.json
+      AUTH_EXTERNAL_FILE: /local/external-identity.json
       LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}
       LOCAL_APPROVER_TOKEN: ${LOCAL_APPROVER_TOKEN:?请先生成本地凭据}
       LOCAL_CURSOR_KEY: ${LOCAL_CURSOR_KEY:?请先生成本地凭据}

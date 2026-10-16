@@ -84,11 +84,17 @@ class PlanContracts(unittest.TestCase):
             for method,operation in operations.items():
                 count+=1
                 self.assertIn('409',operation['responses'])
-                if method!='get' and not path.startswith('/v1/payment-callbacks/'):
+                if method!='get' and not path.startswith(('/v1/payment-callbacks/', '/v1/auth/')):
                     self.assertTrue(any(p['name']=='Idempotency-Key' and p['required'] for p in operation['parameters']))
                 if method=='get':
                     self.assertFalse(any(p['name']=='Idempotency-Key' for p in operation['parameters']))
         self.assertGreaterEqual(count,40)
+        for path in ('/v1/auth/login','/v1/auth/logout'):
+            self.assertFalse(any(p['name']=='Idempotency-Key' for p in api['paths'][path]['post']['parameters']))
+        self.assertEqual(api['paths']['/v1/auth/login']['post']['security'],[])
+        self.assertEqual(api['paths']['/v1/auth/config']['get']['security'],[])
+        self.assertNotIn('security',api['paths']['/v1/auth/me']['get'])
+        self.assertNotIn('content',api['paths']['/v1/auth/logout']['post']['responses']['204'])
     def test_condition_metric_types(self):
         cases=[{'metric':'confirmed','operator':'EQ','value':'true','unit':'BOOLEAN'},
                {'metric':'confirmed','operator':'GT','value':True,'unit':'BOOLEAN'},

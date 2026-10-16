@@ -121,3 +121,7 @@ APPROVED/FAILED 审批可通过 `/v1/approvals/{id}/execution-retries` 附证据
 审批及执行恢复在幂等结果返回前重新核验当前领域权限，撤权后不能借旧请求重放绕过。签名使用本地环境变量字符串的 UTF-8 字节作为密钥，不做十六进制解码。真实身份、来源与银行渠道尚未接入，沙箱回调不代表真实到账。
 
 日常停止使用 `docker compose stop`，启动使用 `docker compose up -d`；升级前应保存项目数据库与受控配置。恢复演练命令为 `python3 tools/verify_local_restore.py`，仅限本地项目；演练临时备份会自动删除，不替代持久备份方案。回退应恢复匹配版本的数据库和配置，禁止删除账簿或覆盖历史记录来撤销资金结果。原型、业务原件、AGENTS.md 与 .env 仅留本地，不进入 Git。
+
+## 简单登录与第三方身份
+
+账号密码登录与第三方令牌核验已接入，契约见 `docs/integration/authentication.md`。运行 `python3 tools/init_login.py` 生成本地 operator / approver 两个账号，密码仅保存在 `.local/login-credentials.json`（0600）。四个接口为 `/v1/auth/config`、`/v1/auth/login`、`/v1/auth/me`、`/v1/auth/logout`。本地会话8小时到期，重启失效；现有固定令牌只兼容服务调用。前端通过服务端代理保存令牌。第三方配置文件 `.local/external-identity.json` 默认空对象关闭，配置HTTPS令牌核验与显式账号绑定后启用；真实平台尚未接入。
