@@ -352,3 +352,16 @@ actual_response('/v1/registrations','post',200,response_obj({'source_id':identif
 endpoint('/v1/registration-invitations','post',obj({'source_id':identifier,'agent_id':identifier}))
 actual_response('/v1/registration-invitations','post',200,response_obj({'invitation_code':identifier,'source_id':identifier,'agent_id':identifier,'created_at':time,'registration_url':nullable({'type':'string','format':'uri'})}))
 write('openapi.json',api)
+
+# 独立有效会员事实契约：正向成功事实与不可变规则，不能冒充资金或计佣事件。
+qualification_policy=obj({'policy_id':identifier,'source_id':identifier,'currency':currency,'deposit_threshold_minor':{'type':'string','pattern':'^[1-9][0-9]{0,37}$'},'valid_bet_threshold_minor':{'type':'string','pattern':'^[1-9][0-9]{0,37}$'},'venue_types':{'type':'array','items':identifier,'minItems':1,'maxItems':64,'uniqueItems':True}})
+qualification_state=response_obj({'policy_id':identifier,'source_id':identifier,'external_user_id':identifier,'user_id':identifier,'agent_id':identifier,'parent_agent_id':nullable(identifier),'currency':currency,'deposit_total_minor':minor,'valid_bet_total_minor':minor,'deposit_threshold_minor':minor,'valid_bet_threshold_minor':minor,'is_effective':boolean,'qualified_at':nullable(time),'first_observed_at':nullable(time),'revision':revision})
+qualification_fact=obj({'schema_version':enum('1'),'policy_id':identifier,'source_id':identifier,'event_id':identifier,'business_id':identifier,'event_type':enum('DEPOSIT_SUCCEEDED','BET_SETTLED'),'external_user_id':identifier,'business_time':time,'amount_minor':{'type':'string','pattern':'^(0|[1-9][0-9]{0,37})$'},'currency':currency,'venue_type':nullable(identifier)})
+endpoint('/v1/member-qualification-policies','post',qualification_policy)
+actual_response('/v1/member-qualification-policies','post',200,qualification_policy)
+endpoint('/v1/member-qualification-facts','post',qualification_fact)
+api['paths']['/v1/member-qualification-facts']['post']['parameters'].append({'name':'X-Qualification-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[0-9a-fA-F]{64}$'}})
+actual_response('/v1/member-qualification-facts','post',200,qualification_state)
+endpoint('/v1/member-qualifications','get',query=[('policy_id',identifier,True),('source_id',identifier,True),('external_user_id',identifier,True)])
+actual_response('/v1/member-qualifications','get',200,qualification_state)
+write('openapi.json',api)

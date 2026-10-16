@@ -129,3 +129,7 @@ APPROVED/FAILED 审批可通过 `/v1/approvals/{id}/execution-retries` 附证据
 ## 注册与首次邀请归属接入
 
 新增可选 `POST /v1/registrations` 与 `POST /v1/registration-invitations`，用于已成功注册事实自动创建代理及一次性建立邀请关系。默认关闭，来源适配器、签名、幂等与本地启用方法见 `docs/registration-integration.md`。普通用户同步保持原行为，历史代理不自动回填；未接真实注册服务和会员注册页面，不自动授予计佣资格。
+
+## 有效会员双门槛扩展
+
+独立 `qualification` 模块接收可信成功充值与已结算有效投注事实，按不可变规则累计，记录业务达标时点与首次观测时点。默认关闭，使用独立来源签名；不改现有计佣、等级或账簿。接口与扩展边界见 `docs/member-qualification-integration.md`。真实来源及退款撤销口径仍需后续接入。
