@@ -24,7 +24,7 @@ import (
 )
 
 func businessResolver() calcports.SnapshotResolver {
-	return calculation.Resolver{Catalog: catalog.Repository{}, Plans: plans.Repository{}, Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: foundation.CurrencyExponents()}
+	return calculation.Resolver{Catalog: catalog.Repository{}, Plans: sitePlans(), Users: users.Repository{}, Accounts: agents.Repository{}, Relationships: agents.Repository{}, Grades: agents.Repository{}, Contracts: agents.Repository{}, Exponents: foundation.CurrencyExponents()}
 }
 func dayendResolver(store *mysql.Store) calcports.SnapshotResolver {
 	return application.Resolver{Enabled: os.Getenv("LOCAL_DAYEND_ENABLED") == "true", Base: businessResolver(), Repo: adapters.Repository{}, Plans: plans.Repository{}, Tasks: taskRepository(store)}

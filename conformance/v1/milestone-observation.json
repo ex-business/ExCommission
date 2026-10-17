@@ -1,0 +1,12 @@
+{
+  "source_id": "sandbox",
+  "event_id": "source-fact-1",
+  "program_id": "INVITE_EXAMPLE",
+  "external_user_id": "member-external-id",
+  "beneficiary_agent_id": "inviter-agent-id",
+  "metric": "CONFIRMED_DEPOSIT",
+  "unit": "USD",
+  "cumulative_value": "100",
+  "observed_at": "2030-01-02T00:00:00Z",
+  "evidence_ref": "source-statistics-proof"
+}

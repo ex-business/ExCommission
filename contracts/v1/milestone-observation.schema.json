@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:excommission:v1:milestone-observation",
+  "type": "object",
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "program_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "external_user_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "beneficiary_agent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "metric": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "cumulative_value": {
+      "type": "string",
+      "pattern": "^[0-9]{1,18}(\\.[0-9]{1,8})?$"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "evidence_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "required": [
+    "source_id",
+    "event_id",
+    "program_id",
+    "external_user_id",
+    "beneficiary_agent_id",
+    "metric",
+    "unit",
+    "cumulative_value",
+    "observed_at",
+    "evidence_ref"
+  ],
+  "additionalProperties": false
+}

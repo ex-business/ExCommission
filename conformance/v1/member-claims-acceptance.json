@@ -1,0 +1,54 @@
+{
+  "feature": "会员佣金领取与状态闭环",
+  "status": "PASS",
+  "delivery_modes": [
+    "DIRECT",
+    "MEMBER_CLAIM"
+  ],
+  "core_flow": [
+    "WAITING_REVIEW",
+    "CANCELLED or APPROVED",
+    "CLAIMABLE",
+    "PROCESSING",
+    "CLAIMED"
+  ],
+  "tests": {
+    "mysql_lifecycle": "PASS",
+    "member_claim_concurrency": 12,
+    "payment_link_concurrency": 20,
+    "no_payment_before_claim": true,
+    "other_member_hidden": true,
+    "tenant_isolation": true,
+    "permission_revocation_replay_denied": true,
+    "immutable_idempotent_request": true,
+    "cancel_before_claim": true,
+    "processing_cancel_denied": true,
+    "freeze_after_publication_denies_claim": true,
+    "final_failure_releases_reserved": true,
+    "unknown_not_claimed": true,
+    "duplicate_success_callback_once": true,
+    "partial_conservation": {
+      "target": "10000",
+      "paid": "5000",
+      "available": "5000"
+    },
+    "third_party_trusted_binding": "PASS",
+    "go_race_affected_regression_top_level_passes": 25,
+    "contract_tests": 16,
+    "http_response_schema_checks": 87,
+    "http_request_schema_checks": 38,
+    "frontend_tests": 13,
+    "browser_scenarios": [
+      "member_portal",
+      "existing_direct_payout"
+    ],
+    "go_vet": "PASS"
+  },
+  "boundaries": {
+    "mysql": "existing local Docker MySQL, isolated test tenant cleaned",
+    "payment": "sandbox signed callback, not real bank transfer",
+    "frontend_browser": "actual Chromium, mocked HTTP",
+    "deployment": "not deployed; Docker control API returns500",
+    "member_identity": "requires trusted server configuration; no automatic member impersonation"
+  }
+}

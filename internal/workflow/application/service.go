@@ -10,9 +10,11 @@ import (
 	"github.com/ex-business/ExCommission/internal/workflow/domain"
 	"github.com/ex-business/ExCommission/internal/workflow/ports"
 	"time"
+	"unicode/utf8"
 )
 
 type Decision struct {
+	Remark     string `json:"remark,omitempty"`
 	Decision   string `json:"decision"`
 	Revision   uint64 `json:"expected_revision"`
 	ObjectHash string `json:"object_hash"`
@@ -20,6 +22,7 @@ type Decision struct {
 }
 type Executor func(context.Context, db.Executor, foundation.Scope, domain.Request, time.Time) error
 type Service struct {
+	StepUp     func(context.Context, identity.Principal, domain.Request, string, string, any) error
 	Commands   db.Commands
 	Repo       ports.Repository
 	Query      db.Executor
@@ -33,19 +36,28 @@ type Service struct {
 func (s Service) Decide(ctx context.Context, p identity.Principal, id string, input Decision, key, request string) (foundation.CommandResult, error) {
 	ctx = foundation.WithRequest(ctx, request, p.Subject)
 
-	if (input.Decision != "APPROVE" && input.Decision != "REJECT") || !foundation.ValidID(input.Reason) {
+	if (input.Decision != "APPROVE" && input.Decision != "REJECT") || !foundation.ValidID(input.Reason) || !utf8.ValidString(input.Remark) || utf8.RuneCountInString(input.Remark) > 1000 {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
+	preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
 	if s.Authorize != nil {
-		preview, err := s.Repo.Get(ctx, s.Query, scope, id, false)
-		if err != nil {
-			return foundation.CommandResult{}, err
-		}
 		if err = s.Authorize(ctx, s.Query, p, ApprovalPermission(preview.Type)); err != nil {
 			return foundation.CommandResult{}, err
 		}
 	}
+	if preview.Type == "SITE_AGENT_CONFIG" && input.Decision == "APPROVE" {
+		if s.StepUp == nil {
+			return foundation.CommandResult{}, errors.New("TOTP_REQUIRED")
+		}
+		if err = s.StepUp(ctx, p, preview, "APPROVE", key, input); err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
+
 	// 资源ID纳入命令内容，避免同键跨审批对象错误重放。
 	payload := struct {
 		ID       string   `json:"approval_id"`
@@ -103,6 +115,15 @@ func (s Service) Decide(ctx context.Context, p identity.Principal, id string, in
 		if err = s.Repo.Finish(ctx, tx, scope, id, p.Subject, status, execution, input.Reason, s.Now()); err != nil {
 			return foundation.CommandResult{}, err
 		}
+		if input.Remark != "" {
+			notes, ok := s.Repo.(ports.DecisionNotes)
+			if !ok {
+				return foundation.CommandResult{}, errors.New("UNSUPPORTED_CAPABILITY")
+			}
+			if err = notes.Note(ctx, tx, scope, id, approval.Revision+1, p.Subject, input.Remark, s.Now()); err != nil {
+				return foundation.CommandResult{}, err
+			}
+		}
 		return result.Result(200, id, request, map[string]any{"approval_id": id, "approval_status": status, "execution_status": execution})
 	})
 }
@@ -126,6 +147,12 @@ func ApprovalPermission(kind string) string {
 		return "agents:status:approve"
 	case "IDENTITY_GRANT":
 		return "identity:approve"
+	case "MILESTONE_PROGRAM":
+		return "milestones:approve"
+	case "AFFILIATE_CONFIG":
+		return "affiliate:approve"
+	case "SITE_AGENT_CONFIG":
+		return "site:approve"
 	case "PLATFORM_SETTING":
 		return "platform:approve"
 	default:

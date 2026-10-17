@@ -23,16 +23,18 @@ type CreateInput struct {
 	Revision    uint64      `json:"expected_statement_revision"`
 }
 type Service struct {
-	Accounts   ports.PaymentAccounts
-	Commands   db.Commands
-	UOW        db.UnitOfWork
-	Query      db.Executor
-	Repo       ports.Repository
-	Ledger     ports.Ledger
-	Statements ports.Statements
-	Providers  map[string]ports.Provider
-	Now        func() time.Time
-	ID         func() string
+	BeforeSubmit func(context.Context, db.Executor, foundation.Scope) error
+	Credit       func(context.Context, db.Executor, foundation.Scope, model.Payment) error
+	Accounts     ports.PaymentAccounts
+	Commands     db.Commands
+	UOW          db.UnitOfWork
+	Query        db.Executor
+	Repo         ports.Repository
+	Ledger       ports.Ledger
+	Statements   ports.Statements
+	Providers    map[string]ports.Provider
+	Now          func() time.Time
+	ID           func() string
 }
 
 func number(s string) (*big.Int, bool) {
@@ -47,6 +49,9 @@ func (s Service) Create(ctx context.Context, p identity.Principal, input CreateI
 	n, ok := number(input.Amount.Minor)
 	provider, exists := s.Providers[input.Channel]
 	if !ok || !exists || !provider.Enabled() {
+		return foundation.CommandResult{}, foundation.ErrValidation
+	}
+	if capability, ok := provider.(interface{ Supports(string) bool }); ok && !capability.Supports(input.Amount.Currency) {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
@@ -142,6 +147,11 @@ func (s Service) Dispatch(ctx context.Context, scope foundation.Scope, id string
 		if p.Status != "CREATED" {
 			return nil
 		}
+		if s.BeforeSubmit != nil {
+			if err := s.BeforeSubmit(ctx, tx, scope); err != nil {
+				return err
+			}
+		}
 		provider, ok := s.Providers[p.ChannelID]
 		if !ok || !provider.Enabled() {
 			return errors.New("UNSUPPORTED_CAPABILITY")
@@ -236,6 +246,14 @@ func (s Service) apply(ctx context.Context, scope foundation.Scope, channel stri
 		}
 		if outcome.Status == "UNKNOWN" {
 			return s.Repo.State(ctx, tx, scope, p, "UNKNOWN", "PENDING", outcome.Receipt, s.Now())
+		}
+		if outcome.Status == "SUCCEEDED" && p.ChannelID == "wallet" {
+			if s.Credit == nil {
+				return errors.New("UNSUPPORTED_CAPABILITY")
+			}
+			if err = s.Credit(ctx, tx, scope, p); err != nil {
+				return err
+			}
 		}
 		to := "paid"
 		if outcome.Status == "FAILED_FINAL" {

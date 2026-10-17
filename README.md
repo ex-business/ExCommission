@@ -133,3 +133,34 @@ APPROVED/FAILED 审批可通过 `/v1/approvals/{id}/execution-retries` 附证据
 ## 有效会员双门槛扩展
 
 独立 `qualification` 模块接收可信成功充值与已结算有效投注事实，按不可变规则累计，记录业务达标时点与首次观测时点。默认关闭，使用独立来源签名；不改现有计佣、等级或账簿。接口与扩展边界见 `docs/member-qualification-integration.md`。真实来源及退款撤销口径仍需后续接入。
+## 通用累计达标奖励
+
+新增 milestones 模块，配置活动、单一权威来源、1至16个累计指标、ALL 组合条件与 ONCE_PER_SUBJECT 次数限制。受邀会员充值和有效投注同时达标只是配置示例；件数等其他累计指标使用同一流程。详细契约见 `docs/integration/milestones.md`，示例见 `conformance/v1/plan-milestone.json`、`milestone-program.json`、`milestone-observation.json`。示例未来日期与标识必须替换为业务确认值，不是已激活活动。
+
+先发布 MILESTONE_REACHED 类型的 DIRECT/FIXED 方案，独立审批活动配置，再由可信来源签名提交会员累计快照。首次事实冻结活动内奖励代理及证据，不覆盖全局关系；累计值只增不减，来源必须按活动窗口统计确认量。全部指标达标时，活动会员进度、唯一触发记录和原生计佣事件/任务原子提交，100并发仍只有一个任务。外部普通事件接口拒绝伪造该内部事件。达标证据、活动摘要及审批引用写入冻结快照；付款仍需结算审批与渠道确认，任务触发不等于到账。
+
+新增接口：POST `/v1/milestone-program-requests`、POST `/v1/milestone-observations`、GET `/v1/milestone-programs/{id}`、GET `/v1/milestone-programs/{id}/members/{user_id}`。充值和有效投注的真实性由接入来源提供，本系统不自行推算不存在的数据；可回退净值及自动撤回已发权益不在本次单调累计合同中，纠错沿用独立审批更正/追回。
+
+本次使用独立HTTP服务与现有Docker MySQL验收，功能回归、竞态与接口结构检查通过；Docker管理/构建接口当前返回500，新容器构建及部署尚未完成，18080现有进程仍是此前版本。具体边界见 `conformance/v1/milestone-acceptance.json`。
+
+## 每日自动结算与审核
+
+worker已装配 `settlement.daily`：按UTC每日01:00生成前一日全量结算，并为首次提交的草稿自动生成STATEMENT待审核记录。只生成待审核，不自动批准或付款。结算、权益占用、审核、审计与持久游标同事务；并发与重启不重复生成。首次启用从昨日开始，之后离线跨日按游标逐日补齐，空周期也记录完成。首次失败保留起点，不因次日重启跳日。
+
+`GET /v1/settlement-schedule` 使用 `statements:read` 权限查询UTC调度时间、下一周期与最近生成记录。任务每5秒检查，按已注册的业务期日历选版。scope来自worker的LOCAL_TENANT/LOCAL_APP，与API一致；默认local-sandbox/commission，不扫描其他租户。
+
+详细合同见 `docs/integration/scheduled-settlement.md`。同周期手工全量运行可复用，已有审核不重提；不同筛选、已过时草稿或跳过的历史周期冲突明确失败并保留游标，禁止静默改写历史。冻结、最低额、迟到事实和后续周期收录仍遵循原结算规则。
+
+本次定时边界、100并发、审计异常回滚、漏跑补偿、手工审核记录复用、当前权限及状态接口结构已在隔离租户与现有Docker MySQL验证。Docker引擎管理接口仍返回500，本次镜像部署未成功；当前运行服务不代表新调度已经启用。验收边界见 `conformance/v1/scheduled-settlement-acceptance.json`。
+
+## 佣金审核与批量派发
+
+审核列表 `GET /v1/commission-reviews` 支持状态、代理、币种、日期及分页；`POST /v1/commission-review-batches` 每项独立复核修订、摘要、当前权限及禁止自审，保存审核备注，单项失败不回滚其他项。同键更换清单返回冲突。
+
+新增 payout-orders 派发草稿，已批准结算可准备本次金额、修改备注或取消。草稿不占款，不改原佣金权益；只有显式RELEASE后进入队列。后台 `payout.instructions` 复用原付款创建防重键，关联失败或worker重启只恢复原付款，批量逐项处理。QUEUED之后禁止编辑及本地取消，付款UNKNOWN继续原商户号查询。原付款操作接口保持兼容，不声称取消本地草稿等于银行撤单。
+
+详细契约见 `docs/integration/commission-review.md`。本次有独立前端专用审核页面，支持筛选、单笔/批量审核、逐项结果、金额与备注、草稿取消及批量提交；浏览器验收使用模拟HTTP，后端资金闭环独立使用现有Docker MySQL验证。Docker管理接口仍异常，新容器联部署尚未完成。
+
+会员佣金领取：支持 MEMBER_CLAIM 与 DIRECT 两种派发模式。会员模式发布后等待本人领取，确认渠道成功后显示已领取，未知结果保留原单查询。可信身份绑定、接口与状态边界见 [会员佣金领取](docs/integration/member-commission-claims.md)。
+
+会员代理业务已按钱包联动、代理目录、站点配置、谷歌验证、PC/H5会员端顺序扩展。整体契约、验收和部署边界见 [会员代理业务说明](docs/integration/member-business-roadmap.md)。本地初始化执行 `python3 tools/init_local.py`，谷歌验证需各管理员绑定本地受保护配置。分享地址由 `PUBLIC_MEMBER_URL` 配置；当前Docker管理接口故障时，请勿将Host测试当作Docker新版已部署。

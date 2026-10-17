@@ -131,3 +131,17 @@ func (Repository) ValidateCalendar(ctx context.Context, tx db.Executor, s founda
 	}
 	return nil
 }
+
+// CalendarForPeriod selects the already registered calendar at the period boundary.
+func (Repository) CalendarForPeriod(ctx context.Context, tx db.Executor, s foundation.Scope, period time.Time) (string, error) {
+	var body []byte
+	err := tx.QueryRowContext(ctx, `SELECT body FROM platform_catalog_versions WHERE tenant_id=? AND app_id=? AND catalog_type='CALENDAR' AND effective_from<=? ORDER BY effective_from DESC LIMIT 1`, s.Tenant, s.App, period).Scan(&body)
+	if err != nil {
+		return "", err
+	}
+	var c foundation.Calendar
+	if json.Unmarshal(body, &c) != nil || c.Timezone != "UTC" || c.Period != "DAILY" || c.Version == "" {
+		return "", errors.New("UNSUPPORTED_CAPABILITY")
+	}
+	return c.Version, nil
+}

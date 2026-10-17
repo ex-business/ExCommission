@@ -17,10 +17,11 @@ import (
 )
 
 type LoginAccount struct {
-	Username  string           `json:"username"`
-	Salt      string           `json:"salt"`
-	Hash      string           `json:"hash"`
-	Principal domain.Principal `json:"-"`
+	MemberUserID string           `json:"member_user_id,omitempty"`
+	Username     string           `json:"username"`
+	Salt         string           `json:"salt"`
+	Hash         string           `json:"hash"`
+	Principal    domain.Principal `json:"-"`
 }
 type loginSession struct {
 	Principal domain.Principal
@@ -42,6 +43,7 @@ type Sessions struct {
 	Now      func() time.Time
 	Legacy   ports.Provider
 	External ports.Provider
+	Members  []domain.Principal
 }
 
 func NewSessions(accounts []LoginAccount, legacy, external ports.Provider) (*Sessions, error) {

@@ -1,0 +1,30 @@
+{
+  "feature": "佣金审核列表与批量派发",
+  "backend": "COMPLETE",
+  "frontend": "DEDICATED_PAGE_IMPLEMENTED",
+  "scope": "隔离MySQL真实HTTP资金闭环；浏览器交互模拟HTTP，非真实渠道",
+  "related_go_top_level_tests": 20,
+  "race_detector": "PASS",
+  "actual_http_calls": 55,
+  "schema_checked_request_bodies": 25,
+  "schema_checked_responses": 55,
+  "concurrent_recovery_workers": 20,
+  "frontend_tests": 10,
+  "browser_interactions": "PASS",
+  "money_assertion": "target10000=paid5000+available5000；重复回调不重复入账",
+  "cases": [
+    "筛选审核列表及备注",
+    "批量部分成功部分失败",
+    "父批次同键变清单冲突",
+    "撤权后旧批次重放拒绝",
+    "草稿修改和取消",
+    "已提交不可改",
+    "关联写入失败后的原付款恢复",
+    "并发20仅一张付款",
+    "部分派发保留剩余权益",
+    "UTF-8千字备注与精确金额边界"
+  ],
+  "deployment": "BLOCKED_DOCKER_ENGINE_API_500",
+  "running_backend": "PREVIOUS_VERSION",
+  "restore_acceptance": "新增指令与备注表的完整恢复演练未执行"
+}

@@ -12,13 +12,15 @@ import (
 	"time"
 )
 
-func startMaintenance(ctx context.Context, store *mysql.Store) {
+type maintenanceJob struct {
+	name string
+	run  func(context.Context) error
+}
+
+func maintenanceJobs(store *mysql.Store) []maintenanceJob {
 	payments := paymentService(store)
 	refunds := refundService(store)
-	jobs := []struct {
-		name string
-		run  func(context.Context) error
-	}{{"payment.recovery", func(job context.Context) error { return payments.Recover(job, localScope()) }}, {"refund.recovery", func(job context.Context) error { return refunds.Recover(job, localScope()) }}, {"outbox.delivery", func(job context.Context) error {
+	jobs := []maintenanceJob{{"payment.recovery", func(job context.Context) error { return payments.Recover(job, localScope()) }}, {"refund.recovery", func(job context.Context) error { return refunds.Recover(job, localScope()) }}, {"outbox.delivery", func(job context.Context) error {
 		return deliverOutbox(job, store, localScope())
 	}}}
 	if referralEnabled() {
@@ -33,7 +35,15 @@ func startMaintenance(ctx context.Context, store *mysql.Store) {
 			return service.RefreshAll(job, localScope())
 		}})
 	}
-	for _, job := range jobs {
+	jobs = append(jobs, maintenanceJob{"payout.instructions", func(ctx context.Context) error { return disbursementService(store).Recover(ctx, localScope()) }})
+	jobs = append(jobs, maintenanceJob{"settlement.daily", func(ctx context.Context) error {
+		_, err := scheduledSettlement(store).RunOnce(ctx, localScope())
+		return err
+	}})
+	return jobs
+}
+func startMaintenance(ctx context.Context, store *mysql.Store) {
+	for _, job := range maintenanceJobs(store) {
 		go func() {
 			ticker := time.NewTicker(5 * time.Second)
 			defer ticker.Stop()

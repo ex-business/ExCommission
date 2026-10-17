@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,6 +20,7 @@ import (
 
 func loginProvider(legacy ports.Provider, p1, p2 principal.Principal) (*identity.Sessions, error) {
 	var accounts []identity.LoginAccount
+	members := map[string]principal.Principal{}
 	if path := os.Getenv("AUTH_LOCAL_ACCOUNTS_FILE"); path != "" {
 		body, err := os.ReadFile(path)
 		if err != nil {
@@ -29,11 +32,23 @@ func loginProvider(legacy ports.Provider, p1, p2 principal.Principal) (*identity
 		for i := range accounts {
 			switch accounts[i].Username {
 			case "operator":
+				if accounts[i].MemberUserID != "" {
+					return nil, errors.New("admin cannot be member")
+				}
 				accounts[i].Principal = p1
 			case "approver":
+				if accounts[i].MemberUserID != "" {
+					return nil, errors.New("admin cannot be member")
+				}
 				accounts[i].Principal = p2
 			default:
-				return nil, errors.New("unregistered local login account")
+				if !foundation.ValidID(accounts[i].MemberUserID) {
+					return nil, errors.New("unregistered local login account")
+				}
+				sum := sha256.Sum256([]byte(accounts[i].Username))
+				p := principal.Principal{Tenant: p1.Tenant, App: p1.App, Subject: "member-" + hex.EncodeToString(sum[:]), MemberUserID: accounts[i].MemberUserID}
+				accounts[i].Principal = p
+				members[p.Subject] = p
 			}
 		}
 	}
@@ -48,13 +63,32 @@ func loginProvider(legacy ports.Provider, p1, p2 principal.Principal) (*identity
 			return nil, errors.New("external identity configuration invalid")
 		}
 		if strings.TrimSpace(string(body)) != "{}" {
-			external, err = identity.NewIntrospection(c, map[string]principal.Principal{p1.Subject: p1, p2.Subject: p2})
+			principals := map[string]principal.Principal{p1.Subject: p1, p2.Subject: p2}
+			for subject, user := range c.Members {
+				if !strings.HasPrefix(subject, "member-") || !foundation.ValidID(subject) || !foundation.ValidID(user) {
+					return nil, errors.New("invalid member binding")
+				}
+				p := principal.Principal{Tenant: p1.Tenant, App: p1.App, Subject: subject, MemberUserID: user}
+				if old, ok := members[subject]; ok && old.MemberUserID != user {
+					return nil, errors.New("conflicting member binding")
+				}
+				members[subject] = p
+				principals[subject] = p
+			}
+			external, err = identity.NewIntrospection(c, principals)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-	return identity.NewSessions(accounts, legacy, external)
+	sessions, err := identity.NewSessions(accounts, legacy, external)
+	if err != nil {
+		return nil, err
+	}
+	for _, member := range members {
+		sessions.Members = append(sessions.Members, member)
+	}
+	return sessions, nil
 }
 func installLogin(mux *http.ServeMux, store *mysql.Store, provider *identity.Sessions, scope foundation.Scope) {
 	write := func(w http.ResponseWriter, status int, v any) {
@@ -118,7 +152,7 @@ func installLogin(mux *http.ServeMux, store *mysql.Store, provider *identity.Ses
 			httpapi.Error(w, newID(), err)
 			return
 		}
-		write(w, 200, map[string]any{"subject_id": p.Subject, "tenant_id": p.Tenant, "app_id": p.App, "permissions": grants, "revision": revision})
+		write(w, 200, map[string]any{"subject_id": p.Subject, "tenant_id": p.Tenant, "app_id": p.App, "permissions": grants, "revision": revision, "member_user_id": p.MemberUserID})
 	}))
 	mux.Handle("POST /v1/auth/logout", authenticated("auth:logout", func(w http.ResponseWriter, r *http.Request, p principal.Principal) {
 		provider.Logout(r.Header.Get("Authorization"))

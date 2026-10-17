@@ -14,6 +14,7 @@ import (
 )
 
 type Worker struct {
+	BeforeCommit func(context.Context, db.Executor, foundation.Scope, domain.Task, domain.Input) error
 	UOW          db.UnitOfWork
 	Tasks        ports.Tasks
 	Resolver     ports.SnapshotResolver
@@ -82,6 +83,11 @@ func (w Worker) RunOnce(ctx context.Context, s foundation.Scope) (bool, error) {
 		return true, w.failure(ctx, s, task, errors.New("LEDGER_NOT_READY"))
 	}
 	err = w.UOW.Within(ctx, func(tx db.Executor) error {
+		if w.BeforeCommit != nil {
+			if err := w.BeforeCommit(ctx, tx, s, task, snapshot); err != nil {
+				return err
+			}
+		}
 		if w.TargetPolicy != nil {
 			var err error
 			result, err = w.TargetPolicy.Prepare(ctx, tx, s, task, snapshot, result)
@@ -124,7 +130,7 @@ func (w Worker) failure(ctx context.Context, s foundation.Scope, t domain.Task, 
 			return w.UOW.Within(ctx, func(tx db.Executor) error { return pending.WaitPending(ctx, tx, s, t, w.Now()) })
 		}
 		return w.UOW.Within(ctx, func(tx db.Executor) error { return w.Tasks.Finish(ctx, tx, s, t, "SUSPENDED", &code, nil, w.Now()) })
-	case "DAYEND_LATE_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RELATION_HISTORY_MISSING", "UNKNOWN_FACT", "RATE_MISSING", "UNIT_MISMATCH", "VALIDATION_FAILED", "BASIS_CURRENCY_MISMATCH", "BUDGET_EXCEEDED", "SNAPSHOT_INTEGRITY_FAILED", "LEDGER_NOT_READY", "UNSUPPORTED_CAPABILITY", "NOT_FOUND", "REFUND_QUANTITY_MISSING", "REFUND_EXCEEDS_ORIGINAL", "REFUND_TARGET_INCREASE":
+	case "SITE_AGENT_DISABLED", "VENUE_NOT_PARTICIPATING", "DAYEND_LATE_FACT", "NO_EFFECTIVE_PLAN_VERSION", "RELATION_HISTORY_MISSING", "UNKNOWN_FACT", "RATE_MISSING", "UNIT_MISMATCH", "VALIDATION_FAILED", "BASIS_CURRENCY_MISMATCH", "BUDGET_EXCEEDED", "SNAPSHOT_INTEGRITY_FAILED", "LEDGER_NOT_READY", "UNSUPPORTED_CAPABILITY", "NOT_FOUND", "REFUND_QUANTITY_MISSING", "REFUND_EXCEEDS_ORIGINAL", "REFUND_TARGET_INCREASE":
 		return w.UOW.Within(ctx, func(tx db.Executor) error { return w.Tasks.Finish(ctx, tx, s, t, "SUSPENDED", &code, nil, w.Now()) })
 	default:
 		return w.Tasks.Retry(ctx, s, t, w.Now())

@@ -46,5 +46,8 @@ func publicSnapshot(input calc.Input) map[string]any {
 	if input.DayEnd != nil {
 		result["day_end_evidence"] = input.DayEnd
 	}
+	if len(input.TriggerEvidence) > 0 {
+		result["trigger_evidence"] = input.TriggerEvidence
+	}
 	return result
 }

@@ -424,4 +424,170 @@ write('openapi.json',api)
 
 endpoint('/v1/referral-reward-claims/{id}','get')
 actual_response('/v1/referral-reward-claims/{id}','get',200,obj({'rule_id':identifier,'agent_id':identifier,'currency':currency,'plan_version_id':identifier,'config_hash':identifier,'reward':referral_tier_state}))
+# 外部事件仍只有三个受控来源类型；达标事件仅由内部原子触发。
+plan['properties']['route']['properties']['event_type']['enum'].append('MILESTONE_REACHED')
+components['PlanDraft']['properties']['route']['properties']['event_type']['enum'].append('MILESTONE_REACHED')
+components['PlanDocument']['properties']['route']['properties']['event_type']['enum'].append('MILESTONE_REACHED')
+write('plan.schema.json',plan)
+Path('internal/plans/adapters/schema/plan.schema.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2)+'\n')
+condition=obj({'metric':identifier,'unit':identifier,'threshold':decimal})
+program=obj({'program_id':identifier,'name':identifier,'source_id':identifier,'starts_at':time,'ends_at':time,'conditions':arr(condition,1),'logic':enum('ALL'),'frequency':enum('ONCE_PER_SUBJECT'),'reward_plan_id':identifier})
+program['properties']['conditions']['maxItems']=16
+observation=obj({'source_id':identifier,'event_id':identifier,'program_id':identifier,'external_user_id':identifier,'beneficiary_agent_id':identifier,'metric':identifier,'unit':identifier,'cumulative_value':decimal,'observed_at':time,'evidence_ref':identifier})
+progress=obj({'user_id':identifier,'beneficiary_agent_id':identifier,'bound_at':time,'binding_evidence_ref':identifier,'facts':{'type':'object','additionalProperties':obj({'cumulative_value':decimal,'observed_at':time,'evidence_ref':identifier})},'task_id':nullable(identifier),'qualified_at':nullable(time)})
+components['MilestoneProgram']=program;components['MilestoneProgress']=progress
+write('milestone-program.schema.json',{'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'urn:excommission:v1:milestone-program',**program});write('milestone-observation.schema.json',{'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'urn:excommission:v1:milestone-observation',**observation})
+endpoint('/v1/milestone-program-requests','post',obj({'program':program,'reason':identifier}),202)
+actual_response('/v1/milestone-program-requests','post',202,response_obj({'approval_id':identifier,'program_id':identifier,'object_hash':identifier,'revision':revision}))
+endpoint('/v1/milestone-observations','post',observation,202)
+api['paths']['/v1/milestone-observations']['post']['parameters'].append({'name':'X-Source-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-fA-F0-9]{64}$'}})
+actual_response('/v1/milestone-observations','post',202,response_obj({'program_id':identifier,'user_id':identifier,'observation_status':enum('UPDATED','NO_CHANGE','STALE_NOOP'),'status':enum('WAITING','TRIGGERED'),'task_id':nullable(identifier),'qualified_at':nullable(time)}))
+endpoint('/v1/milestone-programs/{id}','get')
+actual_response('/v1/milestone-programs/{id}','get',200,response_obj({'program':program,'config_hash':identifier,'approval_id':identifier}))
+endpoint('/v1/milestone-programs/{id}/members/{user_id}','get')
+actual_response('/v1/milestone-programs/{id}/members/{user_id}','get',200,response_obj({'program_id':identifier,'progress':progress,'conditions':arr(obj({'metric':identifier,'unit':identifier,'threshold':decimal,'known':boolean,'cumulative_value':nullable(decimal)}),1),'status':enum('WAITING','TRIGGERED'),'task_status':nullable(identifier)}))
+trigger=obj({'program':program,'member':progress,'qualified_at':time,'config_hash':identifier,'approval_id':identifier})
+snapshot['properties']['trigger_evidence']=trigger
+snapshot['properties']['relationship_facts']['items']['properties']['kind']['enum'].append('MILESTONE_BINDING')
+components['Snapshot']={k:v for k,v in snapshot.items() if k not in ('$schema','$id')}
+write('snapshot.schema.json',snapshot)
+write('openapi.json',api)
+
+# 每日UTC 01:00结算调度，仅暴露已持久化状态。
+endpoint('/v1/settlement-schedule','get')
+scheduled_result=obj({'period':identifier,'run_id':identifier,'statement_ids':arr(identifier),'approval_ids':arr(identifier),'completed_at':time})
+actual_response('/v1/settlement-schedule','get',200,response_obj({'timezone':enum('UTC'),'hour':{'type':'integer','const':1},'poll_interval_seconds':{'type':'integer','const':5},'initialized':boolean,'next_period':nullable(identifier),'next_due_at':nullable(time),'last_result':nullable(scheduled_result)}))
+write('openapi.json',api)
+
+# 佣金审核与派发草稿；批量逐项结果保留原错误信封。
+review_row=obj({'approval_id':identifier,'applicant_id':identifier,'approval_status':identifier,'execution_status':identifier,'object_hash':identifier,'revision':revision,'statement_id':identifier,'statement_revision':revision,'statement_status':identifier,'agent_id':identifier,'currency':currency,'period':identifier,'total_minor':minor,'remark':{'type':'string'}})
+instruction=obj({'instruction_id':identifier,'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision,'remark':{'type':'string','maxLength':1000},'status':enum('DRAFT','QUEUED','LINKED','BLOCKED','CANCELLED'),'revision':revision,'payment_id':nullable(identifier),'error_code':nullable(identifier),'created_at':time})
+remark={'type':'string','maxLength':1000}
+decision_fields={'decision':enum('APPROVE','REJECT'),'expected_revision':revision,'object_hash':identifier,'reason':identifier,'remark':remark}
+api['paths']['/v1/approvals/{id}/decisions']['post']['requestBody']['content']['application/json']['schema']['properties']['remark']=remark
+review_item=obj({'approval_id':identifier,**decision_fields},['approval_id','decision','expected_revision','object_hash','reason'])
+action_item=obj({'instruction_id':identifier,'expected_revision':revision,'reason':identifier,'remark':remark},['instruction_id','expected_revision','reason'])
+item_array=lambda value:{'type':'array','items':value,'minItems':1,'maxItems':100}
+for path,body in [('/v1/commission-review-batches',obj({'items':item_array(review_item)})),('/v1/payout-order-batches',obj({'action':enum('RELEASE','CANCEL'),'items':item_array(action_item)}))]:
+    endpoint(path,'post',body)
+    actual_response(path,'post',200,response_obj({'batch_id':identifier,'results':arr(obj({'resource_id':identifier,'http_status':{'type':'integer','minimum':200,'maximum':599},'response':{'type':'object'}}),1)}))
+endpoint('/v1/payout-orders','post',obj({'statement_id':identifier,'amount':ref('Money'),'channel_id':identifier,'expected_statement_revision':revision,'remark':remark}),201)
+actual_response('/v1/payout-orders','post',201,response_obj(instruction['properties']))
+endpoint('/v1/payout-orders/{id}','put',obj({'expected_revision':revision,'amount':ref('Money'),'remark':remark}))
+actual_response('/v1/payout-orders/{id}','put',200,response_obj(instruction['properties']))
+endpoint('/v1/payout-orders/{id}','get');actual_response('/v1/payout-orders/{id}','get',200,response_obj(instruction['properties']))
+for path,row,filters in [('/v1/commission-reviews',review_row,['approval_status','agent_id','currency','period']),('/v1/payout-orders',instruction,['status','statement_id'])]:
+    endpoint(path,'get',query=[(key,identifier,False) for key in filters+['after_id']]+[('limit',{'type':'integer','minimum':1,'maximum':100,'default':50},False)])
+    actual_response(path,'get',200,response_obj({'rows':arr(row),'next_after_id':nullable(identifier)}))
+write('openapi.json',api)
+
+# 会员领取模式与只读业务状态投影。
+from copy import deepcopy
+x=api
+string={'type':'string'}; states=['PREPARING','CLAIMABLE','PROCESSING','CLAIMED','CANCELLED','FAILED','RECONCILIATION_EXCEPTION']
+def patch(v):
+ if isinstance(v,dict):
+  props=v.get('properties',{})
+  if 'instruction_id' in props and 'amount' in props:
+   props.update(delivery_mode={'type':'string','enum':['DIRECT','MEMBER_CLAIM']},beneficiary_user_id=string,claim_status={'type':'string','enum':states})
+   if 'status' in props and 'enum' in props['status'] and 'CLAIMABLE' not in props['status']['enum']:props['status']['enum'].append('CLAIMABLE')
+  for z in list(v.values()):patch(z)
+ elif isinstance(v,list):
+  for z in v:patch(z)
+patch(x)
+x['paths']['/v1/payout-orders']['post']['requestBody']['content']['application/json']['schema']['properties']['delivery_mode']={'type':'string','enum':['DIRECT','MEMBER_CLAIM']}
+def envelope(data):return obj({'data':data,'request_id':string})
+base=x['paths']['/v1/payout-orders']
+def operation(method,name,status,data):
+ op=deepcopy(base['get' if method=='get' else 'post']);op['operationId']=name
+ op['responses']={k:v for k,v in op['responses'].items() if not k.startswith('2')}
+ op['responses'][str(status)]={'description':'成功；领取受理不代表到账，状态以查询为准','content':{'application/json':{'schema':envelope(data)}}}
+ if method=='get':op['parameters']=[q for q in op.get('parameters',[]) if q['name'] in ('after_id','limit')]
+ return op
+order=obj({'instruction_id':string,'amount_minor':string,'revision':{'type':'integer','minimum':0},'claim_status':{'type':'string','enum':states}})
+statement=obj({'statement_id':string,'period':string,'currency':string,'total_minor':string,'review_status':{'type':'string','enum':['WAITING_REVIEW','CANCELLED','APPROVED','PREPARING']},'orders':{'type':'array','items':order}})
+x['paths']['/v1/me/commissions']={'get':operation('get','get_v1_me_commissions',200,obj({'rows':{'type':'array','items':statement},'next_after_id':{'type':['string','null']}}))}
+claim=operation('post','post_v1_me_commission_orders_id_claim',202,obj({'instruction_id':string,'claim_status':{'const':'PROCESSING'}}))
+claim['requestBody']['content']['application/json']['schema']=obj({'expected_revision':{'type':'integer','minimum':0}})
+claim['parameters']=[q for q in claim.get('parameters',[]) if q.get('in')!='query']+[{'name':'id','in':'path','required':True,'schema':string}]
+x['paths']['/v1/me/commission-orders/{id}/claim']={'post':claim}
+# /auth/me has a plain JSON response, retain existing contract fields.
+me=x['paths']['/v1/auth/me']['get']['responses']['200']['content']['application/json']['schema'];me['properties']['member_user_id']=string
+write('openapi.json',x)
+
+# 真金钱包、交易历史与账变仅可由本人读取。
+wallet_account=obj({'currency':currency,'balance_minor':minor,'revision':revision,'wallet_type':enum('REAL_MONEY')})
+wallet_entry=obj({'transaction_id':identifier,'currency':currency,'amount_minor':minor,'balance_before_minor':minor,'balance_after_minor':minor,'payment_id':identifier,'statement_id':identifier,'created_at':time},['transaction_id','currency','amount_minor','created_at'])
+endpoint('/v1/me/wallets','get')
+actual_response('/v1/me/wallets','get',200,response_obj({'rows':arr(wallet_account)}))
+for path in ['/v1/me/wallet-transactions','/v1/me/wallet-changes']:
+    endpoint(path,'get',query=[('currency',currency,False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
+    actual_response(path,'get',200,response_obj({'rows':arr(wallet_entry),'next_after_id':nullable(identifier)}))
+write('openapi.json',api)
+
+# 代理目录及可信累计统计快照。
+member_statistics=obj({'user_id':identifier,'currency':currency,'observed_at':time,'deposit_minor':minor,'withdrawal_minor':minor,'bet_minor':minor,'valid_bet_minor':minor,'vip':identifier,'login_ip':nullable({'type':'string','maxLength':64})})
+directory_row=obj({'user_id':identifier,'agent_id':nullable(identifier),'display_name':identifier,'depth':{'type':'integer','minimum':0,'maximum':3},'status':identifier,'statistics':nullable(member_statistics)})
+directory_summary=obj({'members':{'type':'integer','minimum':0},'missing_statistics':{'type':'integer','minimum':0},'complete':boolean,'currency':currency,'deposit_minor':{'type':'string'},'withdrawal_minor':{'type':'string'},'bet_minor':{'type':'string'},'valid_bet_minor':{'type':'string'}})
+endpoint('/v1/member-statistics','post',member_statistics)
+api['paths']['/v1/member-statistics']['post']['parameters'].append({'name':'X-Source-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-fA-F0-9]{64}$'}})
+actual_response('/v1/member-statistics','post',200,response_obj({'user_id':identifier,'status':enum('RECORDED')}))
+for path in ['/v1/agent-directory','/v1/agents/{id}/team','/v1/me/team']:
+    endpoint(path,'get',query=[('currency',currency,False),('as_of',time,False),('depth',{'type':'integer','minimum':1,'maximum':3},False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
+    actual_response(path,'get',200,response_obj({'rows':arr(directory_row),'summary':directory_summary,'next_after_id':nullable(identifier),'as_of':time}))
+write('openapi.json',api)
+
+# 站点绑定、场馆与独立审批配置。
+site_change=obj({'enabled':boolean,'plan_id':identifier,'venue_ids':arr(identifier),'expected_revision':revision,'reason':identifier})
+endpoint('/v1/site-agent-config-requests','post',site_change,202)
+actual_response('/v1/site-agent-config-requests','post',202,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision}))
+endpoint('/v1/site-agent-config','get')
+actual_response('/v1/site-agent-config','get',200,response_obj({'configured':boolean,'enabled':boolean,'plan_id':{'type':'string'},'venue_ids':arr(identifier),'revision':revision,'effective_from':nullable(time)}))
+endpoint('/v1/site-agent-options','get')
+actual_response('/v1/site-agent-options','get',200,response_obj({'rows':arr(obj({'plan_id':identifier,'version_id':identifier,'venue_id':identifier,'event_type':identifier,'scene':identifier}))}))
+errors+=['SITE_AGENT_DISABLED','VENUE_NOT_PARTICIPATING']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)
+
+# 验证码只放请求头，绝不进入命令正文或幂等内容。
+totp_header={'name':'X-TOTP-Code','in':'header','required':True,'schema':{'type':'string','pattern':'^[0-9]{6}$'},'description':'本人谷歌验证码；站点变更必填，不写入命令正文'}
+api['paths']['/v1/site-agent-config-requests']['post']['parameters'].append(totp_header)
+for path in ['/v1/approvals/{id}/decisions','/v1/approvals/{id}/execution-retries']:
+    api['paths'][path]['post']['parameters'].append({**totp_header,'required':False,'description':'站点配置批准或执行恢复时必填'})
+errors+=['TOTP_REQUIRED','TOTP_INVALID','TOTP_NOT_CONFIGURED','TOTP_REPLAY','TOTP_RATE_LIMITED']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)
+
+# 会员PC/H5只使用本人资源和公开业务规则。
+member_earnings=obj({'currency':currency,**{field:{'type':'string'} for field in ['target_minor','pending_minor','available_minor','frozen_minor','reserved_minor','paid_minor','recovered_minor','debt_minor']}})
+member_reward=obj({'program_id':identifier,'name':identifier,'starts_at':time,'ends_at':time,'active':boolean,'conditions':arr(obj({'metric':identifier,'unit':identifier,'threshold':decimal})),'qualified_members':{'type':'integer','minimum':0},'triggered_members':{'type':'integer','minimum':0}})
+member_rule=obj({'plan_name':identifier,'currency':currency,'minimum_payout_minor':minor,'rules':arr(obj({'name':identifier,'description':{'type':'string'}}))})
+member_link=obj({'code':identifier,'url':{'type':'string','format':'uri'}})
+endpoint('/v1/me/earnings','get');actual_response('/v1/me/earnings','get',200,response_obj({'rows':arr(member_earnings)}))
+endpoint('/v1/me/rewards','get',query=[('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
+actual_response('/v1/me/rewards','get',200,response_obj({'rows':arr(member_reward),'next_after_id':nullable(identifier)}))
+endpoint('/v1/me/agent-rules','get');actual_response('/v1/me/agent-rules','get',200,response_obj({'rows':arr(member_rule),'agent_enabled':boolean,'configured':boolean,'is_agent':boolean}))
+endpoint('/v1/me/referral-link','get');actual_response('/v1/me/referral-link','get',200,response_obj(member_link['properties']))
+endpoint('/v1/me/referral-links','post',obj({}),201);actual_response('/v1/me/referral-links','post',201,response_obj(member_link['properties']))
+endpoint('/v1/me/referral-binding','post',obj({'code':identifier}));actual_response('/v1/me/referral-binding','post',200,response_obj({'status':enum('BOUND')}))
+write('openapi.json',api)
+
+# 原型推荐返佣完整配置，独立于通用实时计算方案。
+affiliate_minor={'type':'string','pattern':r'^(0|[1-9][0-9]{0,37})$'}
+affiliate_threshold=obj({'deposit_minor':affiliate_minor,'valid_bet_minor':affiliate_minor})
+affiliate_level=obj({'level':{'type':'integer','minimum':0,'maximum':99},'qualified_members':{'type':'integer','minimum':0,'maximum':1000000000},'daily_valid_bet_minor':affiliate_minor,'rates_ppm':{'type':'array','minItems':3,'maxItems':3,'items':{'type':'integer','minimum':0,'maximum':1000000}}})
+affiliate_step=obj({'step':{'type':'integer','minimum':1,'maximum':100},'additional_members':{'type':'integer','minimum':1,'maximum':1000000000},'reward_minor':affiliate_minor})
+affiliate_config=obj({'enabled':boolean,'currency':{'type':'string','minLength':1,'maxLength':16},'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'grade_period':enum('DAY','WEEK','MONTH','LIFETIME'),'grade_condition':affiliate_threshold,'referral_condition':affiliate_threshold,'invitee_condition':affiliate_threshold,'invitee_reward_minor':affiliate_minor,'levels':{**arr(affiliate_level,1),'maxItems':100},'steps':{**arr(affiliate_step,1),'maxItems':100},'venue_type_ids':{**arr(identifier,1),'maxItems':100,'uniqueItems':True}})
+affiliate_version=obj({'revision':revision,'config':affiliate_config,'effective_from':time,'approval_id':identifier})
+components['AffiliateConfig']=affiliate_config
+endpoint('/v1/affiliate/config','get');actual_response('/v1/affiliate/config','get',200,response_obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)}))
+endpoint('/v1/affiliate/venue-types','get');actual_response('/v1/affiliate/venue-types','get',200,response_obj({'rows':arr(obj({'venue_type_id':identifier,'name':identifier,'icon_url':{'type':'string','maxLength':1024}}))}))
+endpoint('/v1/affiliate/config-requests','post',obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier}),202)
+actual_response('/v1/affiliate/config-requests','post',202,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision}))
+errors+=['IMMUTABLE_AFFILIATE_CONFIG','IMMUTABLE_REWARD_STEPS','SCHEDULED_CONFIG_EXISTS','UNKNOWN_VENUE_TYPE']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)
+
+endpoint('/v1/affiliate/config-requests/{id}','get')
+actual_response('/v1/affiliate/config-requests/{id}','get',200,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision,'approval_status':identifier,'execution_status':identifier,'applicant_id':identifier,'change':obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier})}))
 write('openapi.json',api)

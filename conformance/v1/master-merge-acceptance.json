@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "scope": "master integration of existing verified branches; no further prototype feature implementation",
+  "checks": [
+    "go test -race -count=1 ./... with TEST_MYSQL_ADDRESS=127.0.0.1:13316",
+    "go vet ./...",
+    "go build ./cmd/api ./cmd/worker ./cmd/healthcheck",
+    "18 contract tests",
+    "frontend build and 16 tests previously passed at 9dac8d3"
+  ],
+  "remaining_requirements": "docs/integration/axure-agent-gaps.md",
+  "deployment": "not performed"
+}

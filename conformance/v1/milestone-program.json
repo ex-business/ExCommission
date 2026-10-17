@@ -1,0 +1,22 @@
+{
+  "program_id": "INVITE_EXAMPLE",
+  "name": "受邀会员双条件奖励示例",
+  "source_id": "sandbox",
+  "starts_at": "2030-01-01T00:00:00Z",
+  "ends_at": "2030-02-01T00:00:00Z",
+  "conditions": [
+    {
+      "metric": "CONFIRMED_DEPOSIT",
+      "unit": "USD",
+      "threshold": "100"
+    },
+    {
+      "metric": "VALID_TURNOVER",
+      "unit": "USD",
+      "threshold": "500"
+    }
+  ],
+  "logic": "ALL",
+  "frequency": "ONCE_PER_SUBJECT",
+  "reward_plan_id": "MILESTONE_REWARD"
+}

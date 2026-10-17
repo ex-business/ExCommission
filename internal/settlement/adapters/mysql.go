@@ -13,7 +13,7 @@ import (
 type Repository struct{}
 
 func (Repository) Lock(ctx context.Context, tx db.Executor, s foundation.Scope) error {
-	if _, err := tx.ExecContext(ctx, `INSERT IGNORE INTO settlement_spaces VALUES(?,?)`, s.Tenant, s.App); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO settlement_spaces VALUES(?,?) ON DUPLICATE KEY UPDATE tenant_id=tenant_id`, s.Tenant, s.App); err != nil {
 		return err
 	}
 	var tenant string

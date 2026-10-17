@@ -66,111 +66,114 @@ func (s Service) Run(ctx context.Context, p identity.Principal, input RunInput, 
 		}
 	}
 	return s.Commands.Execute(ctx, scope, "statement-run", key, input, func(tx db.Executor) (foundation.CommandResult, error) {
-		if err := s.Repo.Lock(ctx, tx, scope); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		filterBody, _ := json.Marshal(map[string]any{"agent_ids": input.AgentIDs})
-		filterHash := hash.Hash(filterBody)
-		statements, exists, err := s.Repo.ExistingRun(ctx, tx, scope, input.Period, filterHash)
-		if err != nil {
-			return foundation.CommandResult{}, err
-		}
-		if exists {
-			runID, err := s.Repo.RunID(ctx, tx, scope, input.Period)
-			if err != nil {
-				return foundation.CommandResult{}, err
-			}
-			return response.Result(202, runID, request, map[string]any{"run_id": runID, "period": input.Period, "statements": statements})
-		}
-		if err = s.Repo.CreateRun(ctx, tx, scope, s.ID(), input.Period, input.Calendar, filterHash, s.Now()); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		candidates, err := s.Ledger.PendingBefore(ctx, tx, scope, period.Add(24*time.Hour), s.Now())
-		if err != nil {
-			return foundation.CommandResult{}, err
-		}
-		groups := map[string]*model.Statement{}
-		keys := []string{}
-		for _, e := range candidates {
-			if len(filter) > 0 && !filter[e.AgentID] {
-				continue
-			}
-			claimed, err := s.Repo.Claimed(ctx, tx, scope, e.ID)
-			if err != nil {
-				return foundation.CommandResult{}, err
-			}
-			if claimed {
-				continue
-			}
-			group := e.AgentID + "\x00" + e.Currency
-			v := groups[group]
-			if v == nil {
-				v = &model.Statement{ID: s.ID(), AgentID: e.AgentID, Currency: e.Currency, Period: input.Period, Status: "DRAFT", Total: "0", Items: []model.Item{}}
-				groups[group] = v
-				keys = append(keys, group)
-			}
-			min, _ := new(big.Int).SetString(e.Minimum, 10)
-			oldMin := new(big.Int)
-			if v.Minimum != "" {
-				oldMin.SetString(v.Minimum, 10)
-			}
-			if min.Cmp(oldMin) > 0 {
-				v.Minimum = e.Minimum
-			}
-			if v.Minimum == "" {
-				v.Minimum = "0"
-			}
-			if e.Maximum != nil {
-				take := v.Maximum
-				if take == nil {
-					value := *e.Maximum
-					v.Maximum = &value
-				} else {
-					old, _ := new(big.Int).SetString(*take, 10)
-					next, _ := new(big.Int).SetString(*e.Maximum, 10)
-					if next.Cmp(old) < 0 {
-						value := *e.Maximum
-						v.Maximum = &value
-					}
-				}
-			}
-			v.Items = append(v.Items, model.Item{ID: e.ID, Amount: e.Pending, Revision: e.Revision, Target: e.Target, PaidBefore: e.Paid})
-			a, _ := new(big.Int).SetString(v.Total, 10)
-			b, _ := new(big.Int).SetString(e.Pending, 10)
-			a.Add(a, b)
-			if len(a.String()) > 38 {
-				return foundation.CommandResult{}, errors.New("AMOUNT_OUT_OF_RANGE")
-			}
-			v.Total = a.String()
-		}
-		statements = []model.Statement{}
-		sort.Strings(keys)
-		for _, key := range keys {
-			v := groups[key]
-			total, _ := new(big.Int).SetString(v.Total, 10)
-			minimum, _ := new(big.Int).SetString(v.Minimum, 10)
-			if total.Cmp(minimum) < 0 {
-				continue
-			}
-			sort.Slice(v.Items, func(i, j int) bool { return v.Items[i].ID < v.Items[j].ID })
-			body, _ := json.Marshal(struct {
-				Agent, Currency, Period string
-				Minimum                 string
-				Maximum                 *string
-				Items                   []model.Item
-			}{v.AgentID, v.Currency, v.Period, v.Minimum, v.Maximum, v.Items})
-			v.Hash = hash.Hash(body)
-			if err = s.Repo.Create(ctx, tx, scope, *v, s.Now()); err != nil {
-				return foundation.CommandResult{}, err
-			}
-			statements = append(statements, *v)
-		}
+		return s.runTx(ctx, tx, scope, input, period, filter, request)
+	})
+}
+func (s Service) runTx(ctx context.Context, tx db.Executor, scope foundation.Scope, input RunInput, period time.Time, filter map[string]bool, request string) (foundation.CommandResult, error) {
+	if err := s.Repo.Lock(ctx, tx, scope); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	filterBody, _ := json.Marshal(map[string]any{"agent_ids": input.AgentIDs})
+	filterHash := hash.Hash(filterBody)
+	statements, exists, err := s.Repo.ExistingRun(ctx, tx, scope, input.Period, filterHash)
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
+	if exists {
 		runID, err := s.Repo.RunID(ctx, tx, scope, input.Period)
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
 		return response.Result(202, runID, request, map[string]any{"run_id": runID, "period": input.Period, "statements": statements})
-	})
+	}
+	if err = s.Repo.CreateRun(ctx, tx, scope, s.ID(), input.Period, input.Calendar, filterHash, s.Now()); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	candidates, err := s.Ledger.PendingBefore(ctx, tx, scope, period.Add(24*time.Hour), s.Now())
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
+	groups := map[string]*model.Statement{}
+	keys := []string{}
+	for _, e := range candidates {
+		if len(filter) > 0 && !filter[e.AgentID] {
+			continue
+		}
+		claimed, err := s.Repo.Claimed(ctx, tx, scope, e.ID)
+		if err != nil {
+			return foundation.CommandResult{}, err
+		}
+		if claimed {
+			continue
+		}
+		group := e.AgentID + "\x00" + e.Currency
+		v := groups[group]
+		if v == nil {
+			v = &model.Statement{ID: s.ID(), AgentID: e.AgentID, Currency: e.Currency, Period: input.Period, Status: "DRAFT", Total: "0", Items: []model.Item{}}
+			groups[group] = v
+			keys = append(keys, group)
+		}
+		min, _ := new(big.Int).SetString(e.Minimum, 10)
+		oldMin := new(big.Int)
+		if v.Minimum != "" {
+			oldMin.SetString(v.Minimum, 10)
+		}
+		if min.Cmp(oldMin) > 0 {
+			v.Minimum = e.Minimum
+		}
+		if v.Minimum == "" {
+			v.Minimum = "0"
+		}
+		if e.Maximum != nil {
+			take := v.Maximum
+			if take == nil {
+				value := *e.Maximum
+				v.Maximum = &value
+			} else {
+				old, _ := new(big.Int).SetString(*take, 10)
+				next, _ := new(big.Int).SetString(*e.Maximum, 10)
+				if next.Cmp(old) < 0 {
+					value := *e.Maximum
+					v.Maximum = &value
+				}
+			}
+		}
+		v.Items = append(v.Items, model.Item{ID: e.ID, Amount: e.Pending, Revision: e.Revision, Target: e.Target, PaidBefore: e.Paid})
+		a, _ := new(big.Int).SetString(v.Total, 10)
+		b, _ := new(big.Int).SetString(e.Pending, 10)
+		a.Add(a, b)
+		if len(a.String()) > 38 {
+			return foundation.CommandResult{}, errors.New("AMOUNT_OUT_OF_RANGE")
+		}
+		v.Total = a.String()
+	}
+	statements = []model.Statement{}
+	sort.Strings(keys)
+	for _, key := range keys {
+		v := groups[key]
+		total, _ := new(big.Int).SetString(v.Total, 10)
+		minimum, _ := new(big.Int).SetString(v.Minimum, 10)
+		if total.Cmp(minimum) < 0 {
+			continue
+		}
+		sort.Slice(v.Items, func(i, j int) bool { return v.Items[i].ID < v.Items[j].ID })
+		body, _ := json.Marshal(struct {
+			Agent, Currency, Period string
+			Minimum                 string
+			Maximum                 *string
+			Items                   []model.Item
+		}{v.AgentID, v.Currency, v.Period, v.Minimum, v.Maximum, v.Items})
+		v.Hash = hash.Hash(body)
+		if err = s.Repo.Create(ctx, tx, scope, *v, s.Now()); err != nil {
+			return foundation.CommandResult{}, err
+		}
+		statements = append(statements, *v)
+	}
+	runID, err := s.Repo.RunID(ctx, tx, scope, input.Period)
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
+	return response.Result(202, runID, request, map[string]any{"run_id": runID, "period": input.Period, "statements": statements})
 }
 func (s Service) validate(ctx context.Context, tx db.Executor, scope foundation.Scope, v model.Statement) error {
 	for _, item := range v.Items {
@@ -191,35 +194,39 @@ func (s Service) Submit(ctx context.Context, p identity.Principal, id string, in
 		Submission
 	}{id, input}
 	return s.Commands.Execute(ctx, scope, "statement-submit", key, payload, func(tx db.Executor) (foundation.CommandResult, error) {
-		if err := s.Repo.Lock(ctx, tx, scope); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		v, err := s.Repo.Get(ctx, tx, scope, id, true)
-		if err != nil {
-			return foundation.CommandResult{}, err
-		}
-		if v.Revision != input.Revision || v.Hash != input.Hash {
-			return foundation.CommandResult{}, errors.New("REVISION_CONFLICT")
-		}
-		if v.Status != "DRAFT" {
-			return foundation.CommandResult{}, errors.New("STATE_CONFLICT")
-		}
-		if err = s.validate(ctx, tx, scope, v); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		if err = s.Repo.Claim(ctx, tx, scope, v); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		if err = s.Repo.State(ctx, tx, scope, v, "PENDING_APPROVAL"); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		body, _ := json.Marshal(approvalPayload{ID: id, Revision: v.Revision + 1, Hash: v.Hash})
-		a := approval.Request{ID: s.ID(), Type: "STATEMENT", Applicant: p.Subject, ObjectRef: id, ObjectHash: hash.Hash(body), Payload: body}
-		if err = s.Workflow.Create(ctx, tx, scope, a, "statement-submission", s.Now()); err != nil {
-			return foundation.CommandResult{}, err
-		}
-		return response.Result(202, a.ID, request, map[string]any{"approval_id": a.ID, "statement_id": id, "object_hash": a.ObjectHash, "revision": 0})
+		return s.submitTx(ctx, tx, p, id, input, request)
 	})
+}
+func (s Service) submitTx(ctx context.Context, tx db.Executor, p identity.Principal, id string, input Submission, request string) (foundation.CommandResult, error) {
+	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
+	if err := s.Repo.Lock(ctx, tx, scope); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	v, err := s.Repo.Get(ctx, tx, scope, id, true)
+	if err != nil {
+		return foundation.CommandResult{}, err
+	}
+	if v.Revision != input.Revision || v.Hash != input.Hash {
+		return foundation.CommandResult{}, errors.New("REVISION_CONFLICT")
+	}
+	if v.Status != "DRAFT" {
+		return foundation.CommandResult{}, errors.New("STATE_CONFLICT")
+	}
+	if err = s.validate(ctx, tx, scope, v); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	if err = s.Repo.Claim(ctx, tx, scope, v); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	if err = s.Repo.State(ctx, tx, scope, v, "PENDING_APPROVAL"); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	body, _ := json.Marshal(approvalPayload{ID: id, Revision: v.Revision + 1, Hash: v.Hash})
+	a := approval.Request{ID: s.ID(), Type: "STATEMENT", Applicant: p.Subject, ObjectRef: id, ObjectHash: hash.Hash(body), Payload: body}
+	if err = s.Workflow.Create(ctx, tx, scope, a, "statement-submission", s.Now()); err != nil {
+		return foundation.CommandResult{}, err
+	}
+	return response.Result(202, a.ID, request, map[string]any{"approval_id": a.ID, "statement_id": id, "object_hash": a.ObjectHash, "revision": 0})
 }
 func (s Service) Execute(ctx context.Context, tx db.Executor, scope foundation.Scope, a approval.Request, now time.Time) error {
 	var p approvalPayload

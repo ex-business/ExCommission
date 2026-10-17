@@ -36,7 +36,8 @@
           "enum": [
             "FEE_CONFIRMED",
             "TRADE_CLOSED",
-            "ORDER_CONFIRMED"
+            "ORDER_CONFIRMED",
+            "MILESTONE_REACHED"
           ]
         },
         "scene": {

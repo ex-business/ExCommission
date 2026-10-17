@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"errors"
 	plan "github.com/ex-business/ExCommission/internal/plans/domain"
 	"math/big"
@@ -56,6 +57,7 @@ type DayEndEvidence struct {
 }
 type Input struct {
 	DayEnd                                                                              *DayEndEvidence `json:",omitempty"`
+	TriggerEvidence                                                                     json.RawMessage `json:"trigger_evidence,omitempty"`
 	QualificationFacts                                                                  map[string]QualificationEvidence
 	RelationshipFacts                                                                   []RelationshipEvidence
 	StandardVersion, PlanVersionID, ConfigHash, CurrencyCatalogVersion, CalendarVersion string

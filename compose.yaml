@@ -19,6 +19,8 @@ services:
       retries: 30
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin"]
   api:
+    env_file:
+      - ./.local/totp.env
     build:
       context: .
       target: runtime
@@ -45,8 +47,11 @@ services:
       LOCAL_QUALIFICATION_KEY: ${LOCAL_QUALIFICATION_KEY:-}
       LOCAL_REFERRAL_REWARDS_ENABLED: ${LOCAL_REFERRAL_REWARDS_ENABLED:-false}
       LOCAL_DAYEND_ENABLED: ${LOCAL_DAYEND_ENABLED:-false}
+      LOCAL_TENANT: ${LOCAL_TENANT:-local-sandbox}
+      LOCAL_APP: ${LOCAL_APP:-commission}
       AUTH_LOCAL_ACCOUNTS_FILE: /local/login-accounts.json
       AUTH_EXTERNAL_FILE: /local/external-identity.json
+      PUBLIC_MEMBER_URL: ${PUBLIC_MEMBER_URL:-http://127.0.0.1:18180/}
       LOCAL_OPERATOR_TOKEN: ${LOCAL_OPERATOR_TOKEN:?请先生成本地凭据}
       LOCAL_APPROVER_TOKEN: ${LOCAL_APPROVER_TOKEN:?请先生成本地凭据}
       LOCAL_CURSOR_KEY: ${LOCAL_CURSOR_KEY:?请先生成本地凭据}
@@ -80,6 +85,8 @@ services:
     environment:
       LOCAL_REFERRAL_REWARDS_ENABLED: ${LOCAL_REFERRAL_REWARDS_ENABLED:-false}
       LOCAL_DAYEND_ENABLED: ${LOCAL_DAYEND_ENABLED:-false}
+      LOCAL_TENANT: ${LOCAL_TENANT:-local-sandbox}
+      LOCAL_APP: ${LOCAL_APP:-commission}
       LOCAL_PAYMENT_KEY: ${LOCAL_PAYMENT_KEY:?请先生成本地凭据}
       LOCAL_PAYMENT_RESULTS_FILE: /local/payment-results.json
       DB_ADDRESS: mysql:3306

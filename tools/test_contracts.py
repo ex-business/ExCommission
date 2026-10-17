@@ -14,6 +14,15 @@ class Contracts(unittest.TestCase):
         for path in (ROOT/'contracts/v1').glob('*.schema.json'):
             Draft202012Validator.check_schema(json.loads(path.read_text()))
         validate(json.loads((ROOT/'contracts/v1/openapi.json').read_text()))
+    def test_milestone_examples_and_reserved_source_type(self):
+        for name,example in [('milestone-program','milestone-program'),('milestone-observation','milestone-observation'),('plan','plan-milestone')]:
+            definition=json.loads((ROOT/f'contracts/v1/{name}.schema.json').read_text())
+            value=json.loads((ROOT/f'conformance/v1/{example}.json').read_text())
+            Draft202012Validator(definition,format_checker=FormatChecker()).validate(value)
+        source=json.loads((ROOT/'contracts/v1/event.schema.json').read_text())
+        self.assertNotIn('MILESTONE_REACHED',source['properties']['event_type']['enum'])
+        event=deepcopy(self.event);event['event_type']='MILESTONE_REACHED'
+        self.assertTrue(list(self.validator.iter_errors(event)))
     def test_standard_traceability(self):
         manifest=json.loads((ROOT/'conformance/v1/manifest.json').read_text())
         rows=manifest['requirements']
