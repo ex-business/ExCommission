@@ -11,7 +11,13 @@ import (
 	"time"
 )
 
+type ReferralProgress struct {
+	UserID        string                  `json:"user_id"`
+	RegisteredAt  time.Time               `json:"registered_at"`
+	Qualification affiliate.Qualification `json:"qualification"`
+}
 type Overview struct {
+	DirectMembers         []ReferralProgress         `json:"direct_members"`
 	ClaimContextAvailable bool                       `json:"claim_context_available"`
 	Configured            bool                       `json:"configured"`
 	Configuration         *affiliate.Version         `json:"configuration"`
@@ -23,7 +29,7 @@ type Overview struct {
 
 // Overview 使用同一领域计算显示当前实绩，不把尚未关账的等级冒充最终等级；读取不生成新权益。
 func (s Service) Overview(ctx context.Context, p principal.Principal) (Overview, error) {
-	out := Overview{ClaimContextAvailable: s.ClaimContextReady, ObservedAt: s.Now().UTC().Truncate(time.Microsecond), Provisional: true}
+	out := Overview{DirectMembers: []ReferralProgress{}, ClaimContextAvailable: s.ClaimContextReady, ObservedAt: s.Now().UTC().Truncate(time.Microsecond), Provisional: true}
 	if p.MemberUserID == "" {
 		return out, principal.ErrPermission
 	}
@@ -76,6 +82,24 @@ func (s Service) Overview(ctx context.Context, p principal.Principal) (Overview,
 			progress.Enabled = false
 			progress.BlockedReason = "SITE_AGENT_DISABLED"
 		}
+	}
+	// 仅公开本人直属会员的推荐达标进度，不能从浏览器传任意上级或会员ID。
+	out.DirectMembers = []ReferralProgress{}
+	for _, child := range regs {
+		if child.ParentUser != m.UserID {
+			continue
+		}
+		selected := []affiliate.Fact{}
+		for _, fact := range facts {
+			if fact.UserID == child.UserID && !fact.At.Before(gate.Since) {
+				selected = append(selected, fact)
+			}
+		}
+		q, err := affiliate.Qualify(v.Config.ReferralCondition, selected, v.Config, out.ObservedAt.Add(time.Microsecond))
+		if err != nil {
+			return out, err
+		}
+		out.DirectMembers = append(out.DirectMembers, ReferralProgress{UserID: child.UserID, RegisteredAt: child.RegisteredAt, Qualification: q})
 	}
 	out.Progress = &progress
 	selected := []affiliate.Fact{}

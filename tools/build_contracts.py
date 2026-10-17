@@ -581,6 +581,7 @@ affiliate_level=obj({'level':{'type':'integer','minimum':0},'qualified_members':
 affiliate_step=obj({'step':{'type':'integer','minimum':1},'additional_members':{'type':'integer','minimum':1,'maximum':1000000000},'reward_minor':affiliate_minor})
 affiliate_config=obj({'enabled':boolean,'currency':{'type':'string','minLength':1,'maxLength':16},'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'grade_period':enum('DAY','WEEK','MONTH','LIFETIME'),'grade_condition':affiliate_threshold,'referral_condition':affiliate_threshold,'invitee_condition':affiliate_threshold,'invitee_reward_minor':affiliate_minor,'levels':arr(affiliate_level,1),'steps':arr(affiliate_step,1),'venue_type_ids':{**arr(identifier,1),'maxItems':100,'uniqueItems':True}})
 risk_rule=obj({'rule_id':{'type':'string','minLength':1,'maxLength':64},'enabled':boolean,'dimension':enum('IP','DEVICE','ACCOUNT'),'period':enum('DAY','WEEK','MONTH','LIFETIME','CUSTOM_DAYS'),'window_days':{'type':'integer','minimum':0,'maximum':36600},'scope':enum('SITE','BENEFICIARY'),'missing_identity':enum('ALLOW','DENY'),'effective_from':time,'effective_until':time},['rule_id','enabled','dimension','period','window_days','scope','missing_identity','effective_from'])
+affiliate_config['properties']['social']={'type':'array','maxItems':5,'items':obj({'platform':enum('FACEBOOK','TELEGRAM','WHATSAPP','TIKTOK','MORE'),'enabled':boolean})}
 affiliate_config['properties']['risk_rules']={'type':'array','maxItems':30,'items':risk_rule}
 affiliate_config['properties']['extension']=obj({'disabled_entry':enum('HIDE','PAUSE'),'editable_steps':boolean,'max_levels':{'type':'integer','minimum':0,'maximum':10000},'max_steps':{'type':'integer','minimum':0,'maximum':10000}})
 affiliate_version=obj({'revision':revision,'config':affiliate_config,'effective_from':time,'approval_id':identifier})
@@ -623,7 +624,7 @@ actual_response('/v1/affiliate/business-facts','post',200,response_obj({'event_i
 endpoint('/v1/affiliate/source-watermarks','post',flow_watermark)
 api['paths']['/v1/affiliate/source-watermarks']['post']['parameters'].append({'name':'X-Affiliate-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-f0-9]{64}$'}})
 actual_response('/v1/affiliate/source-watermarks','post',200,response_obj({'watermark':flow_watermark,'status':enum('SOURCE_CLOSED')}))
-endpoint('/v1/me/affiliate/overview','get');actual_response('/v1/me/affiliate/overview','get',200,response_obj({'claim_context_available':boolean,'configured':boolean,'configuration':nullable(affiliate_version),'progress':nullable(flow_progress_ref),'current_grade':nullable(flow_calculation),'provisional':boolean,'observed_at':time}))
+endpoint('/v1/me/affiliate/overview','get');actual_response('/v1/me/affiliate/overview','get',200,response_obj({'claim_context_available':boolean,'configured':boolean,'configuration':nullable(affiliate_version),'progress':nullable(flow_progress_ref),'current_grade':nullable(flow_calculation),'provisional':boolean,'observed_at':time,'direct_members':arr(obj({'user_id':identifier,'registered_at':time,'qualification':flow_qualification}))}))
 endpoint('/v1/me/affiliate/progress','get');actual_response('/v1/me/affiliate/progress','get',200,flow_envelope(flow_progress_ref))
 endpoint('/v1/me/affiliate/refresh','post',obj({}));actual_response('/v1/me/affiliate/refresh','post',200,flow_envelope(flow_progress_ref))
 endpoint('/v1/me/affiliate/claims','post',obj({'kind':enum('REFERRAL','COMMISSION','INVITEE','ALL')}));actual_response('/v1/me/affiliate/claims','post',200,response_obj({'claim_id':identifier,'rewards':arr(flow_reward_ref,1)}))
@@ -689,12 +690,19 @@ actual_response('/v1/me/affiliate/calculator','get',200,response_obj({'estimate'
 write('openapi.json',api)
 
 # 原型展示与跨站配置为独立扩展端口，沿用原会员及配置权限，不扩大公共代理逻辑。
+feed_row=obj({'member':flow_text,'kind':enum('REFERRAL','INVITEE','COMMISSION'),'amount_minor':affiliate_minor,'currency':currency,'claimed_at':time})
+feed=obj({'totals':{'type':'object','additionalProperties':affiliate_minor},'rows':arr(feed_row)})
 venue_row=obj({'venue_type_id':identifier,'name':identifier,'icon_url':{'type':'string'}})
 site_configuration=obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)})
 endpoint('/v1/me/affiliate/presentation','get')
-actual_response('/v1/me/affiliate/presentation','get',200,response_obj({'configured':boolean,'configuration':nullable(affiliate_version),'venues':arr(venue_row),'entry_visible':boolean,'site_enabled':boolean}))
+actual_response('/v1/me/affiliate/presentation','get',200,response_obj({'configured':boolean,'configuration':nullable(affiliate_version),'venues':arr(venue_row),'entry_visible':boolean,'site_enabled':boolean,'feed':feed}))
 endpoint('/v1/affiliate/sites/{tenant}/{app}/config','get')
 actual_response('/v1/affiliate/sites/{tenant}/{app}/config','get',200,response_obj({'configuration':site_configuration,'venues':arr(venue_row),'currencies':arr(obj({'code':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'catalog_version':identifier})),'tenant_id':identifier,'app_id':identifier}))
 endpoint('/v1/affiliate/sites/{tenant}/{app}/config-requests','post',obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier}),202)
 actual_response('/v1/affiliate/sites/{tenant}/{app}/config-requests','post',202,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision}))
 write('openapi.json',api)
+
+# 公开投影仍由站点身份鉴权，BFF仅转发此端口。
+endpoint("/v1/affiliate/public-presentation","get")
+actual_response('/v1/affiliate/public-presentation','get',200,response_obj({'visible':boolean,'currency':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'invitee_reward_minor':affiliate_minor,'maximum_reward_minor':affiliate_minor,'maximum_rate_ppm':{'type':'integer','minimum':0,'maximum':1000000},'social':{'type':['array','null'],'items':affiliate_config['properties']['social']['items']},'feed':feed},['visible']))
+write("openapi.json",api)

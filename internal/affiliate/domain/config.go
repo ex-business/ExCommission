@@ -39,7 +39,12 @@ type Extension struct {
 	MaxLevels     int    `json:"max_levels"`
 	MaxSteps      int    `json:"max_steps"`
 }
+type Social struct {
+	Platform string `json:"platform"`
+	Enabled  bool   `json:"enabled"`
+}
 type Config struct {
+	Social            []Social   `json:"social,omitempty"`
 	Extension         *Extension `json:"extension,omitempty"`
 	RiskRules         []RiskRule `json:"risk_rules,omitempty"`
 	Enabled           bool       `json:"enabled"`
@@ -93,6 +98,23 @@ func (c Config) Limits() (int, int) {
 	return 100, 100
 }
 func (c *Config) Normalize() error {
+	// 社媒按站点审批发布，只接受已实现的分享平台，防止配置任意脚本或外链。
+	platforms := map[string]bool{}
+	if len(c.Social) > 5 {
+		return ErrValidation
+	}
+	for _, item := range c.Social {
+		switch item.Platform {
+		case "FACEBOOK", "TELEGRAM", "WHATSAPP", "TIKTOK", "MORE":
+		default:
+			return ErrValidation
+		}
+		if platforms[item.Platform] {
+			return ErrValidation
+		}
+		platforms[item.Platform] = true
+	}
+
 	if c.Extension != nil {
 		x := c.Extension
 		if (x.DisabledEntry != "HIDE" && x.DisabledEntry != "PAUSE") || x.MaxLevels < 0 || x.MaxLevels > 10000 || x.MaxSteps < 0 || x.MaxSteps > 10000 {

@@ -24657,6 +24657,33 @@
                                       "maxItems": 100,
                                       "uniqueItems": true
                                     },
+                                    "social": {
+                                      "type": "array",
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "platform": {
+                                            "type": "string",
+                                            "enum": [
+                                              "FACEBOOK",
+                                              "TELEGRAM",
+                                              "WHATSAPP",
+                                              "TIKTOK",
+                                              "MORE"
+                                            ]
+                                          },
+                                          "enabled": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "platform",
+                                          "enabled"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
                                     "risk_rules": {
                                       "type": "array",
                                       "maxItems": 30,
@@ -24979,6 +25006,33 @@
                                       "minItems": 1,
                                       "maxItems": 100,
                                       "uniqueItems": true
+                                    },
+                                    "social": {
+                                      "type": "array",
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "platform": {
+                                            "type": "string",
+                                            "enum": [
+                                              "FACEBOOK",
+                                              "TELEGRAM",
+                                              "WHATSAPP",
+                                              "TIKTOK",
+                                              "MORE"
+                                            ]
+                                          },
+                                          "enabled": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "platform",
+                                          "enabled"
+                                        ],
+                                        "additionalProperties": false
+                                      }
                                     },
                                     "risk_rules": {
                                       "type": "array",
@@ -25620,6 +25674,33 @@
                         "maxItems": 100,
                         "uniqueItems": true
                       },
+                      "social": {
+                        "type": "array",
+                        "maxItems": 5,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "platform": {
+                              "type": "string",
+                              "enum": [
+                                "FACEBOOK",
+                                "TELEGRAM",
+                                "WHATSAPP",
+                                "TIKTOK",
+                                "MORE"
+                              ]
+                            },
+                            "enabled": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "platform",
+                            "enabled"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
                       "risk_rules": {
                         "type": "array",
                         "maxItems": 30,
@@ -26057,6 +26138,33 @@
                                   "minItems": 1,
                                   "maxItems": 100,
                                   "uniqueItems": true
+                                },
+                                "social": {
+                                  "type": "array",
+                                  "maxItems": 5,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "platform": {
+                                        "type": "string",
+                                        "enum": [
+                                          "FACEBOOK",
+                                          "TELEGRAM",
+                                          "WHATSAPP",
+                                          "TIKTOK",
+                                          "MORE"
+                                        ]
+                                      },
+                                      "enabled": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "platform",
+                                      "enabled"
+                                    ],
+                                    "additionalProperties": false
+                                  }
                                 },
                                 "risk_rules": {
                                   "type": "array",
@@ -26982,6 +27090,33 @@
                                       "maxItems": 100,
                                       "uniqueItems": true
                                     },
+                                    "social": {
+                                      "type": "array",
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "platform": {
+                                            "type": "string",
+                                            "enum": [
+                                              "FACEBOOK",
+                                              "TELEGRAM",
+                                              "WHATSAPP",
+                                              "TIKTOK",
+                                              "MORE"
+                                            ]
+                                          },
+                                          "enabled": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "platform",
+                                          "enabled"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
                                     "risk_rules": {
                                       "type": "array",
                                       "maxItems": 30,
@@ -27307,6 +27442,62 @@
                           "type": "string",
                           "format": "date-time",
                           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                        },
+                        "direct_members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "user_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "registered_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                              },
+                              "qualification": {
+                                "type": "object",
+                                "properties": {
+                                  "deposit_minor": {
+                                    "type": "string",
+                                    "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                  },
+                                  "valid_bet_minor": {
+                                    "type": "string",
+                                    "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                  },
+                                  "qualified_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "deposit_minor",
+                                  "valid_bet_minor",
+                                  "qualified_at"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "user_id",
+                              "registered_at",
+                              "qualification"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "minItems": 0
                         }
                       },
                       "required": [
@@ -27316,7 +27507,8 @@
                         "progress",
                         "current_grade",
                         "provisional",
-                        "observed_at"
+                        "observed_at",
+                        "direct_members"
                       ],
                       "additionalProperties": true
                     },
@@ -29382,6 +29574,33 @@
                                   "maxItems": 100,
                                   "uniqueItems": true
                                 },
+                                "social": {
+                                  "type": "array",
+                                  "maxItems": 5,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "platform": {
+                                        "type": "string",
+                                        "enum": [
+                                          "FACEBOOK",
+                                          "TELEGRAM",
+                                          "WHATSAPP",
+                                          "TIKTOK",
+                                          "MORE"
+                                        ]
+                                      },
+                                      "enabled": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "platform",
+                                      "enabled"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "risk_rules": {
                                   "type": "array",
                                   "maxItems": 30,
@@ -30198,6 +30417,33 @@
                                       "minItems": 1,
                                       "maxItems": 100,
                                       "uniqueItems": true
+                                    },
+                                    "social": {
+                                      "type": "array",
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "platform": {
+                                            "type": "string",
+                                            "enum": [
+                                              "FACEBOOK",
+                                              "TELEGRAM",
+                                              "WHATSAPP",
+                                              "TIKTOK",
+                                              "MORE"
+                                            ]
+                                          },
+                                          "enabled": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "platform",
+                                          "enabled"
+                                        ],
+                                        "additionalProperties": false
+                                      }
                                     },
                                     "risk_rules": {
                                       "type": "array",
@@ -32469,6 +32715,33 @@
                                                 "maxItems": 100,
                                                 "uniqueItems": true
                                               },
+                                              "social": {
+                                                "type": "array",
+                                                "maxItems": 5,
+                                                "items": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "platform": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "FACEBOOK",
+                                                        "TELEGRAM",
+                                                        "WHATSAPP",
+                                                        "TIKTOK",
+                                                        "MORE"
+                                                      ]
+                                                    },
+                                                    "enabled": {
+                                                      "type": "boolean"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "platform",
+                                                    "enabled"
+                                                  ],
+                                                  "additionalProperties": false
+                                                }
+                                              },
                                               "risk_rules": {
                                                 "type": "array",
                                                 "maxItems": 30,
@@ -32791,6 +33064,33 @@
                                                 "minItems": 1,
                                                 "maxItems": 100,
                                                 "uniqueItems": true
+                                              },
+                                              "social": {
+                                                "type": "array",
+                                                "maxItems": 5,
+                                                "items": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "platform": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "FACEBOOK",
+                                                        "TELEGRAM",
+                                                        "WHATSAPP",
+                                                        "TIKTOK",
+                                                        "MORE"
+                                                      ]
+                                                    },
+                                                    "enabled": {
+                                                      "type": "boolean"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "platform",
+                                                    "enabled"
+                                                  ],
+                                                  "additionalProperties": false
+                                                }
                                               },
                                               "risk_rules": {
                                                 "type": "array",
@@ -33476,6 +33776,33 @@
                                       "maxItems": 100,
                                       "uniqueItems": true
                                     },
+                                    "social": {
+                                      "type": "array",
+                                      "maxItems": 5,
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "platform": {
+                                            "type": "string",
+                                            "enum": [
+                                              "FACEBOOK",
+                                              "TELEGRAM",
+                                              "WHATSAPP",
+                                              "TIKTOK",
+                                              "MORE"
+                                            ]
+                                          },
+                                          "enabled": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "platform",
+                                          "enabled"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
                                     "risk_rules": {
                                       "type": "array",
                                       "maxItems": 30,
@@ -33657,6 +33984,65 @@
                         },
                         "site_enabled": {
                           "type": "boolean"
+                        },
+                        "feed": {
+                          "type": "object",
+                          "properties": {
+                            "totals": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]{0,37})$"
+                              }
+                            },
+                            "rows": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "member": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "REFERRAL",
+                                      "INVITEE",
+                                      "COMMISSION"
+                                    ]
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "claimed_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  }
+                                },
+                                "required": [
+                                  "member",
+                                  "kind",
+                                  "amount_minor",
+                                  "currency",
+                                  "claimed_at"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "minItems": 0
+                            }
+                          },
+                          "required": [
+                            "totals",
+                            "rows"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
@@ -33664,7 +34050,8 @@
                         "configuration",
                         "venues",
                         "entry_visible",
-                        "site_enabled"
+                        "site_enabled",
+                        "feed"
                       ],
                       "additionalProperties": true
                     },
@@ -33965,6 +34352,33 @@
                                           "minItems": 1,
                                           "maxItems": 100,
                                           "uniqueItems": true
+                                        },
+                                        "social": {
+                                          "type": "array",
+                                          "maxItems": 5,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "platform": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "FACEBOOK",
+                                                  "TELEGRAM",
+                                                  "WHATSAPP",
+                                                  "TIKTOK",
+                                                  "MORE"
+                                                ]
+                                              },
+                                              "enabled": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "required": [
+                                              "platform",
+                                              "enabled"
+                                            ],
+                                            "additionalProperties": false
+                                          }
                                         },
                                         "risk_rules": {
                                           "type": "array",
@@ -34288,6 +34702,33 @@
                                           "minItems": 1,
                                           "maxItems": 100,
                                           "uniqueItems": true
+                                        },
+                                        "social": {
+                                          "type": "array",
+                                          "maxItems": 5,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "platform": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "FACEBOOK",
+                                                  "TELEGRAM",
+                                                  "WHATSAPP",
+                                                  "TIKTOK",
+                                                  "MORE"
+                                                ]
+                                              },
+                                              "enabled": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "required": [
+                                              "platform",
+                                              "enabled"
+                                            ],
+                                            "additionalProperties": false
+                                          }
                                         },
                                         "risk_rules": {
                                           "type": "array",
@@ -34900,6 +35341,33 @@
                         "maxItems": 100,
                         "uniqueItems": true
                       },
+                      "social": {
+                        "type": "array",
+                        "maxItems": 5,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "platform": {
+                              "type": "string",
+                              "enum": [
+                                "FACEBOOK",
+                                "TELEGRAM",
+                                "WHATSAPP",
+                                "TIKTOK",
+                                "MORE"
+                              ]
+                            },
+                            "enabled": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "platform",
+                            "enabled"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
                       "risk_rules": {
                         "type": "array",
                         "maxItems": 30,
@@ -35044,6 +35512,239 @@
             }
           }
         }
+      }
+    },
+    "/v1/affiliate/public-presentation": {
+      "get": {
+        "operationId": "get_v1_affiliate_public_presentation",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "visible": {
+                          "type": "boolean"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "currency_scale": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 8
+                        },
+                        "invitee_reward_minor": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                        },
+                        "maximum_reward_minor": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                        },
+                        "maximum_rate_ppm": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "social": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "platform": {
+                                "type": "string",
+                                "enum": [
+                                  "FACEBOOK",
+                                  "TELEGRAM",
+                                  "WHATSAPP",
+                                  "TIKTOK",
+                                  "MORE"
+                                ]
+                              },
+                              "enabled": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "platform",
+                              "enabled"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "feed": {
+                          "type": "object",
+                          "properties": {
+                            "totals": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]{0,37})$"
+                              }
+                            },
+                            "rows": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "member": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "REFERRAL",
+                                      "INVITEE",
+                                      "COMMISSION"
+                                    ]
+                                  },
+                                  "amount_minor": {
+                                    "type": "string",
+                                    "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "claimed_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  }
+                                },
+                                "required": [
+                                  "member",
+                                  "kind",
+                                  "amount_minor",
+                                  "currency",
+                                  "claimed_at"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "minItems": 0
+                            }
+                          },
+                          "required": [
+                            "totals",
+                            "rows"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "visible"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
       }
     }
   },
@@ -39742,6 +40443,33 @@
             "minItems": 1,
             "maxItems": 100,
             "uniqueItems": true
+          },
+          "social": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "properties": {
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "FACEBOOK",
+                    "TELEGRAM",
+                    "WHATSAPP",
+                    "TIKTOK",
+                    "MORE"
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "platform",
+                "enabled"
+              ],
+              "additionalProperties": false
+            }
           },
           "risk_rules": {
             "type": "array",

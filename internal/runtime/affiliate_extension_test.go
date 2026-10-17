@@ -129,7 +129,27 @@ func TestAffiliateCrossSiteConfigurationAuthorization(t *testing.T) {
 		t.Fatal(savedTenant, savedApp, e)
 	}
 	// 原本站配置申请仍走原端口并保留旧行为。
-	call("POST", "/v1/affiliate/config-requests", op, body, 202)
+	ownPending := call("POST", "/v1/affiliate/config-requests", op, body, 202)
+	call("POST", "/v1/approvals/"+ownPending["approval_id"].(string)+"/decisions", checker, map[string]any{"decision": "APPROVE", "expected_revision": 0, "object_hash": ownPending["object_hash"], "reason": "验证公开字段"}, 200)
+	for _, appName := range []string{"own", "target"} {
+		_, e = store.DB.Exec(`INSERT INTO affiliate_business_rewards(tenant_id,app_id,reward_id,user_id,agent_id,kind,status,currency,amount,unlocked_at,claimed_at,revision,body) VALUES(?,?,?,?,?,'REFERRAL','CLAIMED','USD',100,NOW(6),NOW(6),1,'{}')`, tenant, appName, strings.Repeat("1", 64), "1234567890123456", "private-agent")
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
+	public := call("GET", "/v1/affiliate/public-presentation", op, nil, 200)
+	feed := public["feed"].(map[string]any)
+	if feed["totals"].(map[string]any)["USD"] != "100" {
+		t.Fatal("公开汇总跨站串数据", public)
+	}
+	rawPublic, _ := json.Marshal(public)
+	if strings.Contains(string(rawPublic), "1234567890123456") || strings.Contains(string(rawPublic), "private-agent") || strings.Contains(string(rawPublic), "claim_ip") || strings.Contains(string(rawPublic), "risk_rules") {
+		t.Fatal("公开投影泄露内部字段", string(rawPublic))
+	}
+	if !strings.Contains(string(rawPublic), "1234****3456") {
+		t.Fatal("缺少脱敏记录", string(rawPublic))
+	}
+
 	if _, e = store.DB.Exec(`DELETE FROM identity_grants WHERE tenant_id=? AND app_id='target' AND permission='affiliate:manage'`, tenant); e != nil {
 		t.Fatal(e)
 	}
