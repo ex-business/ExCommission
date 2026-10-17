@@ -30,6 +30,14 @@ func (Relations) Close(ctx context.Context, tx db.Executor, s foundation.Scope, 
 	return out, rows.Err()
 }
 func (Relations) Attributions(ctx context.Context, tx db.Executor, s foundation.Scope, facts []affiliate.Fact, start, end time.Time) ([]affiliate.Attribution, error) {
+	return (Relations{}).AttributionsAtDepth(ctx, tx, s, facts, start, end, 3)
+}
+
+// AttributionsAtDepth 仅扩展方案读取更深历史，旧方案仍只依赖原三层关系。
+func (Relations) AttributionsAtDepth(ctx context.Context, tx db.Executor, s foundation.Scope, facts []affiliate.Fact, start, end time.Time, depth int) ([]affiliate.Attribution, error) {
+	if depth < 1 || depth > 64 {
+		return nil, foundation.ErrValidation
+	}
 	rows, e := tx.QueryContext(ctx, `SELECT agent_id,user_id FROM agent_accounts WHERE tenant_id=? AND app_id=?`, s.Tenant, s.App)
 	if e != nil {
 		return nil, e
@@ -59,7 +67,7 @@ func (Relations) Attributions(ctx context.Context, tx db.Executor, s foundation.
 		if !ok {
 			return nil, errors.New("RELATION_HISTORY_MISSING")
 		}
-		chain, _, e := (agents.Repository{}).Ancestors(ctx, tx, s, agent, f.At, 0, 3)
+		chain, _, e := (agents.Repository{}).Ancestors(ctx, tx, s, agent, f.At, 0, depth)
 		if e != nil {
 			return nil, e
 		}
@@ -69,7 +77,12 @@ func (Relations) Attributions(ctx context.Context, tx db.Executor, s foundation.
 			if !ok {
 				return nil, errors.New("RELATION_HISTORY_MISSING")
 			}
-			row.Ancestors[node.Depth-1] = user
+			if node.Depth <= 3 {
+				row.Ancestors[node.Depth-1] = user
+			}
+			if depth != 3 {
+				row.ExtendedAncestors = append(row.ExtendedAncestors, user)
+			}
 		}
 		out = append(out, row)
 	}

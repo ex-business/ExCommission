@@ -22,24 +22,30 @@ func CommissionAmount(v *big.Int, rate int) *big.Int {
 }
 
 type Estimate struct {
-	Level    int       `json:"level"`
-	Currency string    `json:"currency"`
-	Scale    int       `json:"currency_scale"`
-	Rates    [3]int    `json:"rates_ppm"`
-	Amounts  [3]string `json:"layer_commission_minor"`
-	Total    string    `json:"commission_minor"`
+	Layers   []LayerCommission `json:"layers,omitempty"`
+	Next     *GradeGap         `json:"next_level,omitempty"`
+	Level    int               `json:"level"`
+	Currency string            `json:"currency"`
+	Scale    int               `json:"currency_scale"`
+	Rates    [3]int            `json:"rates_ppm"`
+	Amounts  [3]string         `json:"layer_commission_minor"`
+	Total    string            `json:"commission_minor"`
 }
 
+// EstimateCommission 兼容原三层调用；扩展方案必须提交完整层级，禁止悄悄漏算。
 func EstimateCommission(c Config, members int, volumes [3]string) (Estimate, error) {
-	out := Estimate{Currency: c.Currency, Scale: c.CurrencyScale}
+	return EstimateCommissionLayers(c, members, volumes[:])
+}
+func EstimateCommissionLayers(c Config, members int, volumes []string) (Estimate, error) {
+	out := Estimate{Currency: c.Currency, Scale: c.CurrencyScale, Amounts: [3]string{"0", "0", "0"}}
 	if e := c.Normalize(); e != nil {
 		return out, e
 	}
-	if members < 0 || members > 1000000000 {
+	if members < 0 || members > 1000000000 || len(volumes) != c.DepthLimit() {
 		return out, ErrValidation
 	}
 	total := big.NewInt(0)
-	values := [3]*big.Int{}
+	values := make([]*big.Int, len(volumes))
 	for i, v := range volumes {
 		n, e := Money(v, false)
 		if e != nil {
@@ -53,16 +59,44 @@ func EstimateCommission(c Config, members int, volumes [3]string) (Estimate, err
 	}
 	grade := CommissionGrade(c, members, total)
 	out.Level = grade.Number
-	out.Rates = grade.Rates
-	amount := big.NewInt(0)
+	rules := c.LayerRules(grade.Number)
+	sum := big.NewInt(0)
 	for i, v := range values {
-		n := CommissionAmount(v, grade.Rates[i])
-		out.Amounts[i] = n.String()
-		amount.Add(amount, n)
+		n, e := rules[i].Calculate(v, members, i+1)
+		if e != nil {
+			return out, e
+		}
+		if i < 3 {
+			out.Amounts[i] = n.String()
+			out.Rates[i] = rules[i].Rate
+		}
+		out.Layers = append(out.Layers, LayerCommission{Depth: i + 1, Volume: v.String(), Algorithm: rules[i].Algorithm, Rate: rules[i].Rate, Amount: n.String()})
+		sum.Add(sum, n)
 	}
-	if len(amount.String()) > 38 {
+	if len(sum.String()) > 38 {
 		return out, ErrValidation
 	}
-	out.Total = amount.String()
+	out.Total = sum.String()
+	for _, level := range c.Levels {
+		if level.Number > grade.Number {
+			n, _ := Money(level.Turnover, false)
+			missing := new(big.Int).Sub(n, total)
+			if missing.Sign() < 0 {
+				missing.SetInt64(0)
+			}
+			count := level.Members - members
+			if count < 0 {
+				count = 0
+			}
+			out.Next = &GradeGap{Level: level.Number, Members: count, Volume: missing.String()}
+			break
+		}
+	}
 	return out, nil
+}
+
+type GradeGap struct {
+	Level   int    `json:"level"`
+	Members int    `json:"missing_members"`
+	Volume  string `json:"missing_valid_bet_minor"`
 }

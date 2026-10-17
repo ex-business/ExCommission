@@ -135,7 +135,7 @@ func (r AgentReports) Build(ctx context.Context, s foundation.Scope, f model.Age
 		if len(v.Config.RiskRules) > 0 {
 			riskStart = time.Time{}
 		}
-		ownership, e := (Relations{}).Attributions(ctx, tx, s, facts, riskStart, end)
+		ownership, e := (Relations{}).AttributionsAtDepth(ctx, tx, s, facts, riskStart, end, v.Config.DepthLimit())
 		if e != nil {
 			return empty, e
 		}

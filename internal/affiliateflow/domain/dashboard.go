@@ -22,7 +22,7 @@ func TeamDashboardFor(c affiliate.Config, user string, now time.Time, regs []aff
 	period, _ := c.Period(now)
 	front := map[string]bool{user: true}
 	members := map[string]time.Time{}
-	for depth := 0; depth < 3; depth++ {
+	for depth := 0; depth < c.DepthLimit(); depth++ {
 		next := map[string]bool{}
 		for _, r := range regs {
 			if front[r.ParentID] && !r.At.After(now) && r.UserID != user {

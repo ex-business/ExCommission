@@ -163,24 +163,26 @@ type Contribution struct {
 	Amount   string `json:"commission_minor"`
 }
 type DailyCommission struct {
-	RiskDecisions    []RiskDecision `json:"risk_decisions,omitempty"`
-	UserID           string         `json:"user_id"`
-	Day              time.Time      `json:"day"`
-	Level            int            `json:"level"`
-	QualifiedMembers int            `json:"qualified_members"`
-	Turnover         string         `json:"valid_bet_minor"`
-	Amount           string         `json:"commission_minor"`
-	LayerTurnover    [3]string      `json:"layer_valid_bet_minor"`
-	LayerAmounts     [3]string      `json:"layer_commission_minor"`
-	Rates            [3]int         `json:"rates_ppm"`
-	Contributions    []Contribution `json:"contributions"`
+	Layers           []LayerCommission `json:"layers,omitempty"`
+	RiskDecisions    []RiskDecision    `json:"risk_decisions,omitempty"`
+	UserID           string            `json:"user_id"`
+	Day              time.Time         `json:"day"`
+	Level            int               `json:"level"`
+	QualifiedMembers int               `json:"qualified_members"`
+	Turnover         string            `json:"valid_bet_minor"`
+	Amount           string            `json:"commission_minor"`
+	LayerTurnover    [3]string         `json:"layer_valid_bet_minor"`
+	LayerAmounts     [3]string         `json:"layer_commission_minor"`
+	Rates            [3]int            `json:"rates_ppm"`
+	Contributions    []Contribution    `json:"contributions"`
 }
 
 // 日终使用最终等级处理整日业务，物理邀请层级不压缩。
 // Attribution 冻结单笔业务发生时的三层物理祖先；空位后不得再出现代理，不压缩停用或旧模块节点。
 type Attribution struct {
-	FactID    string    `json:"fact_id"`
-	Ancestors [3]string `json:"ancestors"`
+	ExtendedAncestors []string  `json:"extended_ancestors,omitempty"`
+	FactID            string    `json:"fact_id"`
+	Ancestors         [3]string `json:"ancestors"`
 }
 
 func CalculateDay(c Config, user string, day time.Time, regs []Registration, facts []Fact) (DailyCommission, error) {
@@ -208,7 +210,7 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 	}
 	start, end := c.Day(day)
 	period, _ := c.Period(start)
-	out := DailyCommission{UserID: user, Day: start, Turnover: "0", Amount: "0", Contributions: []Contribution{}}
+	out := DailyCommission{LayerTurnover: [3]string{"0", "0", "0"}, LayerAmounts: [3]string{"0", "0", "0"}, UserID: user, Day: start, Turnover: "0", Amount: "0", Contributions: []Contribution{}}
 	byID := map[string]Registration{}
 	children := map[string][]string{}
 	for _, r := range regs {
@@ -268,7 +270,7 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 	}
 	depths := map[string]int{}
 	front := []string{user}
-	for depth := 1; depth <= 3; depth++ {
+	for depth := 1; depth <= c.DepthLimit(); depth++ {
 		next := []string{}
 		for _, parent := range front {
 			for _, id := range children[parent] {
@@ -287,7 +289,7 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		}
 	} else {
 		for _, o := range *ownership {
-			for _, a := range o.Ancestors {
+			for _, a := range o.Chain(c.DepthLimit()) {
 				if a == user {
 					relevant[o.FactID] = true
 				}
@@ -296,9 +298,15 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 	}
 	excluded, decisions := CommissionRisk(c, riskFacts, relevant)
 	out.RiskDecisions = decisions
-	layers := [3]*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0)}
+	layers := make([]*big.Int, c.DepthLimit())
+	for i := range layers {
+		layers[i] = big.NewInt(0)
+	}
 	total := big.NewInt(0)
-	perLayer := [3]map[string]*big.Int{{}, {}, {}}
+	perLayer := make([]map[string]*big.Int, c.DepthLimit())
+	for i := range perLayer {
+		perLayer[i] = map[string]*big.Int{}
+	}
 	for id, depth := range depths {
 		v := big.NewInt(0)
 		for _, f := range grouped[id] {
@@ -312,16 +320,20 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		total.Add(total, v)
 	}
 	if ownership != nil {
-		byFact := map[string][3]string{}
+		byFact := map[string][]string{}
 		for _, o := range *ownership {
 			if _, ok := byFact[o.FactID]; ok {
 				return out, ErrValidation
 			}
-			byFact[o.FactID] = o.Ancestors
+			byFact[o.FactID] = o.Chain(c.DepthLimit())
 		}
-		layers = [3]*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0)}
+		for i := range layers {
+			layers[i] = big.NewInt(0)
+		}
 		total = big.NewInt(0)
-		perLayer = [3]map[string]*big.Int{{}, {}, {}}
+		for i := range perLayer {
+			perLayer[i] = map[string]*big.Int{}
+		}
 		for _, f := range facts {
 			if excluded[f.ID] || f.Kind != "BET_SETTLED" || f.At.Before(start) || !f.At.Before(end) || !c.AllowsVenue(f.VenueID) {
 				continue
@@ -363,13 +375,20 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 	out.Turnover = total.String()
 	grade := CommissionGrade(c, out.QualifiedMembers, total)
 	out.Level = grade.Number
-	out.Rates = grade.Rates
+	rules := c.LayerRules(grade.Number)
 	amount := big.NewInt(0)
 	divisor := big.NewInt(1000000)
 	for i, v := range layers {
-		out.LayerTurnover[i] = v.String()
-		n := CommissionAmount(v, grade.Rates[i])
-		out.LayerAmounts[i] = n.String()
+		n, err := rules[i].Calculate(v, out.QualifiedMembers, i+1)
+		if err != nil {
+			return out, err
+		}
+		if i < 3 {
+			out.LayerTurnover[i] = v.String()
+			out.LayerAmounts[i] = n.String()
+			out.Rates[i] = rules[i].Rate
+		}
+		out.Layers = append(out.Layers, LayerCommission{Depth: i + 1, Volume: v.String(), Algorithm: rules[i].Algorithm, Rate: rules[i].Rate, Amount: n.String()})
 		amount.Add(amount, n)
 	}
 	if len(amount.String()) > 38 {
@@ -377,7 +396,7 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 	}
 	out.Amount = amount.String()
 	// 每层汇总后取整，再按最大余数分配给会员；同余数按会员ID排序，保证明细与应付佣金严格守恒。
-	for depth := 1; depth <= 3; depth++ {
+	for depth := 1; depth <= c.DepthLimit(); depth++ {
 		type share struct {
 			id     string
 			n, rem *big.Int
@@ -385,9 +404,19 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		parts := []share{}
 		floorTotal := big.NewInt(0)
 		for id, value := range perLayer[depth-1] {
-			num := new(big.Int).Mul(value, big.NewInt(int64(grade.Rates[depth-1])))
+			num := new(big.Int).Mul(value, big.NewInt(int64(rules[depth-1].Rate)))
+			denominator := divisor
+			// 非线性规则先计算本层总额，再按有效业务量分摊；固定奖励不按会员重复发放。
+			if rules[depth-1].Algorithm != "PROPORTIONAL" || rules[depth-1].Cap != "" {
+				target, _ := Money(out.Layers[depth-1].Amount, false)
+				num.Mul(value, target)
+				denominator = layers[depth-1]
+				if denominator.Sign() == 0 {
+					denominator = big.NewInt(1)
+				}
+			}
 			n, rem := new(big.Int), new(big.Int)
-			n.QuoRem(num, divisor, rem)
+			n.QuoRem(num, denominator, rem)
 			floorTotal.Add(floorTotal, n)
 			parts = append(parts, share{id, n, rem})
 		}
@@ -398,13 +427,13 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 			}
 			return cmp > 0
 		})
-		target, _ := Money(out.LayerAmounts[depth-1], false)
+		target, _ := Money(out.Layers[depth-1].Amount, false)
 		extra := new(big.Int).Sub(target, floorTotal).Int64()
 		for i, p := range parts {
 			if int64(i) < extra {
 				p.n.Add(p.n, big.NewInt(1))
 			}
-			out.Contributions = append(out.Contributions, Contribution{p.id, depth, perLayer[depth-1][p.id].String(), grade.Rates[depth-1], p.n.String()})
+			out.Contributions = append(out.Contributions, Contribution{p.id, depth, perLayer[depth-1][p.id].String(), rules[depth-1].Rate, p.n.String()})
 		}
 	}
 	sort.Slice(out.Contributions, func(i, j int) bool {
@@ -419,5 +448,20 @@ func calculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		}
 		return cmp > 0
 	})
+	if c.Commission == nil {
+		out.Layers = nil
+	}
 	return out, nil
+}
+
+// Chain 优先使用扩展物理链；旧冻结快照继续读取三层数组，层级不压缩。
+func (a Attribution) Chain(depth int) []string {
+	source := a.ExtendedAncestors
+	if source == nil {
+		source = a.Ancestors[:]
+	}
+	if len(source) > depth {
+		source = source[:depth]
+	}
+	return source
 }

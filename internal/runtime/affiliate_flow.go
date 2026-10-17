@@ -31,7 +31,7 @@ import (
 func affiliateFlowEnabled() bool { return os.Getenv("LOCAL_AFFILIATE_FLOW_ENABLED") == "true" }
 func affiliateFlowService(store *mysql.Store) app.Service {
 	scope := localScope()
-	return app.Service{ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
+	return configureIngestion(store, app.Service{ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
 		config, e := (sitesrepo.Repository{}).At(ctx, tx, sc, at)
 		if e != nil {
 			return e
@@ -51,7 +51,7 @@ func affiliateFlowService(store *mysql.Store) app.Service {
 		return nil
 	}, StepUp: func(ctx context.Context, p principal.Principal, action, key string, payload any) error {
 		return verifyStepUp(store, ctx, p, action, key, payload)
-	}}
+	}})
 }
 func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(string, auth.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, application string) error {
 	if !affiliateFlowEnabled() {
@@ -69,35 +69,42 @@ func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(
 		}
 	}
 	service := affiliateFlowService(store)
-	// 计算器只读已发布配置，输入为扣除风控后的预估业务量，不创建事实、权益或钱包账变。
-	mux.Handle("GET /v1/me/affiliate/calculator", require("member:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
-		if p.MemberUserID == "" {
-			httpapi.Error(w, rid, principal.ErrPermission)
-			return
+	// 后台与会员试算读取同一发布版本；会员身份仍由原权限与本人绑定双重校验。
+	calculator := func(member bool) auth.AuthorizedHandler {
+		return func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
+			if member && p.MemberUserID == "" {
+				httpapi.Error(w, rid, principal.ErrPermission)
+				return
+			}
+			members, e := strconv.Atoi(r.URL.Query().Get("qualified_members"))
+			if e != nil {
+				httpapi.Error(w, rid, foundation.ErrValidation)
+				return
+			}
+			v, e := service.Configs.At(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, clockUTC())
+			if e != nil {
+				httpapi.Error(w, rid, e)
+				return
+			}
+			values := r.URL.Query()["layer_minor"]
+			if len(values) == 0 {
+				values = []string{r.URL.Query().Get("level1_minor"), r.URL.Query().Get("level2_minor"), r.URL.Query().Get("level3_minor")}
+			}
+			estimate, e := calculation.EstimateCommissionLayers(v.Config, members, values)
+			if e != nil {
+				httpapi.Error(w, rid, e)
+				return
+			}
+			out, e := response.Result(200, "affiliate-calculator", rid, map[string]any{"estimate": estimate, "config_revision": v.Revision, "effective_from": v.Effective, "provisional": true})
+			if e != nil {
+				httpapi.Error(w, rid, e)
+				return
+			}
+			httpapi.Write(w, out)
 		}
-		members, e := strconv.Atoi(r.URL.Query().Get("qualified_members"))
-		if e != nil {
-			httpapi.Error(w, rid, foundation.ErrValidation)
-			return
-		}
-		v, e := service.Configs.At(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, clockUTC())
-		if e != nil {
-			httpapi.Error(w, rid, e)
-			return
-		}
-		values := [3]string{r.URL.Query().Get("level1_minor"), r.URL.Query().Get("level2_minor"), r.URL.Query().Get("level3_minor")}
-		estimate, e := calculation.EstimateCommission(v.Config, members, values)
-		if e != nil {
-			httpapi.Error(w, rid, e)
-			return
-		}
-		out, e := response.Result(200, "affiliate-calculator", rid, map[string]any{"estimate": estimate, "config_revision": v.Revision, "provisional": true})
-		if e != nil {
-			httpapi.Error(w, rid, e)
-			return
-		}
-		httpapi.Write(w, out)
-	}))
+	}
+	mux.Handle("GET /v1/me/affiliate/calculator", require("member:read", calculator(true)))
+	mux.Handle("GET /v1/affiliate/calculator", require("affiliate:read", calculator(false)))
 	mux.Handle("POST /v1/affiliate/business-facts", require("affiliate:ingest", func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
 		raw, e := io.ReadAll(http.MaxBytesReader(w, r.Body, 16384))
 		if e != nil {

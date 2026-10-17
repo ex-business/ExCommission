@@ -162,16 +162,16 @@ func OpsPermissions(roles []string) []string {
 		if role != "viewer" && role != "applicant" && role != "approver" {
 			continue
 		}
-		for _, v := range strings.Fields("affiliate:read agents:read agents:directory workflow:read site:read plans:read users:read milestones:read statements:read payments:read refunds:read events:read tasks:read ledger:read reports:read risk:read audit:read platform:read") {
+		for _, v := range strings.Fields("ingestion:read affiliate:read agents:read agents:directory workflow:read site:read plans:read users:read milestones:read statements:read payments:read refunds:read events:read tasks:read ledger:read reports:read risk:read audit:read platform:read") {
 			grants[v] = true
 		}
 		if role == "applicant" {
-			for _, v := range strings.Fields("affiliate:configure affiliate:manage affiliate:export agents:sensitive:read agents:write agents:status:request relations:request grades:request grades:evaluate site:request plans:write plans:simulate users:sync users:statistics milestones:request milestones:write statements:write payments:write payments:verify payments:reconcile refunds:write events:write tasks:recover recoveries:request adjustments:request reports:read reports:export reports:download risk:write risk:release:request security:handle platform:request workflow:cancel workflow:decide") {
+			for _, v := range strings.Fields("ingestion:configure affiliate:configure affiliate:manage affiliate:export agents:sensitive:read agents:write agents:status:request relations:request grades:request grades:evaluate site:request plans:write plans:simulate users:sync users:statistics milestones:request milestones:write statements:write payments:write payments:verify payments:reconcile refunds:write events:write tasks:recover recoveries:request adjustments:request reports:read reports:export reports:download risk:write risk:release:request security:handle platform:request workflow:cancel workflow:decide") {
 				grants[v] = true
 			}
 		}
 		if role == "approver" {
-			for _, v := range strings.Fields("affiliate:approve affiliate:review affiliate:export agents:sensitive:read workflow:decide agents:status:approve relations:approve site:approve plans:approve milestones:approve statements:approve recoveries:approve adjustments:approve risk:approve platform:approve workflow:cancel workflow:recover") {
+			for _, v := range strings.Fields("ingestion:approve affiliate:approve affiliate:review affiliate:export agents:sensitive:read workflow:decide agents:status:approve relations:approve site:approve plans:approve milestones:approve statements:approve recoveries:approve adjustments:approve risk:approve platform:approve workflow:cancel workflow:recover") {
 				grants[v] = true
 			}
 		}

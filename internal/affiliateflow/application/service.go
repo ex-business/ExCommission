@@ -3,7 +3,9 @@ package application
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	affiliate "github.com/ex-business/ExCommission/internal/affiliate/domain"
@@ -19,6 +21,13 @@ import (
 )
 
 type Service struct {
+	// 可配置来源仅扩展独立适配器，旧sandbox仍按原签名和幂等结构处理。
+	WatermarkGuard  func(context.Context, db.Executor, principal.Principal, []byte, string, model.Watermark) error
+	ResolveSource   func(context.Context, principal.Principal, string) (ports.Source, error)
+	SourceGuard     func(context.Context, db.Executor, principal.Principal, []byte, string, model.Event) error
+	SourceReceipt   func(context.Context, db.Executor, foundation.Scope, model.Event, []byte, bool, bool, time.Time) error
+	RequiredSources func(context.Context, db.Executor, foundation.Scope, time.Time, time.Time) ([]string, error)
+
 	Relations         ports.Relations
 	ClaimContextReady bool
 	CanRewardAt       func(context.Context, db.Executor, foundation.Scope, time.Time) error
@@ -93,6 +102,14 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
 	source := s.Sources[selector.Source]
+	custom := source == nil && s.ResolveSource != nil
+	if custom {
+		var err error
+		source, err = s.ResolveSource(ctx, p, selector.Source)
+		if err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
 	if source == nil {
 		return foundation.CommandResult{}, errors.New("PERMISSION_DENIED")
 	}
@@ -107,9 +124,22 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 	}
 	accepted := false
 	late := false
-	out, e := s.Commands.Execute(ctx, sc, "affiliate-business-fact", key, event, func(tx db.Executor) (foundation.CommandResult, error) {
+	var payload any = event
+	if custom {
+		sum := sha256.Sum256(raw)
+		payload = struct {
+			Event  model.Event `json:"event"`
+			Digest string      `json:"raw_digest"`
+		}{event, hex.EncodeToString(sum[:])}
+	}
+	out, e := s.Commands.Execute(ctx, sc, "affiliate-business-fact", key, payload, func(tx db.Executor) (foundation.CommandResult, error) {
 		if e := s.Authorize(ctx, tx, p, "affiliate:ingest"); e != nil {
 			return foundation.CommandResult{}, e
+		}
+		if custom && s.SourceGuard != nil {
+			if e := s.SourceGuard(ctx, tx, p, raw, signature, event); e != nil {
+				return foundation.CommandResult{}, e
+			}
 		}
 		if e := s.Repo.Lock(ctx, tx, sc); e != nil {
 			return foundation.CommandResult{}, e
@@ -175,6 +205,11 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 						return foundation.CommandResult{}, e
 					}
 				}
+			}
+		}
+		if custom && s.SourceReceipt != nil {
+			if e := s.SourceReceipt(ctx, tx, sc, event, raw, accepted, late, now); e != nil {
+				return foundation.CommandResult{}, e
 			}
 		}
 		return response.Result(200, event.EventID, rid, map[string]any{"event_id": event.EventID, "business_id": event.BusinessID, "accepted": accepted && !late, "late_adjustment": late, "user_id": member.UserID})

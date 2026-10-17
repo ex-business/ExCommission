@@ -24,7 +24,16 @@ func (s Service) ReceiveWatermark(ctx context.Context, p principal.Principal, ra
 	if json.Unmarshal(raw, &selector) != nil {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
-	source, ok := s.Sources[selector.Source].(ports.WatermarkSource)
+	candidate := s.Sources[selector.Source]
+	custom := candidate == nil && s.ResolveSource != nil
+	if candidate == nil && s.ResolveSource != nil {
+		var err error
+		candidate, err = s.ResolveSource(ctx, p, selector.Source)
+		if err != nil {
+			return foundation.CommandResult{}, err
+		}
+	}
+	source, ok := candidate.(ports.WatermarkSource)
 	if !ok {
 		return foundation.CommandResult{}, principal.ErrPermission
 	}
@@ -46,6 +55,11 @@ func (s Service) ReceiveWatermark(ctx context.Context, p principal.Principal, ra
 	out, e := s.Commands.Execute(ctx, sc, "affiliate-source-watermark", key, m, func(tx db.Executor) (foundation.CommandResult, error) {
 		if e := s.Authorize(ctx, tx, p, "affiliate:ingest"); e != nil {
 			return foundation.CommandResult{}, e
+		}
+		if custom && s.WatermarkGuard != nil {
+			if e := s.WatermarkGuard(ctx, tx, p, raw, signature, m); e != nil {
+				return foundation.CommandResult{}, e
+			}
 		}
 		if e := s.Repo.Lock(ctx, tx, sc); e != nil {
 			return foundation.CommandResult{}, e
@@ -105,14 +119,6 @@ func (s Service) freeze(ctx context.Context, sc foundation.Scope, day string) er
 		for _, m := range marks {
 			complete[m.Source] = true
 		}
-		for source := range s.Sources {
-			if !complete[source] {
-				return foundation.CommandResult{}, errSourcesIncomplete
-			}
-		}
-		if len(s.Sources) == 0 {
-			return foundation.CommandResult{}, errSourcesIncomplete
-		}
 		now := s.Now().UTC().Truncate(time.Microsecond)
 		current, e := s.Configs.At(ctx, tx, sc, now)
 		if e != nil {
@@ -125,6 +131,28 @@ func (s Service) freeze(ctx context.Context, sc foundation.Scope, day string) er
 		_, end := current.Config.Day(date)
 		if end.After(now) {
 			return foundation.CommandResult{}, errSourcesIncomplete
+		}
+		required := map[string]bool{}
+		for source := range s.Sources {
+			required[source] = true
+		}
+		if s.RequiredSources != nil {
+			start, end := current.Config.Day(date)
+			ids, err := s.RequiredSources(ctx, tx, sc, start, end)
+			if err != nil {
+				return foundation.CommandResult{}, err
+			}
+			for _, source := range ids {
+				required[source] = true
+			}
+		}
+		if len(required) == 0 {
+			return foundation.CommandResult{}, errSourcesIncomplete
+		}
+		for source := range required {
+			if !complete[source] {
+				return foundation.CommandResult{}, errSourcesIncomplete
+			}
 		}
 		// 业务日最终版本在关账时冻结；后续配置变更不能重算已冻结日期的等级、费率或归属。
 		version, e := s.Configs.At(ctx, tx, sc, end.Add(-time.Microsecond))
@@ -171,7 +199,7 @@ func (s Service) freeze(ctx context.Context, sc foundation.Scope, day string) er
 				if len(version.Config.RiskRules) > 0 {
 					start = time.Time{}
 				}
-				ownership, err := s.Relations.Attributions(ctx, tx, sc, facts, start, end)
+				ownership, err := s.attributions(ctx, tx, sc, facts, start, end, version.Config.DepthLimit())
 				if err != nil {
 					return foundation.CommandResult{}, err
 				}

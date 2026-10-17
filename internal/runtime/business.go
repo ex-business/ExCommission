@@ -196,6 +196,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err := installSites(ctx, mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}
+	if err := installIngestion(ctx, mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
 	if err := installAffiliateFlow(ctx, mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}

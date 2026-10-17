@@ -125,7 +125,7 @@ func (s Service) Overview(ctx context.Context, p principal.Principal) (Overview,
 		if len(v.Config.RiskRules) > 0 {
 			start = time.Time{}
 		}
-		ownership, err := s.Relations.Attributions(ctx, s.Query, sc, facts, start, end)
+		ownership, err := s.attributions(ctx, s.Query, sc, facts, start, end, v.Config.DepthLimit())
 		if err != nil {
 			return out, err
 		}

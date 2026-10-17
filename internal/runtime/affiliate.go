@@ -76,6 +76,25 @@ func installAffiliate(ctx context.Context, mux *http.ServeMux, require func(stri
 		out, _ := response.Result(200, a.ID, rid, map[string]any{"approval_id": a.ID, "object_hash": a.ObjectHash, "revision": a.Revision, "approval_status": a.Status, "execution_status": a.Execution, "applicant_id": a.Applicant, "change": in})
 		httpapi.Write(w, out)
 	}))
+	// 预检沿用本站配置权限，只返回切换策略，不发布配置、不兑换或迁移历史资金。
+	mux.Handle("POST /v1/affiliate/config-preview", require("affiliate:configure", func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
+		var in model.Change
+		if e := httpapi.Decode(w, r, &in); e != nil {
+			httpapi.Error(w, rid, e)
+			return
+		}
+		data, e := service.Preview(r.Context(), foundation.Scope{Tenant: p.Tenant, App: p.App}, in)
+		if e != nil {
+			httpapi.Error(w, rid, e)
+			return
+		}
+		out, e := response.Result(200, "affiliate-config-preview", rid, data)
+		if e != nil {
+			httpapi.Error(w, rid, e)
+			return
+		}
+		httpapi.Write(w, out)
+	}))
 	mux.Handle("POST /v1/affiliate/config-requests", require("affiliate:configure", func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
 		var in model.Change
 		if e := httpapi.Decode(w, r, &in); e != nil {

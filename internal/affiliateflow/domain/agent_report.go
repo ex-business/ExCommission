@@ -181,7 +181,7 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 			}
 		}
 		front := []string{m.UserID}
-		for depth := 1; depth <= 3; depth++ {
+		for depth := 1; depth <= v.Config.DepthLimit(); depth++ {
 			next := []string{}
 			for _, parent := range front {
 				for _, child := range byParent[parent] {

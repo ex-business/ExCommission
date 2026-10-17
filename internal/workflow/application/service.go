@@ -149,6 +149,8 @@ func ApprovalPermission(kind string) string {
 		return "identity:approve"
 	case "MILESTONE_PROGRAM":
 		return "milestones:approve"
+	case "INGESTION_CONFIG":
+		return "ingestion:approve"
 	case "AFFILIATE_CONFIG":
 		return "affiliate:approve"
 	case "SITE_AGENT_CONFIG":

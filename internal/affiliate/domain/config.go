@@ -44,21 +44,22 @@ type Social struct {
 	Enabled  bool   `json:"enabled"`
 }
 type Config struct {
-	Social            []Social   `json:"social,omitempty"`
-	Extension         *Extension `json:"extension,omitempty"`
-	RiskRules         []RiskRule `json:"risk_rules,omitempty"`
-	Enabled           bool       `json:"enabled"`
-	Currency          string     `json:"currency"`
-	CurrencyScale     int        `json:"currency_scale"`
-	Timezone          string     `json:"timezone"`
-	GradePeriod       string     `json:"grade_period"`
-	GradeCondition    Threshold  `json:"grade_condition"`
-	ReferralCondition Threshold  `json:"referral_condition"`
-	InviteeCondition  Threshold  `json:"invitee_condition"`
-	InviteeReward     string     `json:"invitee_reward_minor"`
-	Levels            []Level    `json:"levels"`
-	Steps             []Step     `json:"steps"`
-	VenueIDs          []string   `json:"venue_type_ids"`
+	Commission        *CommissionPolicy `json:"commission_policy,omitempty"`
+	Social            []Social          `json:"social,omitempty"`
+	Extension         *Extension        `json:"extension,omitempty"`
+	RiskRules         []RiskRule        `json:"risk_rules,omitempty"`
+	Enabled           bool              `json:"enabled"`
+	Currency          string            `json:"currency"`
+	CurrencyScale     int               `json:"currency_scale"`
+	Timezone          string            `json:"timezone"`
+	GradePeriod       string            `json:"grade_period"`
+	GradeCondition    Threshold         `json:"grade_condition"`
+	ReferralCondition Threshold         `json:"referral_condition"`
+	InviteeCondition  Threshold         `json:"invitee_condition"`
+	InviteeReward     string            `json:"invitee_reward_minor"`
+	Levels            []Level           `json:"levels"`
+	Steps             []Step            `json:"steps"`
+	VenueIDs          []string          `json:"venue_type_ids"`
 }
 
 func Money(v string, positive bool) (*big.Int, error) {
@@ -98,6 +99,11 @@ func (c Config) Limits() (int, int) {
 	return 100, 100
 }
 func (c *Config) Normalize() error {
+	if c.Commission != nil {
+		if e := c.Commission.Validate(c.Levels); e != nil {
+			return e
+		}
+	}
 	// 社媒按站点审批发布，只接受已实现的分享平台，防止配置任意脚本或外链。
 	platforms := map[string]bool{}
 	if len(c.Social) > 5 {
