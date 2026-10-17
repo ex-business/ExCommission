@@ -211,6 +211,8 @@ func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(
 		}
 		httpapi.Write(w, out)
 	}))
+	installAffiliateSiteConfig(mux, require, store)
+	installAffiliatePresentation(mux, require, store, service)
 	installAffiliateRecords(mux, require, store, service)
 	installAffiliateAgentReports(mux, require, store)
 	return nil

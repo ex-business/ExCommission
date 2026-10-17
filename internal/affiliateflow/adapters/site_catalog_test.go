@@ -33,3 +33,29 @@ func TestSiteCatalogExplicitOwnerAndPrivateFile(t *testing.T) {
 		t.Fatal("公开可读授权文件未拒绝")
 	}
 }
+
+func TestSiteCatalogReadDoesNotGrantWrite(t *testing.T) {
+	p := principal.Principal{Tenant: "one", App: "app", Subject: "operator"}
+	file := filepath.Join(t.TempDir(), "access.json")
+	body := `[{"owner_tenant_id":"one","owner_app_id":"app","subject_id":"operator","targets":[{"tenant_id":"readonly","app_id":"app"}],"writable_targets":[{"tenant_id":"writable","app_id":"app"}]}]`
+	if e := os.WriteFile(file, []byte(body), 0600); e != nil {
+		t.Fatal(e)
+	}
+	c := SiteCatalog{AccessFile: file}
+	for _, target := range []SiteTarget{{"one", "app"}, {"readonly", "app"}, {"writable", "app"}, {"unknown", "app"}} {
+		allowed, e := c.Writable(p, target)
+		want := target.Tenant == "one" || target.Tenant == "writable"
+		if e != nil || allowed != want {
+			t.Fatal(target, allowed, e)
+		}
+	}
+	targets, e := c.Targets(p)
+	if e != nil || len(targets) != 3 {
+		t.Fatal(targets, e)
+	}
+	p.Subject = "other"
+	allowed, e := c.Writable(p, SiteTarget{"writable", "app"})
+	if e != nil || allowed {
+		t.Fatal("同站其他主体不得继承写权限", allowed, e)
+	}
+}

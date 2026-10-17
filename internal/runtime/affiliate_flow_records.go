@@ -66,6 +66,15 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 		filtered := []repo.SiteConfiguration{}
 		search := r.URL.Query().Get("search")
 		for _, row := range rows {
+			target := p
+			target.Tenant = row.Tenant
+			target.App = row.App
+			allowed, err := (repo.SiteCatalog{AccessFile: os.Getenv("AFFILIATE_SITE_ACCESS_FILE")}).Writable(p, row.SiteTarget)
+			if err != nil {
+				httpapi.Error(w, rid, err)
+				return
+			}
+			row.Writable = allowed && identity.Authorize(r.Context(), store.DB, target, row.Tenant, row.App, "affiliate:manage") == nil && identity.Authorize(r.Context(), store.DB, target, row.Tenant, row.App, "affiliate:configure") == nil
 			if search == "" || strings.Contains(row.Tenant, search) || strings.Contains(row.App, search) {
 				filtered = append(filtered, row)
 			}

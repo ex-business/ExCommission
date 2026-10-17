@@ -31,7 +31,16 @@ type Venue struct {
 	Name    string `json:"name"`
 	IconURL string `json:"icon_url"`
 }
+
+// Extension 保留旧配置缺省语义；新模式需随配置审批显式启用，不追改历史权益。
+type Extension struct {
+	DisabledEntry string `json:"disabled_entry"`
+	EditableSteps bool   `json:"editable_steps"`
+	MaxLevels     int    `json:"max_levels"`
+	MaxSteps      int    `json:"max_steps"`
+}
 type Config struct {
+	Extension         *Extension `json:"extension,omitempty"`
 	RiskRules         []RiskRule `json:"risk_rules,omitempty"`
 	Enabled           bool       `json:"enabled"`
 	Currency          string     `json:"currency"`
@@ -69,7 +78,28 @@ func (t Threshold) Validate() error {
 	_, e := Money(t.Turnover, true)
 	return e
 }
+func (c Config) Limits() (int, int) {
+	if c.Extension != nil {
+		levels, steps := c.Extension.MaxLevels, c.Extension.MaxSteps
+		// 0表示不设业务数量上限；HTTP请求体和金额范围仍受既有边界保护，旧配置保持100项。
+		if levels == 0 {
+			levels = int(^uint(0) >> 1)
+		}
+		if steps == 0 {
+			steps = int(^uint(0) >> 1)
+		}
+		return levels, steps
+	}
+	return 100, 100
+}
 func (c *Config) Normalize() error {
+	if c.Extension != nil {
+		x := c.Extension
+		if (x.DisabledEntry != "HIDE" && x.DisabledEntry != "PAUSE") || x.MaxLevels < 0 || x.MaxLevels > 10000 || x.MaxSteps < 0 || x.MaxSteps > 10000 {
+			return ErrValidation
+		}
+	}
+	maxLevels, maxSteps := c.Limits()
 	if len(c.RiskRules) > 30 {
 		return ErrValidation
 	}
@@ -100,7 +130,7 @@ func (c *Config) Normalize() error {
 	if _, e := Money(c.InviteeReward, true); e != nil {
 		return e
 	}
-	if len(c.Levels) == 0 || len(c.Levels) > 100 || len(c.Steps) == 0 || len(c.Steps) > 100 || len(c.VenueIDs) == 0 || len(c.VenueIDs) > 100 {
+	if len(c.Levels) == 0 || len(c.Levels) > maxLevels || len(c.Steps) == 0 || len(c.Steps) > maxSteps || len(c.VenueIDs) == 0 || len(c.VenueIDs) > 100 {
 		return ErrValidation
 	}
 	lastMembers := -1
@@ -150,12 +180,12 @@ func (c Config) ValidateChange(old Config) error {
 	if c.GradePeriod != old.GradePeriod || c.Timezone != old.Timezone || c.Currency != old.Currency || c.CurrencyScale != old.CurrencyScale {
 		return errors.New("IMMUTABLE_AFFILIATE_CONFIG")
 	}
-	// Existing reward identities cannot be re-used with different thresholds or amounts.
+	// 默认禁止改写阶梯；显式版本编辑模式仅更新未解锁规则，已有权益由历史快照保持。
 	if len(c.Steps) < len(old.Steps) {
 		return errors.New("IMMUTABLE_REWARD_STEPS")
 	}
 	for i, v := range old.Steps {
-		if c.Steps[i] != v {
+		if c.Steps[i] != v && (c.Extension == nil || !c.Extension.EditableSteps) {
 			return errors.New("IMMUTABLE_REWARD_STEPS")
 		}
 	}

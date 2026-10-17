@@ -64,3 +64,34 @@ func TestThreeConditionsLifetimeInviteeAndIncrementalReferral(t *testing.T) {
 		t.Fatal("恢复追补了关闭前事实", p, none, e)
 	}
 }
+
+func TestEditableStepsKeepUnlockedMoneyAndMembership(t *testing.T) {
+	at := time.Date(2026, 10, 17, 0, 0, 0, 0, time.UTC)
+	v := profile(at)
+	root := Member{UserID: "root", AgentID: "a-root", RegisteredAt: at}
+	child := Member{UserID: "child", AgentID: "a-child", ParentUser: "root", RegisteredAt: at}
+	gate := Gate{Enabled: true, Since: at}
+	prior := Reward{ID: ID(Referral, "root", stringStep(1)), Kind: Referral, Step: 1, UserID: "root", Amount: "100", Original: "100", Members: []string{"child"}, UnlockedAt: at.Add(time.Minute), Status: "CLAIMED"}
+	v.Revision = 2
+	v.Config.Extension = &affiliate.Extension{DisabledEntry: "HIDE", EditableSteps: true, MaxLevels: 100, MaxSteps: 100}
+	v.Config.Steps[0].Members = 2
+	v.Config.Steps[0].Amount = "900"
+	progress, created, e := Evaluate(v, root, []Member{root, child}, nil, gate, []Reward{prior}, at.Add(time.Hour))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(created) != 0 || progress.Steps[0].Amount != "100" || progress.Steps[0].Members[0] != "child" || progress.Steps[0].Completed != 1 || progress.Steps[1].Completed != 0 {
+		t.Fatal("历史权益被改写或重复占用", progress, created)
+	}
+	// 再次关闭编辑开关也不能使旧人数权益读取失败；开关只控制未来配置变更。
+	v.Config.Extension.EditableSteps = false
+	preserved, duplicate, err := Evaluate(v, root, []Member{root, child}, nil, gate, []Reward{prior}, at.Add(2*time.Hour))
+	if err != nil || len(duplicate) != 0 || preserved.Steps[0].Amount != "100" || len(preserved.Steps[0].Members) != 1 {
+		t.Fatal("关闭编辑影响历史权益", preserved, duplicate, err)
+	}
+	// 未解锁会员采用新阶梯，不继承别人的历史权益。
+	fresh, created, e := Evaluate(v, root, []Member{root, child}, nil, gate, nil, at.Add(time.Hour))
+	if e != nil || len(created) != 0 || fresh.Steps[0].Members != nil && len(fresh.Steps[0].Members) != 0 {
+		t.Fatal(fresh, created, e)
+	}
+}

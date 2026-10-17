@@ -12,6 +12,16 @@ import (
 
 type Repository struct{}
 
+func DefaultVenues() []model.Venue {
+	out := []model.Venue{}
+	for _, v := range []model.Venue{{ID: "SPORTS", Name: "体育"}, {ID: "ESPORTS", Name: "电竞"}, {ID: "LIVE", Name: "真人"}, {ID: "LOTTERY", Name: "彩票"}, {ID: "POKER", Name: "棋牌"}, {ID: "SLOTS", Name: "电子"}, {ID: "FISHING", Name: "捕鱼"}} {
+		icons := map[string]string{"SPORTS": "sports", "ESPORTS": "esports", "LIVE": "live", "LOTTERY": "lottery", "POKER": "poker", "SLOTS": "slots", "FISHING": "fishing"}
+		v.IconURL = "/venue-icons/" + icons[v.ID] + ".svg"
+		out = append(out, v)
+	}
+	return out
+}
+
 func (Repository) Ensure(ctx context.Context, tx db.Executor, s foundation.Scope) error {
 	if !s.Valid() {
 		return foundation.ErrValidation
@@ -20,9 +30,7 @@ func (Repository) Ensure(ctx context.Context, tx db.Executor, s foundation.Scope
 		return e
 	}
 	// 场馆使用真实业务分类，图标采用同源分类素材；不把交易产品代码当作游戏类型。
-	for _, v := range []model.Venue{{ID: "SPORTS", Name: "体育"}, {ID: "ESPORTS", Name: "电竞"}, {ID: "LIVE", Name: "真人"}, {ID: "LOTTERY", Name: "彩票"}, {ID: "POKER", Name: "棋牌"}, {ID: "SLOTS", Name: "电子"}, {ID: "FISHING", Name: "捕鱼"}} {
-		icons := map[string]string{"SPORTS": "sports", "ESPORTS": "esports", "LIVE": "live", "LOTTERY": "lottery", "POKER": "poker", "SLOTS": "slots", "FISHING": "fishing"}
-		v.IconURL = "/venue-icons/" + icons[v.ID] + ".svg"
+	for _, v := range DefaultVenues() {
 		if _, e := tx.ExecContext(ctx, `INSERT IGNORE INTO affiliate_venue_types VALUES(?,?,?,?,?)`, s.Tenant, s.App, v.ID, v.Name, v.IconURL); e != nil {
 			return e
 		}
@@ -68,6 +76,9 @@ func (Repository) Configuration(ctx context.Context, tx db.Executor, s foundatio
 	return out, nil
 }
 func (Repository) Venues(ctx context.Context, tx db.Executor, s foundation.Scope) ([]model.Venue, error) {
+	if venues, configured, e := externalVenues(s); e != nil || configured {
+		return venues, e
+	}
 	rows, e := tx.QueryContext(ctx, `SELECT venue_type_id,name,icon_url FROM affiliate_venue_types WHERE tenant_id=? AND app_id=? ORDER BY venue_type_id`, s.Tenant, s.App)
 	if e != nil {
 		return nil, e

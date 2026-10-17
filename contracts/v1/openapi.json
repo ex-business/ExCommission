@@ -24586,8 +24586,7 @@
                                         "properties": {
                                           "level": {
                                             "type": "integer",
-                                            "minimum": 0,
-                                            "maximum": 99
+                                            "minimum": 0
                                           },
                                           "qualified_members": {
                                             "type": "integer",
@@ -24617,8 +24616,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "steps": {
                                       "type": "array",
@@ -24627,8 +24625,7 @@
                                         "properties": {
                                           "step": {
                                             "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 100
+                                            "minimum": 1
                                           },
                                           "additional_members": {
                                             "type": "integer",
@@ -24647,8 +24644,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "venue_type_ids": {
                                       "type": "array",
@@ -24735,6 +24731,38 @@
                                         ],
                                         "additionalProperties": false
                                       }
+                                    },
+                                    "extension": {
+                                      "type": "object",
+                                      "properties": {
+                                        "disabled_entry": {
+                                          "type": "string",
+                                          "enum": [
+                                            "HIDE",
+                                            "PAUSE"
+                                          ]
+                                        },
+                                        "editable_steps": {
+                                          "type": "boolean"
+                                        },
+                                        "max_levels": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        },
+                                        "max_steps": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        }
+                                      },
+                                      "required": [
+                                        "disabled_entry",
+                                        "editable_steps",
+                                        "max_levels",
+                                        "max_steps"
+                                      ],
+                                      "additionalProperties": false
                                     }
                                   },
                                   "required": [
@@ -24881,8 +24909,7 @@
                                         "properties": {
                                           "level": {
                                             "type": "integer",
-                                            "minimum": 0,
-                                            "maximum": 99
+                                            "minimum": 0
                                           },
                                           "qualified_members": {
                                             "type": "integer",
@@ -24912,8 +24939,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "steps": {
                                       "type": "array",
@@ -24922,8 +24948,7 @@
                                         "properties": {
                                           "step": {
                                             "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 100
+                                            "minimum": 1
                                           },
                                           "additional_members": {
                                             "type": "integer",
@@ -24942,8 +24967,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "venue_type_ids": {
                                       "type": "array",
@@ -25030,6 +25054,38 @@
                                         ],
                                         "additionalProperties": false
                                       }
+                                    },
+                                    "extension": {
+                                      "type": "object",
+                                      "properties": {
+                                        "disabled_entry": {
+                                          "type": "string",
+                                          "enum": [
+                                            "HIDE",
+                                            "PAUSE"
+                                          ]
+                                        },
+                                        "editable_steps": {
+                                          "type": "boolean"
+                                        },
+                                        "max_levels": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        },
+                                        "max_steps": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        }
+                                      },
+                                      "required": [
+                                        "disabled_entry",
+                                        "editable_steps",
+                                        "max_levels",
+                                        "max_steps"
+                                      ],
+                                      "additionalProperties": false
                                     }
                                   },
                                   "required": [
@@ -25493,8 +25549,7 @@
                           "properties": {
                             "level": {
                               "type": "integer",
-                              "minimum": 0,
-                              "maximum": 99
+                              "minimum": 0
                             },
                             "qualified_members": {
                               "type": "integer",
@@ -25524,8 +25579,7 @@
                           ],
                           "additionalProperties": false
                         },
-                        "minItems": 1,
-                        "maxItems": 100
+                        "minItems": 1
                       },
                       "steps": {
                         "type": "array",
@@ -25534,8 +25588,7 @@
                           "properties": {
                             "step": {
                               "type": "integer",
-                              "minimum": 1,
-                              "maximum": 100
+                              "minimum": 1
                             },
                             "additional_members": {
                               "type": "integer",
@@ -25554,8 +25607,7 @@
                           ],
                           "additionalProperties": false
                         },
-                        "minItems": 1,
-                        "maxItems": 100
+                        "minItems": 1
                       },
                       "venue_type_ids": {
                         "type": "array",
@@ -25642,6 +25694,38 @@
                           ],
                           "additionalProperties": false
                         }
+                      },
+                      "extension": {
+                        "type": "object",
+                        "properties": {
+                          "disabled_entry": {
+                            "type": "string",
+                            "enum": [
+                              "HIDE",
+                              "PAUSE"
+                            ]
+                          },
+                          "editable_steps": {
+                            "type": "boolean"
+                          },
+                          "max_levels": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "max_steps": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          }
+                        },
+                        "required": [
+                          "disabled_entry",
+                          "editable_steps",
+                          "max_levels",
+                          "max_steps"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [
@@ -25903,8 +25987,7 @@
                                     "properties": {
                                       "level": {
                                         "type": "integer",
-                                        "minimum": 0,
-                                        "maximum": 99
+                                        "minimum": 0
                                       },
                                       "qualified_members": {
                                         "type": "integer",
@@ -25934,8 +26017,7 @@
                                     ],
                                     "additionalProperties": false
                                   },
-                                  "minItems": 1,
-                                  "maxItems": 100
+                                  "minItems": 1
                                 },
                                 "steps": {
                                   "type": "array",
@@ -25944,8 +26026,7 @@
                                     "properties": {
                                       "step": {
                                         "type": "integer",
-                                        "minimum": 1,
-                                        "maximum": 100
+                                        "minimum": 1
                                       },
                                       "additional_members": {
                                         "type": "integer",
@@ -25964,8 +26045,7 @@
                                     ],
                                     "additionalProperties": false
                                   },
-                                  "minItems": 1,
-                                  "maxItems": 100
+                                  "minItems": 1
                                 },
                                 "venue_type_ids": {
                                   "type": "array",
@@ -26052,6 +26132,38 @@
                                     ],
                                     "additionalProperties": false
                                   }
+                                },
+                                "extension": {
+                                  "type": "object",
+                                  "properties": {
+                                    "disabled_entry": {
+                                      "type": "string",
+                                      "enum": [
+                                        "HIDE",
+                                        "PAUSE"
+                                      ]
+                                    },
+                                    "editable_steps": {
+                                      "type": "boolean"
+                                    },
+                                    "max_levels": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 10000
+                                    },
+                                    "max_steps": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 10000
+                                    }
+                                  },
+                                  "required": [
+                                    "disabled_entry",
+                                    "editable_steps",
+                                    "max_levels",
+                                    "max_steps"
+                                  ],
+                                  "additionalProperties": false
                                 }
                               },
                               "required": [
@@ -26799,8 +26911,7 @@
                                         "properties": {
                                           "level": {
                                             "type": "integer",
-                                            "minimum": 0,
-                                            "maximum": 99
+                                            "minimum": 0
                                           },
                                           "qualified_members": {
                                             "type": "integer",
@@ -26830,8 +26941,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "steps": {
                                       "type": "array",
@@ -26840,8 +26950,7 @@
                                         "properties": {
                                           "step": {
                                             "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 100
+                                            "minimum": 1
                                           },
                                           "additional_members": {
                                             "type": "integer",
@@ -26860,8 +26969,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "venue_type_ids": {
                                       "type": "array",
@@ -26948,6 +27056,38 @@
                                         ],
                                         "additionalProperties": false
                                       }
+                                    },
+                                    "extension": {
+                                      "type": "object",
+                                      "properties": {
+                                        "disabled_entry": {
+                                          "type": "string",
+                                          "enum": [
+                                            "HIDE",
+                                            "PAUSE"
+                                          ]
+                                        },
+                                        "editable_steps": {
+                                          "type": "boolean"
+                                        },
+                                        "max_levels": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        },
+                                        "max_steps": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        }
+                                      },
+                                      "required": [
+                                        "disabled_entry",
+                                        "editable_steps",
+                                        "max_levels",
+                                        "max_steps"
+                                      ],
+                                      "additionalProperties": false
                                     }
                                   },
                                   "required": [
@@ -29171,8 +29311,7 @@
                                     "properties": {
                                       "level": {
                                         "type": "integer",
-                                        "minimum": 0,
-                                        "maximum": 99
+                                        "minimum": 0
                                       },
                                       "qualified_members": {
                                         "type": "integer",
@@ -29202,8 +29341,7 @@
                                     ],
                                     "additionalProperties": false
                                   },
-                                  "minItems": 1,
-                                  "maxItems": 100
+                                  "minItems": 1
                                 },
                                 "steps": {
                                   "type": "array",
@@ -29212,8 +29350,7 @@
                                     "properties": {
                                       "step": {
                                         "type": "integer",
-                                        "minimum": 1,
-                                        "maximum": 100
+                                        "minimum": 1
                                       },
                                       "additional_members": {
                                         "type": "integer",
@@ -29232,8 +29369,7 @@
                                     ],
                                     "additionalProperties": false
                                   },
-                                  "minItems": 1,
-                                  "maxItems": 100
+                                  "minItems": 1
                                 },
                                 "venue_type_ids": {
                                   "type": "array",
@@ -29320,6 +29456,38 @@
                                     ],
                                     "additionalProperties": false
                                   }
+                                },
+                                "extension": {
+                                  "type": "object",
+                                  "properties": {
+                                    "disabled_entry": {
+                                      "type": "string",
+                                      "enum": [
+                                        "HIDE",
+                                        "PAUSE"
+                                      ]
+                                    },
+                                    "editable_steps": {
+                                      "type": "boolean"
+                                    },
+                                    "max_levels": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 10000
+                                    },
+                                    "max_steps": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 10000
+                                    }
+                                  },
+                                  "required": [
+                                    "disabled_entry",
+                                    "editable_steps",
+                                    "max_levels",
+                                    "max_steps"
+                                  ],
+                                  "additionalProperties": false
                                 }
                               },
                               "required": [
@@ -29960,8 +30128,7 @@
                                         "properties": {
                                           "level": {
                                             "type": "integer",
-                                            "minimum": 0,
-                                            "maximum": 99
+                                            "minimum": 0
                                           },
                                           "qualified_members": {
                                             "type": "integer",
@@ -29991,8 +30158,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "steps": {
                                       "type": "array",
@@ -30001,8 +30167,7 @@
                                         "properties": {
                                           "step": {
                                             "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 100
+                                            "minimum": 1
                                           },
                                           "additional_members": {
                                             "type": "integer",
@@ -30021,8 +30186,7 @@
                                         ],
                                         "additionalProperties": false
                                       },
-                                      "minItems": 1,
-                                      "maxItems": 100
+                                      "minItems": 1
                                     },
                                     "venue_type_ids": {
                                       "type": "array",
@@ -30109,6 +30273,38 @@
                                         ],
                                         "additionalProperties": false
                                       }
+                                    },
+                                    "extension": {
+                                      "type": "object",
+                                      "properties": {
+                                        "disabled_entry": {
+                                          "type": "string",
+                                          "enum": [
+                                            "HIDE",
+                                            "PAUSE"
+                                          ]
+                                        },
+                                        "editable_steps": {
+                                          "type": "boolean"
+                                        },
+                                        "max_levels": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        },
+                                        "max_steps": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        }
+                                      },
+                                      "required": [
+                                        "disabled_entry",
+                                        "editable_steps",
+                                        "max_levels",
+                                        "max_steps"
+                                      ],
+                                      "additionalProperties": false
                                     }
                                   },
                                   "required": [
@@ -32058,6 +32254,36 @@
                                 "minLength": 1,
                                 "maxLength": 128
                               },
+                              "created_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "updated_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "operator": {
+                                "type": "string"
+                              },
+                              "writable": {
+                                "type": "boolean"
+                              },
                               "configuration": {
                                 "type": "object",
                                 "properties": {
@@ -32172,8 +32398,7 @@
                                                   "properties": {
                                                     "level": {
                                                       "type": "integer",
-                                                      "minimum": 0,
-                                                      "maximum": 99
+                                                      "minimum": 0
                                                     },
                                                     "qualified_members": {
                                                       "type": "integer",
@@ -32203,8 +32428,7 @@
                                                   ],
                                                   "additionalProperties": false
                                                 },
-                                                "minItems": 1,
-                                                "maxItems": 100
+                                                "minItems": 1
                                               },
                                               "steps": {
                                                 "type": "array",
@@ -32213,8 +32437,7 @@
                                                   "properties": {
                                                     "step": {
                                                       "type": "integer",
-                                                      "minimum": 1,
-                                                      "maximum": 100
+                                                      "minimum": 1
                                                     },
                                                     "additional_members": {
                                                       "type": "integer",
@@ -32233,8 +32456,7 @@
                                                   ],
                                                   "additionalProperties": false
                                                 },
-                                                "minItems": 1,
-                                                "maxItems": 100
+                                                "minItems": 1
                                               },
                                               "venue_type_ids": {
                                                 "type": "array",
@@ -32321,6 +32543,38 @@
                                                   ],
                                                   "additionalProperties": false
                                                 }
+                                              },
+                                              "extension": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "disabled_entry": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "HIDE",
+                                                      "PAUSE"
+                                                    ]
+                                                  },
+                                                  "editable_steps": {
+                                                    "type": "boolean"
+                                                  },
+                                                  "max_levels": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 10000
+                                                  },
+                                                  "max_steps": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 10000
+                                                  }
+                                                },
+                                                "required": [
+                                                  "disabled_entry",
+                                                  "editable_steps",
+                                                  "max_levels",
+                                                  "max_steps"
+                                                ],
+                                                "additionalProperties": false
                                               }
                                             },
                                             "required": [
@@ -32467,8 +32721,7 @@
                                                   "properties": {
                                                     "level": {
                                                       "type": "integer",
-                                                      "minimum": 0,
-                                                      "maximum": 99
+                                                      "minimum": 0
                                                     },
                                                     "qualified_members": {
                                                       "type": "integer",
@@ -32498,8 +32751,7 @@
                                                   ],
                                                   "additionalProperties": false
                                                 },
-                                                "minItems": 1,
-                                                "maxItems": 100
+                                                "minItems": 1
                                               },
                                               "steps": {
                                                 "type": "array",
@@ -32508,8 +32760,7 @@
                                                   "properties": {
                                                     "step": {
                                                       "type": "integer",
-                                                      "minimum": 1,
-                                                      "maximum": 100
+                                                      "minimum": 1
                                                     },
                                                     "additional_members": {
                                                       "type": "integer",
@@ -32528,8 +32779,7 @@
                                                   ],
                                                   "additionalProperties": false
                                                 },
-                                                "minItems": 1,
-                                                "maxItems": 100
+                                                "minItems": 1
                                               },
                                               "venue_type_ids": {
                                                 "type": "array",
@@ -32616,6 +32866,38 @@
                                                   ],
                                                   "additionalProperties": false
                                                 }
+                                              },
+                                              "extension": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "disabled_entry": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "HIDE",
+                                                      "PAUSE"
+                                                    ]
+                                                  },
+                                                  "editable_steps": {
+                                                    "type": "boolean"
+                                                  },
+                                                  "max_levels": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 10000
+                                                  },
+                                                  "max_steps": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 10000
+                                                  }
+                                                },
+                                                "required": [
+                                                  "disabled_entry",
+                                                  "editable_steps",
+                                                  "max_levels",
+                                                  "max_steps"
+                                                ],
+                                                "additionalProperties": false
                                               }
                                             },
                                             "required": [
@@ -32671,6 +32953,10 @@
                             "required": [
                               "tenant_id",
                               "app_id",
+                              "created_at",
+                              "updated_at",
+                              "operator",
+                              "writable",
                               "configuration"
                             ],
                             "additionalProperties": false
@@ -32916,6 +33202,1848 @@
             }
           }
         ]
+      }
+    },
+    "/v1/me/affiliate/presentation": {
+      "get": {
+        "operationId": "get_v1_me_affiliate_presentation",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "configuration": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "revision": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "enabled": {
+                                      "type": "boolean"
+                                    },
+                                    "currency": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 16
+                                    },
+                                    "currency_scale": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 8
+                                    },
+                                    "timezone": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "grade_period": {
+                                      "type": "string",
+                                      "enum": [
+                                        "DAY",
+                                        "WEEK",
+                                        "MONTH",
+                                        "LIFETIME"
+                                      ]
+                                    },
+                                    "grade_condition": {
+                                      "type": "object",
+                                      "properties": {
+                                        "deposit_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        },
+                                        "valid_bet_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        }
+                                      },
+                                      "required": [
+                                        "deposit_minor",
+                                        "valid_bet_minor"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "referral_condition": {
+                                      "type": "object",
+                                      "properties": {
+                                        "deposit_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        },
+                                        "valid_bet_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        }
+                                      },
+                                      "required": [
+                                        "deposit_minor",
+                                        "valid_bet_minor"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "invitee_condition": {
+                                      "type": "object",
+                                      "properties": {
+                                        "deposit_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        },
+                                        "valid_bet_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        }
+                                      },
+                                      "required": [
+                                        "deposit_minor",
+                                        "valid_bet_minor"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "invitee_reward_minor": {
+                                      "type": "string",
+                                      "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                    },
+                                    "levels": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "level": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                          },
+                                          "qualified_members": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 1000000000
+                                          },
+                                          "daily_valid_bet_minor": {
+                                            "type": "string",
+                                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                          },
+                                          "rates_ppm": {
+                                            "type": "array",
+                                            "minItems": 3,
+                                            "maxItems": 3,
+                                            "items": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 1000000
+                                            }
+                                          }
+                                        },
+                                        "required": [
+                                          "level",
+                                          "qualified_members",
+                                          "daily_valid_bet_minor",
+                                          "rates_ppm"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "minItems": 1
+                                    },
+                                    "steps": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "step": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                          },
+                                          "additional_members": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 1000000000
+                                          },
+                                          "reward_minor": {
+                                            "type": "string",
+                                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                          }
+                                        },
+                                        "required": [
+                                          "step",
+                                          "additional_members",
+                                          "reward_minor"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "minItems": 1
+                                    },
+                                    "venue_type_ids": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      },
+                                      "minItems": 1,
+                                      "maxItems": 100,
+                                      "uniqueItems": true
+                                    },
+                                    "risk_rules": {
+                                      "type": "array",
+                                      "maxItems": 30,
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "rule_id": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64
+                                          },
+                                          "enabled": {
+                                            "type": "boolean"
+                                          },
+                                          "dimension": {
+                                            "type": "string",
+                                            "enum": [
+                                              "IP",
+                                              "DEVICE",
+                                              "ACCOUNT"
+                                            ]
+                                          },
+                                          "period": {
+                                            "type": "string",
+                                            "enum": [
+                                              "DAY",
+                                              "WEEK",
+                                              "MONTH",
+                                              "LIFETIME",
+                                              "CUSTOM_DAYS"
+                                            ]
+                                          },
+                                          "window_days": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 36600
+                                          },
+                                          "scope": {
+                                            "type": "string",
+                                            "enum": [
+                                              "SITE",
+                                              "BENEFICIARY"
+                                            ]
+                                          },
+                                          "missing_identity": {
+                                            "type": "string",
+                                            "enum": [
+                                              "ALLOW",
+                                              "DENY"
+                                            ]
+                                          },
+                                          "effective_from": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                          },
+                                          "effective_until": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                          }
+                                        },
+                                        "required": [
+                                          "rule_id",
+                                          "enabled",
+                                          "dimension",
+                                          "period",
+                                          "window_days",
+                                          "scope",
+                                          "missing_identity",
+                                          "effective_from"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
+                                    "extension": {
+                                      "type": "object",
+                                      "properties": {
+                                        "disabled_entry": {
+                                          "type": "string",
+                                          "enum": [
+                                            "HIDE",
+                                            "PAUSE"
+                                          ]
+                                        },
+                                        "editable_steps": {
+                                          "type": "boolean"
+                                        },
+                                        "max_levels": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        },
+                                        "max_steps": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 10000
+                                        }
+                                      },
+                                      "required": [
+                                        "disabled_entry",
+                                        "editable_steps",
+                                        "max_levels",
+                                        "max_steps"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "required": [
+                                    "enabled",
+                                    "currency",
+                                    "currency_scale",
+                                    "timezone",
+                                    "grade_period",
+                                    "grade_condition",
+                                    "referral_condition",
+                                    "invitee_condition",
+                                    "invitee_reward_minor",
+                                    "levels",
+                                    "steps",
+                                    "venue_type_ids"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "effective_from": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                },
+                                "approval_id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                }
+                              },
+                              "required": [
+                                "revision",
+                                "config",
+                                "effective_from",
+                                "approval_id"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "venues": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "venue_type_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "icon_url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "venue_type_id",
+                              "name",
+                              "icon_url"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "minItems": 0
+                        },
+                        "entry_visible": {
+                          "type": "boolean"
+                        },
+                        "site_enabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "configured",
+                        "configuration",
+                        "venues",
+                        "entry_visible",
+                        "site_enabled"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v1/affiliate/sites/{tenant}/{app}/config": {
+      "get": {
+        "operationId": "get_v1_affiliate_sites_tenant_app_config",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "configuration": {
+                          "type": "object",
+                          "properties": {
+                            "configured": {
+                              "type": "boolean"
+                            },
+                            "revision": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "revision": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "config": {
+                                      "type": "object",
+                                      "properties": {
+                                        "enabled": {
+                                          "type": "boolean"
+                                        },
+                                        "currency": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 16
+                                        },
+                                        "currency_scale": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 8
+                                        },
+                                        "timezone": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "grade_period": {
+                                          "type": "string",
+                                          "enum": [
+                                            "DAY",
+                                            "WEEK",
+                                            "MONTH",
+                                            "LIFETIME"
+                                          ]
+                                        },
+                                        "grade_condition": {
+                                          "type": "object",
+                                          "properties": {
+                                            "deposit_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            },
+                                            "valid_bet_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            }
+                                          },
+                                          "required": [
+                                            "deposit_minor",
+                                            "valid_bet_minor"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "referral_condition": {
+                                          "type": "object",
+                                          "properties": {
+                                            "deposit_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            },
+                                            "valid_bet_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            }
+                                          },
+                                          "required": [
+                                            "deposit_minor",
+                                            "valid_bet_minor"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "invitee_condition": {
+                                          "type": "object",
+                                          "properties": {
+                                            "deposit_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            },
+                                            "valid_bet_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            }
+                                          },
+                                          "required": [
+                                            "deposit_minor",
+                                            "valid_bet_minor"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "invitee_reward_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        },
+                                        "levels": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "level": {
+                                                "type": "integer",
+                                                "minimum": 0
+                                              },
+                                              "qualified_members": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 1000000000
+                                              },
+                                              "daily_valid_bet_minor": {
+                                                "type": "string",
+                                                "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                              },
+                                              "rates_ppm": {
+                                                "type": "array",
+                                                "minItems": 3,
+                                                "maxItems": 3,
+                                                "items": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 1000000
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "level",
+                                              "qualified_members",
+                                              "daily_valid_bet_minor",
+                                              "rates_ppm"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "minItems": 1
+                                        },
+                                        "steps": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "step": {
+                                                "type": "integer",
+                                                "minimum": 1
+                                              },
+                                              "additional_members": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000000000
+                                              },
+                                              "reward_minor": {
+                                                "type": "string",
+                                                "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                              }
+                                            },
+                                            "required": [
+                                              "step",
+                                              "additional_members",
+                                              "reward_minor"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "minItems": 1
+                                        },
+                                        "venue_type_ids": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          },
+                                          "minItems": 1,
+                                          "maxItems": 100,
+                                          "uniqueItems": true
+                                        },
+                                        "risk_rules": {
+                                          "type": "array",
+                                          "maxItems": 30,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "rule_id": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64
+                                              },
+                                              "enabled": {
+                                                "type": "boolean"
+                                              },
+                                              "dimension": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "IP",
+                                                  "DEVICE",
+                                                  "ACCOUNT"
+                                                ]
+                                              },
+                                              "period": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "DAY",
+                                                  "WEEK",
+                                                  "MONTH",
+                                                  "LIFETIME",
+                                                  "CUSTOM_DAYS"
+                                                ]
+                                              },
+                                              "window_days": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 36600
+                                              },
+                                              "scope": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "SITE",
+                                                  "BENEFICIARY"
+                                                ]
+                                              },
+                                              "missing_identity": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "ALLOW",
+                                                  "DENY"
+                                                ]
+                                              },
+                                              "effective_from": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              },
+                                              "effective_until": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              }
+                                            },
+                                            "required": [
+                                              "rule_id",
+                                              "enabled",
+                                              "dimension",
+                                              "period",
+                                              "window_days",
+                                              "scope",
+                                              "missing_identity",
+                                              "effective_from"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "extension": {
+                                          "type": "object",
+                                          "properties": {
+                                            "disabled_entry": {
+                                              "type": "string",
+                                              "enum": [
+                                                "HIDE",
+                                                "PAUSE"
+                                              ]
+                                            },
+                                            "editable_steps": {
+                                              "type": "boolean"
+                                            },
+                                            "max_levels": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 10000
+                                            },
+                                            "max_steps": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 10000
+                                            }
+                                          },
+                                          "required": [
+                                            "disabled_entry",
+                                            "editable_steps",
+                                            "max_levels",
+                                            "max_steps"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      },
+                                      "required": [
+                                        "enabled",
+                                        "currency",
+                                        "currency_scale",
+                                        "timezone",
+                                        "grade_period",
+                                        "grade_condition",
+                                        "referral_condition",
+                                        "invitee_condition",
+                                        "invitee_reward_minor",
+                                        "levels",
+                                        "steps",
+                                        "venue_type_ids"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "effective_from": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                    },
+                                    "approval_id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "required": [
+                                    "revision",
+                                    "config",
+                                    "effective_from",
+                                    "approval_id"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "scheduled": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "revision": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "config": {
+                                      "type": "object",
+                                      "properties": {
+                                        "enabled": {
+                                          "type": "boolean"
+                                        },
+                                        "currency": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 16
+                                        },
+                                        "currency_scale": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 8
+                                        },
+                                        "timezone": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "grade_period": {
+                                          "type": "string",
+                                          "enum": [
+                                            "DAY",
+                                            "WEEK",
+                                            "MONTH",
+                                            "LIFETIME"
+                                          ]
+                                        },
+                                        "grade_condition": {
+                                          "type": "object",
+                                          "properties": {
+                                            "deposit_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            },
+                                            "valid_bet_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            }
+                                          },
+                                          "required": [
+                                            "deposit_minor",
+                                            "valid_bet_minor"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "referral_condition": {
+                                          "type": "object",
+                                          "properties": {
+                                            "deposit_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            },
+                                            "valid_bet_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            }
+                                          },
+                                          "required": [
+                                            "deposit_minor",
+                                            "valid_bet_minor"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "invitee_condition": {
+                                          "type": "object",
+                                          "properties": {
+                                            "deposit_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            },
+                                            "valid_bet_minor": {
+                                              "type": "string",
+                                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                            }
+                                          },
+                                          "required": [
+                                            "deposit_minor",
+                                            "valid_bet_minor"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "invitee_reward_minor": {
+                                          "type": "string",
+                                          "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                        },
+                                        "levels": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "level": {
+                                                "type": "integer",
+                                                "minimum": 0
+                                              },
+                                              "qualified_members": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 1000000000
+                                              },
+                                              "daily_valid_bet_minor": {
+                                                "type": "string",
+                                                "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                              },
+                                              "rates_ppm": {
+                                                "type": "array",
+                                                "minItems": 3,
+                                                "maxItems": 3,
+                                                "items": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 1000000
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "level",
+                                              "qualified_members",
+                                              "daily_valid_bet_minor",
+                                              "rates_ppm"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "minItems": 1
+                                        },
+                                        "steps": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "step": {
+                                                "type": "integer",
+                                                "minimum": 1
+                                              },
+                                              "additional_members": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000000000
+                                              },
+                                              "reward_minor": {
+                                                "type": "string",
+                                                "pattern": "^(0|[1-9][0-9]{0,37})$"
+                                              }
+                                            },
+                                            "required": [
+                                              "step",
+                                              "additional_members",
+                                              "reward_minor"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "minItems": 1
+                                        },
+                                        "venue_type_ids": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          },
+                                          "minItems": 1,
+                                          "maxItems": 100,
+                                          "uniqueItems": true
+                                        },
+                                        "risk_rules": {
+                                          "type": "array",
+                                          "maxItems": 30,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "rule_id": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64
+                                              },
+                                              "enabled": {
+                                                "type": "boolean"
+                                              },
+                                              "dimension": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "IP",
+                                                  "DEVICE",
+                                                  "ACCOUNT"
+                                                ]
+                                              },
+                                              "period": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "DAY",
+                                                  "WEEK",
+                                                  "MONTH",
+                                                  "LIFETIME",
+                                                  "CUSTOM_DAYS"
+                                                ]
+                                              },
+                                              "window_days": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 36600
+                                              },
+                                              "scope": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "SITE",
+                                                  "BENEFICIARY"
+                                                ]
+                                              },
+                                              "missing_identity": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "ALLOW",
+                                                  "DENY"
+                                                ]
+                                              },
+                                              "effective_from": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              },
+                                              "effective_until": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                              }
+                                            },
+                                            "required": [
+                                              "rule_id",
+                                              "enabled",
+                                              "dimension",
+                                              "period",
+                                              "window_days",
+                                              "scope",
+                                              "missing_identity",
+                                              "effective_from"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "extension": {
+                                          "type": "object",
+                                          "properties": {
+                                            "disabled_entry": {
+                                              "type": "string",
+                                              "enum": [
+                                                "HIDE",
+                                                "PAUSE"
+                                              ]
+                                            },
+                                            "editable_steps": {
+                                              "type": "boolean"
+                                            },
+                                            "max_levels": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 10000
+                                            },
+                                            "max_steps": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 10000
+                                            }
+                                          },
+                                          "required": [
+                                            "disabled_entry",
+                                            "editable_steps",
+                                            "max_levels",
+                                            "max_steps"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      },
+                                      "required": [
+                                        "enabled",
+                                        "currency",
+                                        "currency_scale",
+                                        "timezone",
+                                        "grade_period",
+                                        "grade_condition",
+                                        "referral_condition",
+                                        "invitee_condition",
+                                        "invitee_reward_minor",
+                                        "levels",
+                                        "steps",
+                                        "venue_type_ids"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "effective_from": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                                    },
+                                    "approval_id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "required": [
+                                    "revision",
+                                    "config",
+                                    "effective_from",
+                                    "approval_id"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "configured",
+                            "revision",
+                            "current",
+                            "scheduled"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "venues": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "venue_type_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "icon_url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "venue_type_id",
+                              "name",
+                              "icon_url"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "minItems": 0
+                        },
+                        "currencies": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "currency_scale": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 8
+                              },
+                              "catalog_version": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              }
+                            },
+                            "required": [
+                              "code",
+                              "currency_scale",
+                              "catalog_version"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "minItems": 0
+                        },
+                        "tenant_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "app_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "required": [
+                        "configuration",
+                        "venues",
+                        "currencies",
+                        "tenant_id",
+                        "app_id"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "app",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ]
+      }
+    },
+    "/v1/affiliate/sites/{tenant}/{app}/config-requests": {
+      "post": {
+        "operationId": "post_v1_affiliate_sites_tenant_app_config_requests",
+        "responses": {
+          "400": {
+            "description": "字段非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "作用域内不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等、版本或状态冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务约束不满足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "瞬时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "成功；异步接收不代表业务执行成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "approval_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "object_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "approval_id",
+                        "object_hash",
+                        "revision"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "app",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "currency": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 16
+                      },
+                      "currency_scale": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 8
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "grade_period": {
+                        "type": "string",
+                        "enum": [
+                          "DAY",
+                          "WEEK",
+                          "MONTH",
+                          "LIFETIME"
+                        ]
+                      },
+                      "grade_condition": {
+                        "type": "object",
+                        "properties": {
+                          "deposit_minor": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                          },
+                          "valid_bet_minor": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                          }
+                        },
+                        "required": [
+                          "deposit_minor",
+                          "valid_bet_minor"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "referral_condition": {
+                        "type": "object",
+                        "properties": {
+                          "deposit_minor": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                          },
+                          "valid_bet_minor": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                          }
+                        },
+                        "required": [
+                          "deposit_minor",
+                          "valid_bet_minor"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "invitee_condition": {
+                        "type": "object",
+                        "properties": {
+                          "deposit_minor": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                          },
+                          "valid_bet_minor": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,37})$"
+                          }
+                        },
+                        "required": [
+                          "deposit_minor",
+                          "valid_bet_minor"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "invitee_reward_minor": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]{0,37})$"
+                      },
+                      "levels": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "level": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "qualified_members": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000000
+                            },
+                            "daily_valid_bet_minor": {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                            },
+                            "rates_ppm": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000
+                              }
+                            }
+                          },
+                          "required": [
+                            "level",
+                            "qualified_members",
+                            "daily_valid_bet_minor",
+                            "rates_ppm"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "step": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "additional_members": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1000000000
+                            },
+                            "reward_minor": {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]{0,37})$"
+                            }
+                          },
+                          "required": [
+                            "step",
+                            "additional_members",
+                            "reward_minor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "venue_type_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true
+                      },
+                      "risk_rules": {
+                        "type": "array",
+                        "maxItems": 30,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "rule_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "dimension": {
+                              "type": "string",
+                              "enum": [
+                                "IP",
+                                "DEVICE",
+                                "ACCOUNT"
+                              ]
+                            },
+                            "period": {
+                              "type": "string",
+                              "enum": [
+                                "DAY",
+                                "WEEK",
+                                "MONTH",
+                                "LIFETIME",
+                                "CUSTOM_DAYS"
+                              ]
+                            },
+                            "window_days": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 36600
+                            },
+                            "scope": {
+                              "type": "string",
+                              "enum": [
+                                "SITE",
+                                "BENEFICIARY"
+                              ]
+                            },
+                            "missing_identity": {
+                              "type": "string",
+                              "enum": [
+                                "ALLOW",
+                                "DENY"
+                              ]
+                            },
+                            "effective_from": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            },
+                            "effective_until": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.[0-9]{1,6})?Z$"
+                            }
+                          },
+                          "required": [
+                            "rule_id",
+                            "enabled",
+                            "dimension",
+                            "period",
+                            "window_days",
+                            "scope",
+                            "missing_identity",
+                            "effective_from"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "extension": {
+                        "type": "object",
+                        "properties": {
+                          "disabled_entry": {
+                            "type": "string",
+                            "enum": [
+                              "HIDE",
+                              "PAUSE"
+                            ]
+                          },
+                          "editable_steps": {
+                            "type": "boolean"
+                          },
+                          "max_levels": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "max_steps": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          }
+                        },
+                        "required": [
+                          "disabled_entry",
+                          "editable_steps",
+                          "max_levels",
+                          "max_steps"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "currency",
+                      "currency_scale",
+                      "timezone",
+                      "grade_period",
+                      "grade_condition",
+                      "referral_condition",
+                      "invitee_condition",
+                      "invitee_reward_minor",
+                      "levels",
+                      "steps",
+                      "venue_type_ids"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "config",
+                  "expected_revision",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -37544,8 +39672,7 @@
               "properties": {
                 "level": {
                   "type": "integer",
-                  "minimum": 0,
-                  "maximum": 99
+                  "minimum": 0
                 },
                 "qualified_members": {
                   "type": "integer",
@@ -37575,8 +39702,7 @@
               ],
               "additionalProperties": false
             },
-            "minItems": 1,
-            "maxItems": 100
+            "minItems": 1
           },
           "steps": {
             "type": "array",
@@ -37585,8 +39711,7 @@
               "properties": {
                 "step": {
                   "type": "integer",
-                  "minimum": 1,
-                  "maximum": 100
+                  "minimum": 1
                 },
                 "additional_members": {
                   "type": "integer",
@@ -37605,8 +39730,7 @@
               ],
               "additionalProperties": false
             },
-            "minItems": 1,
-            "maxItems": 100
+            "minItems": 1
           },
           "venue_type_ids": {
             "type": "array",
@@ -37693,6 +39817,38 @@
               ],
               "additionalProperties": false
             }
+          },
+          "extension": {
+            "type": "object",
+            "properties": {
+              "disabled_entry": {
+                "type": "string",
+                "enum": [
+                  "HIDE",
+                  "PAUSE"
+                ]
+              },
+              "editable_steps": {
+                "type": "boolean"
+              },
+              "max_levels": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "max_steps": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              }
+            },
+            "required": [
+              "disabled_entry",
+              "editable_steps",
+              "max_levels",
+              "max_steps"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -38242,8 +40398,7 @@
               "properties": {
                 "step": {
                   "type": "integer",
-                  "minimum": 1,
-                  "maximum": 100
+                  "minimum": 1
                 },
                 "additional_members": {
                   "type": "integer",

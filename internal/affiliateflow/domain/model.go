@@ -162,9 +162,9 @@ func Evaluate(v affiliate.Version, m Member, regs []Member, facts []affiliate.Fa
 		if !ok {
 			break
 		}
-		if len(old.Members) != step.Members {
-			return out, nil, foundation.ErrConflict
-		}
+		// 已解锁权益沿用原人数及金额；新版本仅影响每位会员尚未解锁的阶梯，禁止追改或重复发放。
+		step.Members = len(old.Members)
+		step.Amount = old.Original
 		cumulative += step.Members
 		at := old.UnlockedAt
 		out.Steps = append(out.Steps, affiliate.StepProgress{Step: step, Completed: len(old.Members), CumulativeRequired: cumulative, Unlocked: true, QualifiedAt: &at, Members: append([]string(nil), old.Members...)})

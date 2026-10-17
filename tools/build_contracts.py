@@ -577,11 +577,12 @@ write('openapi.json',api)
 # 原型推荐返佣完整配置，独立于通用实时计算方案。
 affiliate_minor={'type':'string','pattern':r'^(0|[1-9][0-9]{0,37})$'}
 affiliate_threshold=obj({'deposit_minor':affiliate_minor,'valid_bet_minor':affiliate_minor})
-affiliate_level=obj({'level':{'type':'integer','minimum':0,'maximum':99},'qualified_members':{'type':'integer','minimum':0,'maximum':1000000000},'daily_valid_bet_minor':affiliate_minor,'rates_ppm':{'type':'array','minItems':3,'maxItems':3,'items':{'type':'integer','minimum':0,'maximum':1000000}}})
-affiliate_step=obj({'step':{'type':'integer','minimum':1,'maximum':100},'additional_members':{'type':'integer','minimum':1,'maximum':1000000000},'reward_minor':affiliate_minor})
-affiliate_config=obj({'enabled':boolean,'currency':{'type':'string','minLength':1,'maxLength':16},'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'grade_period':enum('DAY','WEEK','MONTH','LIFETIME'),'grade_condition':affiliate_threshold,'referral_condition':affiliate_threshold,'invitee_condition':affiliate_threshold,'invitee_reward_minor':affiliate_minor,'levels':{**arr(affiliate_level,1),'maxItems':100},'steps':{**arr(affiliate_step,1),'maxItems':100},'venue_type_ids':{**arr(identifier,1),'maxItems':100,'uniqueItems':True}})
+affiliate_level=obj({'level':{'type':'integer','minimum':0},'qualified_members':{'type':'integer','minimum':0,'maximum':1000000000},'daily_valid_bet_minor':affiliate_minor,'rates_ppm':{'type':'array','minItems':3,'maxItems':3,'items':{'type':'integer','minimum':0,'maximum':1000000}}})
+affiliate_step=obj({'step':{'type':'integer','minimum':1},'additional_members':{'type':'integer','minimum':1,'maximum':1000000000},'reward_minor':affiliate_minor})
+affiliate_config=obj({'enabled':boolean,'currency':{'type':'string','minLength':1,'maxLength':16},'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'grade_period':enum('DAY','WEEK','MONTH','LIFETIME'),'grade_condition':affiliate_threshold,'referral_condition':affiliate_threshold,'invitee_condition':affiliate_threshold,'invitee_reward_minor':affiliate_minor,'levels':arr(affiliate_level,1),'steps':arr(affiliate_step,1),'venue_type_ids':{**arr(identifier,1),'maxItems':100,'uniqueItems':True}})
 risk_rule=obj({'rule_id':{'type':'string','minLength':1,'maxLength':64},'enabled':boolean,'dimension':enum('IP','DEVICE','ACCOUNT'),'period':enum('DAY','WEEK','MONTH','LIFETIME','CUSTOM_DAYS'),'window_days':{'type':'integer','minimum':0,'maximum':36600},'scope':enum('SITE','BENEFICIARY'),'missing_identity':enum('ALLOW','DENY'),'effective_from':time,'effective_until':time},['rule_id','enabled','dimension','period','window_days','scope','missing_identity','effective_from'])
 affiliate_config['properties']['risk_rules']={'type':'array','maxItems':30,'items':risk_rule}
+affiliate_config['properties']['extension']=obj({'disabled_entry':enum('HIDE','PAUSE'),'editable_steps':boolean,'max_levels':{'type':'integer','minimum':0,'maximum':10000},'max_steps':{'type':'integer','minimum':0,'maximum':10000}})
 affiliate_version=obj({'revision':revision,'config':affiliate_config,'effective_from':time,'approval_id':identifier})
 components['AffiliateConfig']=affiliate_config
 endpoint('/v1/affiliate/config','get');actual_response('/v1/affiliate/config','get',200,response_obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)}))
@@ -677,7 +678,7 @@ for path in ['/v1/affiliate/agent-report','/v1/me/affiliate/team-report']:
     endpoint(path,'get',query=report_query);actual_response(path,'get',200,flow_envelope(report_page))
 endpoint('/v1/affiliate/agent-report/export','get',query=[('snapshot_id',{'type':'string','pattern':'^[a-f0-9]{64}$'},True)])
 api['paths']['/v1/affiliate/agent-report/export']['get']['responses']['200']={'description':'同一主体和站点的报表快照CSV导出','content':{'text/csv':{'schema':{'type':'string'}}}}
-endpoint('/v1/affiliate/sites','get');actual_response('/v1/affiliate/sites','get',200,response_obj({'rows':arr(obj({'tenant_id':identifier,'app_id':identifier,'configuration':obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)})})), 'read_only':boolean}))
+endpoint('/v1/affiliate/sites','get');actual_response('/v1/affiliate/sites','get',200,response_obj({'rows':arr(obj({'tenant_id':identifier,'app_id':identifier,'created_at':nullable(time),'updated_at':nullable(time),'operator':{'type':'string'},'writable':boolean,'configuration':obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)})})), 'read_only':boolean}))
 if _previous_api:
     _previous_api['paths'].update(api['paths']);_previous_api['components']['schemas'].update(api['components']['schemas']);write('openapi.json',_previous_api)
 else:write('openapi.json',api)
@@ -685,4 +686,15 @@ else:write('openapi.json',api)
 # 只读佣金计算器：与日结共用领域定级及逐层取整。
 endpoint('/v1/me/affiliate/calculator','get',query=[('qualified_members',{'type':'integer','minimum':0,'maximum':1000000000},True)]+[(key,affiliate_minor,True) for key in ['level1_minor','level2_minor','level3_minor']])
 actual_response('/v1/me/affiliate/calculator','get',200,response_obj({'estimate':obj({'level':{'type':'integer'},'currency':currency,'currency_scale':{'type':'integer'},'rates_ppm':{'type':'array','items':{'type':'integer'},'minItems':3,'maxItems':3},'layer_commission_minor':{'type':'array','items':affiliate_minor,'minItems':3,'maxItems':3},'commission_minor':affiliate_minor}),'config_revision':revision,'provisional':boolean}))
+write('openapi.json',api)
+
+# 原型展示与跨站配置为独立扩展端口，沿用原会员及配置权限，不扩大公共代理逻辑。
+venue_row=obj({'venue_type_id':identifier,'name':identifier,'icon_url':{'type':'string'}})
+site_configuration=obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)})
+endpoint('/v1/me/affiliate/presentation','get')
+actual_response('/v1/me/affiliate/presentation','get',200,response_obj({'configured':boolean,'configuration':nullable(affiliate_version),'venues':arr(venue_row),'entry_visible':boolean,'site_enabled':boolean}))
+endpoint('/v1/affiliate/sites/{tenant}/{app}/config','get')
+actual_response('/v1/affiliate/sites/{tenant}/{app}/config','get',200,response_obj({'configuration':site_configuration,'venues':arr(venue_row),'currencies':arr(obj({'code':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'catalog_version':identifier})),'tenant_id':identifier,'app_id':identifier}))
+endpoint('/v1/affiliate/sites/{tenant}/{app}/config-requests','post',obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier}),202)
+actual_response('/v1/affiliate/sites/{tenant}/{app}/config-requests','post',202,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision}))
 write('openapi.json',api)
