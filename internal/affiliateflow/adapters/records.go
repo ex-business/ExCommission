@@ -2,11 +2,15 @@ package adapters
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	model "github.com/ex-business/ExCommission/internal/affiliateflow/domain"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	"math/big"
 	"strings"
+	"time"
 )
 
 // Records 从不可变流转快照读取同一as_of，翻页或导出期间发生领取不会更改此前查询的状态集合。
@@ -21,8 +25,15 @@ func (Repository) Records(ctx context.Context, tx db.Executor, s foundation.Scop
 	base := ` FROM affiliate_reward_history h JOIN(SELECT reward_id,MAX(revision) rev FROM affiliate_reward_history WHERE tenant_id=? AND app_id=? AND recorded_at<=? AND sequence_id<=? GROUP BY reward_id) v ON v.reward_id=h.reward_id AND v.rev=h.revision WHERE h.tenant_id=? AND h.app_id=? AND JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.unlocked_at'))>=? AND JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.unlocked_at'))<?`
 	// 时间条件比较DATETIME而非RFC3339文本，避免小数位数量不同影响排序。
 	base = strings.ReplaceAll(base, "JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.unlocked_at'))", `CAST(REPLACE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.unlocked_at')),'T',' '),'Z','') AS DATETIME(6))`)
+	timeField := "unlocked_at"
+	if f.TimeField == "claimed_at" {
+		timeField = "claimed_at"
+	}
+	if timeField != "unlocked_at" {
+		base = strings.ReplaceAll(base, "$.unlocked_at", "$."+timeField)
+	}
 	args := []any{s.Tenant, s.App, f.AsOf.UTC(), f.Snapshot, s.Tenant, s.App, f.From.UTC(), f.To.UTC()}
-	for _, filter := range []struct{ field, value string }{{"kind", f.Kind}, {"status", f.Status}, {"user_id", f.UserID}} {
+	for _, filter := range []struct{ field, value string }{{"business_day", f.BusinessDay}, {"kind", f.Kind}, {"status", f.Status}, {"user_id", f.UserID}, {"reward_id", f.RewardID}, {"claim_id", f.ClaimID}, {"claim_ip", f.ClaimIP}} {
 		if filter.value != "" {
 			base += ` AND JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.` + filter.field + `'))=?`
 			args = append(args, filter.value)
@@ -48,8 +59,44 @@ func (Repository) Records(ctx context.Context, tx db.Executor, s foundation.Scop
 	if e != nil {
 		return out, e
 	}
-	base += ` AND h.reward_id>? ORDER BY h.reward_id LIMIT ?`
-	args = append(args, f.After, f.Limit+1)
+	// 新排序固定金额、时间及reward_id并列次序；旧请求继续使用ID升序，汇总始终在游标过滤前计算。
+	type recordCursor struct{ Sort, Field, Value, Time, ID string }
+	timestamp := `CAST(REPLACE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.` + timeField + `')),'T',' '),'Z','') AS DATETIME(6))`
+	order := "h.reward_id"
+	if f.Sort != "" {
+		order = timestamp + ` DESC,h.reward_id ASC`
+		if f.Sort == "amount_desc" {
+			order = amount + ` DESC,` + order
+		}
+		if f.After != "" {
+			raw, err := base64.RawURLEncoding.DecodeString(f.After)
+			var cursor recordCursor
+			if err != nil || json.Unmarshal(raw, &cursor) != nil || cursor.Sort != f.Sort || cursor.Field != timeField || !foundation.ValidID(cursor.ID) {
+				return out, foundation.ErrValidation
+			}
+			at, err := time.Parse(time.RFC3339Nano, cursor.Time)
+			if err != nil {
+				return out, foundation.ErrValidation
+			}
+			stamp := at.UTC().Format("2006-01-02 15:04:05.999999")
+			if f.Sort == "amount_desc" {
+				n, ok := new(big.Int).SetString(cursor.Value, 10)
+				if !ok || n.Sign() < 0 || len(cursor.Value) > 38 {
+					return out, foundation.ErrValidation
+				}
+				base += ` AND (` + amount + `<? OR (` + amount + `=? AND (` + timestamp + `<? OR (` + timestamp + `=? AND h.reward_id>?))))`
+				args = append(args, cursor.Value, cursor.Value, stamp, stamp, cursor.ID)
+			} else {
+				base += ` AND (` + timestamp + `<? OR (` + timestamp + `=? AND h.reward_id>?))`
+				args = append(args, stamp, stamp, cursor.ID)
+			}
+		}
+	} else {
+		base += ` AND h.reward_id>?`
+		args = append(args, f.After)
+	}
+	base += ` ORDER BY ` + order + ` LIMIT ?`
+	args = append(args, f.Limit+1)
 	rows, e := tx.QueryContext(ctx, `SELECT h.body`+base, args...)
 	if e != nil {
 		return out, e
@@ -71,8 +118,35 @@ func (Repository) Records(ctx context.Context, tx db.Executor, s foundation.Scop
 	}
 	if len(out.Rows) > f.Limit {
 		out.Rows = out.Rows[:f.Limit]
-		id := out.Rows[len(out.Rows)-1].ID
+		last := out.Rows[len(out.Rows)-1]
+		id := last.ID
+		if f.Sort != "" {
+			at := last.UnlockedAt
+			if timeField == "claimed_at" {
+				if last.ClaimedAt == nil {
+					return out, fmt.Errorf("领取时间游标缺失")
+				}
+				at = *last.ClaimedAt
+			}
+			raw, _ := json.Marshal(recordCursor{Sort: f.Sort, Field: timeField, Value: last.Amount, Time: at.UTC().Format(time.RFC3339Nano), ID: id})
+			id = base64.RawURLEncoding.EncodeToString(raw)
+		}
 		out.Next = &id
+	}
+	if err := rows.Err(); err != nil {
+		return out, err
+	}
+	rows.Close()
+	profiles, e := ReadMemberProfiles(ctx, tx, s)
+	if e != nil {
+		return out, e
+	}
+	for i := range out.Rows {
+		profile := profiles[out.Rows[i].UserID]
+		if !sensitive {
+			profile.LastIP = ""
+		}
+		out.Rows[i].Profile = &profile
 	}
 	out.PageSummary = model.Summarize(out.Rows)
 	return out, rows.Err()

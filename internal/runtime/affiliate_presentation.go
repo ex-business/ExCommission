@@ -3,6 +3,7 @@ package runtime
 import (
 	"database/sql"
 	affiliate "github.com/ex-business/ExCommission/internal/affiliate/adapters"
+	repo "github.com/ex-business/ExCommission/internal/affiliateflow/adapters"
 	app "github.com/ex-business/ExCommission/internal/affiliateflow/application"
 	auth "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
@@ -16,6 +17,7 @@ import (
 
 // 新展示接口与旧agent-rules并存，按已审批配置决定入口；个人停用只暂停奖励，不隐藏站点入口。
 type affiliateFeedRow struct {
+	Avatar   string `json:"avatar_url"`
 	Member   string `json:"member"`
 	Kind     string `json:"kind"`
 	Amount   string `json:"amount_minor"`
@@ -25,6 +27,10 @@ type affiliateFeedRow struct {
 
 // 展示端只查询本站已领取记录；不返回原始会员ID、claimIP、交易号和审核备注。
 func affiliateFeed(r *http.Request, store *mysql.Store, sc foundation.Scope) (map[string]any, error) {
+	profiles, err := repo.ReadMemberProfiles(r.Context(), store.DB, sc)
+	if err != nil {
+		return nil, err
+	}
 	totals, err := store.DB.QueryContext(r.Context(), `SELECT currency,CAST(SUM(amount) AS CHAR) FROM affiliate_business_rewards WHERE tenant_id=? AND app_id=? AND status='CLAIMED' GROUP BY currency`, sc.Tenant, sc.App)
 	if err != nil {
 		return nil, err
@@ -56,10 +62,18 @@ func affiliateFeed(r *http.Request, store *mysql.Store, sc foundation.Scope) (ma
 		if err = rows.Scan(&id, &row.Kind, &row.Amount, &row.Currency, &at); err != nil {
 			return nil, err
 		}
+		profile := profiles[id]
+		row.Avatar = profile.Avatar
+		if profile.DisplayID != "" {
+			id = profile.DisplayID
+		}
 		chars := []rune(id)
 		row.Member = "****"
-		if len(chars) > 8 {
+		if len(chars) > 12 {
 			row.Member = string(chars[:4]) + "****" + string(chars[len(chars)-4:])
+		} else if len(chars) > 4 {
+			left := (len(chars) - 4) / 2
+			row.Member = string(chars[:left]) + "****" + string(chars[left+4:])
 		}
 		if at.Valid {
 			row.At = at.Time.UTC().Format("2006-01-02T15:04:05Z")
@@ -154,7 +168,14 @@ func installAffiliatePresentation(mux *http.ServeMux, require func(string, auth.
 			httpapi.Error(w, rid, e)
 			return
 		}
-		out, _ := response.Result(200, p.MemberUserID, rid, map[string]any{"feed": feed, "configured": config.Configured, "configuration": config.Current, "venues": venues, "entry_visible": visible, "site_enabled": siteEnabled})
+		profiles, e := repo.ReadMemberProfiles(r.Context(), store.DB, sc)
+		if e != nil {
+			httpapi.Error(w, rid, e)
+			return
+		}
+		profile := profiles[p.MemberUserID]
+		profile.LastIP = ""
+		out, _ := response.Result(200, p.MemberUserID, rid, map[string]any{"profile": profile, "feed": feed, "configured": config.Configured, "configuration": config.Current, "venues": venues, "entry_visible": visible, "site_enabled": siteEnabled})
 		httpapi.Write(w, out)
 	}))
 }

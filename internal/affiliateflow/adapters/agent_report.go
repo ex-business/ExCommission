@@ -12,6 +12,7 @@ import (
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
 	sites "github.com/ex-business/ExCommission/internal/sites/adapters"
 	"math/big"
+	"strings"
 	"time"
 )
 
@@ -45,30 +46,11 @@ func (r AgentReports) Build(ctx context.Context, s foundation.Scope, f model.Age
 	if e != nil {
 		return empty, e
 	}
-	rows, e := tx.QueryContext(ctx, `SELECT user_id,body FROM affiliate_business_facts WHERE tenant_id=? AND app_id=? AND business_time<? ORDER BY business_time,source_id,event_id`, s.Tenant, s.App, cutoff.UTC())
+	raw, e := (Repository{}).RawFacts(ctx, tx, s, cutoff)
 	if e != nil {
 		return empty, e
 	}
-	raw := []afdomain.Fact{}
-	for rows.Next() {
-		var user string
-		var b []byte
-		if e = rows.Scan(&user, &b); e != nil {
-			rows.Close()
-			return empty, e
-		}
-		var event model.Event
-		if e = json.Unmarshal(b, &event); e != nil {
-			rows.Close()
-			return empty, e
-		}
-		raw = append(raw, event.Fact(user))
-	}
-	e = rows.Err()
-	rows.Close()
-	if e != nil {
-		return empty, e
-	}
+	var rows *sql.Rows
 	gates := map[string]model.Gate{}
 	for _, m := range members {
 		g, e := (Repository{}).GateAt(ctx, tx, s, m.UserID, m.RegisteredAt, cutoff.Add(-time.Microsecond))
@@ -184,6 +166,30 @@ func (r AgentReports) Build(ctx context.Context, s foundation.Scope, f model.Age
 
 		}
 	}
+	profiles, e := ReadMemberProfiles(ctx, tx, s)
+	if e != nil {
+		return empty, e
+	}
+	for i := range report.Rows {
+		report.Rows[i].Profile = profiles[report.Rows[i].UserID]
+		for n := range report.Rows[i].Members {
+			report.Rows[i].Members[n].Profile = profiles[report.Rows[i].Members[n].UserID]
+		}
+	}
+	filtered := []model.AgentReportRow{}
+	for _, row := range report.Rows {
+		if f.Search != "" && !strings.Contains(strings.ToLower(row.Profile.Name+" "+row.Profile.DisplayID+" "+row.UserID), strings.ToLower(f.Search)) {
+			continue
+		}
+		if f.State == "enabled" && !row.Enabled || f.State == "disabled" && row.Enabled {
+			continue
+		}
+		if f.LoginIP != "" && f.LoginIP != row.Profile.LastIP {
+			continue
+		}
+		filtered = append(filtered, row)
+	}
+	report.Rows = filtered
 	if e = tx.Commit(); e != nil {
 		return empty, e
 	}

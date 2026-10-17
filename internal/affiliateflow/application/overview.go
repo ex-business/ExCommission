@@ -17,6 +17,7 @@ type ReferralProgress struct {
 	Qualification affiliate.Qualification `json:"qualification"`
 }
 type Overview struct {
+	TeamStats             *model.TeamDashboard       `json:"team_stats"`
 	DirectMembers         []ReferralProgress         `json:"direct_members"`
 	ClaimContextAvailable bool                       `json:"claim_context_available"`
 	Configured            bool                       `json:"configured"`
@@ -137,6 +138,15 @@ func (s Service) Overview(ctx context.Context, p principal.Principal) (Overview,
 	for i := range grade.RiskDecisions {
 		grade.RiskDecisions[i].Winner = ""
 	}
+	raw, err := s.Repo.RawFacts(ctx, s.Query, sc, out.ObservedAt.Add(time.Microsecond))
+	if err != nil {
+		return out, err
+	}
+	stats, err := model.TeamDashboardFor(v.Config, m.UserID, out.ObservedAt, domainRegs, raw, facts, prior)
+	if err != nil {
+		return out, err
+	}
+	out.TeamStats = &stats
 	out.Grade = &grade
 	return out, nil
 }

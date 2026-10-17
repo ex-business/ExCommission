@@ -72,31 +72,32 @@ type Qualified struct {
 	Invitee  affiliate.Qualification `json:"invitee"`
 }
 type Reward struct {
-	Since          time.Time   `json:"accumulation_since"`
-	Qualifications []Qualified `json:"member_qualifications"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
-	ID             string      `json:"reward_id"`
-	UserID         string      `json:"user_id"`
-	AgentID        string      `json:"agent_id"`
-	Kind           string      `json:"kind"`
-	Step           int         `json:"step"`
-	Day            string      `json:"business_day"`
-	Currency       string      `json:"currency"`
-	Amount         string      `json:"amount_minor"`
-	Original       string      `json:"calculated_minor"`
-	ConfigRevision uint64      `json:"config_revision"`
-	Status         string      `json:"status"`
-	UnlockedAt     time.Time   `json:"unlocked_at"`
-	Members        []string    `json:"qualified_user_ids"`
-	EntitlementID  string      `json:"entitlement_id"`
-	Reviewer       string      `json:"reviewer_id"`
-	ReviewedAt     *time.Time  `json:"reviewed_at"`
-	Reason         string      `json:"reason"`
-	ClaimedAt      *time.Time  `json:"claimed_at"`
-	ClaimID        string      `json:"claim_id"`
-	ClaimIP        string      `json:"claim_ip,omitempty"`
-	Revision       uint64      `json:"revision"`
+	Profile        *MemberProfile `json:"profile,omitempty"`
+	Since          time.Time      `json:"accumulation_since"`
+	Qualifications []Qualified    `json:"member_qualifications"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	ID             string         `json:"reward_id"`
+	UserID         string         `json:"user_id"`
+	AgentID        string         `json:"agent_id"`
+	Kind           string         `json:"kind"`
+	Step           int            `json:"step"`
+	Day            string         `json:"business_day"`
+	Currency       string         `json:"currency"`
+	Amount         string         `json:"amount_minor"`
+	Original       string         `json:"calculated_minor"`
+	ConfigRevision uint64         `json:"config_revision"`
+	Status         string         `json:"status"`
+	UnlockedAt     time.Time      `json:"unlocked_at"`
+	Members        []string       `json:"qualified_user_ids"`
+	EntitlementID  string         `json:"entitlement_id"`
+	Reviewer       string         `json:"reviewer_id"`
+	ReviewedAt     *time.Time     `json:"reviewed_at"`
+	Reason         string         `json:"reason"`
+	ClaimedAt      *time.Time     `json:"claimed_at"`
+	ClaimID        string         `json:"claim_id"`
+	ClaimIP        string         `json:"claim_ip,omitempty"`
+	Revision       uint64         `json:"revision"`
 }
 type Progress struct {
 	BlockedReason  string                   `json:"blocked_reason"`

@@ -130,7 +130,14 @@ func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(
 			httpapi.Error(w, rid, e)
 			return
 		}
-		out, _ := response.Result(200, p.MemberUserID, rid, data)
+		profiles, e := repo.ReadMemberProfiles(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App})
+		if e != nil {
+			httpapi.Error(w, rid, e)
+			return
+		}
+		profile := profiles[p.MemberUserID]
+		profile.LastIP = ""
+		out, _ := response.Result(200, p.MemberUserID, rid, map[string]any{"claim_context_available": data.ClaimContextAvailable, "configured": data.Configured, "configuration": data.Configuration, "progress": data.Progress, "current_grade": data.Grade, "direct_members": data.DirectMembers, "team_stats": data.TeamStats, "profile": profile, "provisional": data.Provisional, "observed_at": data.ObservedAt})
 		httpapi.Write(w, out)
 	}))
 	mux.Handle("GET /v1/me/affiliate/progress", require("member:read", func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {

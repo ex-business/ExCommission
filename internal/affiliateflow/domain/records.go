@@ -3,10 +3,17 @@ package domain
 import (
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"math/big"
+	"net"
 	"time"
 )
 
 type RecordFilter struct {
+	BusinessDay    string
+	RewardID       string
+	ClaimID        string
+	ClaimIP        string
+	Sort           string
+	TimeField      string
 	Snapshot       uint64
 	Kind           string
 	Status         string
@@ -17,6 +24,28 @@ type RecordFilter struct {
 }
 
 func (f RecordFilter) Validate(now time.Time) error {
+	if f.BusinessDay != "" {
+		if _, e := time.Parse("2006-01-02", f.BusinessDay); e != nil {
+			return foundation.ErrValidation
+		}
+	}
+	if len(f.RewardID) > 128 || len(f.ClaimID) > 128 || len(f.After) > 512 || len(f.UserID) > 128 {
+		return foundation.ErrValidation
+	}
+	if f.ClaimIP != "" && net.ParseIP(f.ClaimIP) == nil {
+		return foundation.ErrValidation
+	}
+	switch f.Sort {
+	case "", "amount_desc", "time_desc":
+	default:
+		return foundation.ErrValidation
+	}
+	switch f.TimeField {
+	case "", "unlocked_at", "claimed_at":
+	default:
+		return foundation.ErrValidation
+	}
+
 	if f.Kind != "" && f.Kind != Referral && f.Kind != Invitee && f.Kind != Commission {
 		return foundation.ErrValidation
 	}

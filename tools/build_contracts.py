@@ -536,7 +536,7 @@ api['paths']['/v1/member-statistics']['post']['parameters'].append({'name':'X-So
 actual_response('/v1/member-statistics','post',200,response_obj({'user_id':identifier,'status':enum('RECORDED')}))
 for path in ['/v1/agent-directory','/v1/agents/{id}/team','/v1/me/team']:
     endpoint(path,'get',query=[('currency',currency,False),('as_of',time,False),('depth',{'type':'integer','minimum':1,'maximum':3},False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)])
-    actual_response(path,'get',200,response_obj({'rows':arr(directory_row),'summary':directory_summary,'next_after_id':nullable(identifier),'as_of':time}))
+    actual_response(path,'get',200,response_obj({'rows':arr(directory_row),'summary':directory_summary,'next_after_id':nullable({'type':'string','maxLength':512}),'as_of':time}))
 write('openapi.json',api)
 
 # 站点绑定、场馆与独立审批配置。
@@ -607,8 +607,11 @@ flow_event['properties']['risk_identity']=risk_identity
 flow_gate=obj({'enabled':boolean,'enabled_since':time,'revision':revision,'reason':flow_text,'actor_id':flow_text,'updated_at':time})
 flow_qualification=obj({'deposit_minor':affiliate_minor,'valid_bet_minor':affiliate_minor,'qualified_at':nullable(time)})
 flow_qualified=obj({'user_id':identifier,'grade':flow_qualification,'referral':flow_qualification,'invitee':flow_qualification})
+member_profile=obj({'display_id':flow_text,'display_name':flow_text,'vip_level':nullable({'type':'integer','minimum':0,'maximum':10000}),'avatar_url':flow_text,'last_login_at':nullable(time),'last_login_ip':flow_text})
+team_dashboard=obj({**{k:{'type':'integer','minimum':0} for k in ['today_referrals','total_referrals','today_qualified','total_qualified']},**{k:affiliate_minor for k in ['today_deposit_minor','total_deposit_minor','total_earned_minor']}})
 flow_reward=obj({'reward_id':identifier,'user_id':identifier,'agent_id':identifier,'kind':enum('REFERRAL','INVITEE','COMMISSION'),'step':{'type':'integer','minimum':0},'business_day':flow_text,'currency':currency,'amount_minor':affiliate_minor,'calculated_minor':affiliate_minor,'config_revision':revision,'status':enum('PENDING_REVIEW','CLAIMABLE','CLAIMED','CANCELLED'),'unlocked_at':time,'qualified_user_ids':arr(identifier),'entitlement_id':flow_text,'reviewer_id':flow_text,'reviewed_at':nullable(time),'reason':flow_text,'claimed_at':nullable(time),'claim_id':flow_text,'claim_ip':{'type':'string','maxLength':64},'revision':revision})
 flow_reward['required'].remove('claim_ip')
+flow_reward['properties']['profile']=member_profile
 flow_step=obj({**affiliate_step['properties'],'completed_members':{'type':'integer','minimum':0},'cumulative_required':{'type':'integer','minimum':1},'unlocked':boolean,'qualified_at':nullable(time),'qualified_user_ids':arr(identifier)})
 flow_reward_ref={'$ref':'#/components/schemas/AffiliateReward'}
 flow_progress_ref={'$ref':'#/components/schemas/AffiliateProgress'}
@@ -624,7 +627,7 @@ actual_response('/v1/affiliate/business-facts','post',200,response_obj({'event_i
 endpoint('/v1/affiliate/source-watermarks','post',flow_watermark)
 api['paths']['/v1/affiliate/source-watermarks']['post']['parameters'].append({'name':'X-Affiliate-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-f0-9]{64}$'}})
 actual_response('/v1/affiliate/source-watermarks','post',200,response_obj({'watermark':flow_watermark,'status':enum('SOURCE_CLOSED')}))
-endpoint('/v1/me/affiliate/overview','get');actual_response('/v1/me/affiliate/overview','get',200,response_obj({'claim_context_available':boolean,'configured':boolean,'configuration':nullable(affiliate_version),'progress':nullable(flow_progress_ref),'current_grade':nullable(flow_calculation),'provisional':boolean,'observed_at':time,'direct_members':arr(obj({'user_id':identifier,'registered_at':time,'qualification':flow_qualification}))}))
+endpoint('/v1/me/affiliate/overview','get');actual_response('/v1/me/affiliate/overview','get',200,response_obj({'claim_context_available':boolean,'configured':boolean,'configuration':nullable(affiliate_version),'progress':nullable(flow_progress_ref),'current_grade':nullable(flow_calculation),'provisional':boolean,'observed_at':time,'direct_members':arr(obj({'user_id':identifier,'registered_at':time,'qualification':flow_qualification})),'team_stats':nullable(team_dashboard),'profile':member_profile}))
 endpoint('/v1/me/affiliate/progress','get');actual_response('/v1/me/affiliate/progress','get',200,flow_envelope(flow_progress_ref))
 endpoint('/v1/me/affiliate/refresh','post',obj({}));actual_response('/v1/me/affiliate/refresh','post',200,flow_envelope(flow_progress_ref))
 endpoint('/v1/me/affiliate/claims','post',obj({'kind':enum('REFERRAL','COMMISSION','INVITEE','ALL')}));actual_response('/v1/me/affiliate/claims','post',200,response_obj({'claim_id':identifier,'rewards':arr(flow_reward_ref,1)}))
@@ -646,8 +649,8 @@ if _previous_api:
 flow_reward['properties'].update({'created_at':time,'updated_at':time,'accumulation_since':time,'member_qualifications':arr(flow_qualified)})
 flow_reward['required']+=['created_at','updated_at','accumulation_since','member_qualifications']
 record_summary=obj({'currency':currency,'count':{'type':'integer','minimum':0},'total_minor':minor,'claimable_minor':minor,'claimed_minor':minor,'pending_review_minor':minor,'cancelled_minor':minor})
-record_page=obj({'rows':arr(flow_reward_ref),'summary':arr(record_summary),'page_summary':arr(record_summary),'next_after_id':nullable(identifier),'as_of':time,'snapshot_revision':{'type':'string','pattern':'^[0-9]+$'}})
-record_query=[('kind',enum('REFERRAL','INVITEE','COMMISSION'),False),('status',enum('PENDING_REVIEW','CLAIMABLE','CLAIMED','CANCELLED'),False),('user_id',identifier,False),('from',time,False),('to',time,False),('as_of',time,False),('snapshot_revision',{'type':'string','pattern':'^[0-9]+$'},False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)]
+record_page=obj({'rows':arr(flow_reward_ref),'summary':arr(record_summary),'page_summary':arr(record_summary),'next_after_id':nullable({'type':'string','maxLength':512}),'as_of':time,'snapshot_revision':{'type':'string','pattern':'^[0-9]+$'}})
+record_query=[('kind',enum('REFERRAL','INVITEE','COMMISSION'),False),('status',enum('PENDING_REVIEW','CLAIMABLE','CLAIMED','CANCELLED'),False),('user_id',identifier,False),('from',time,False),('to',time,False),('as_of',time,False),('snapshot_revision',{'type':'string','pattern':'^[0-9]+$'},False),('after_id',{'type':'string','maxLength':512},False),('limit',{'type':'integer','minimum':1,'maximum':100},False)]+[(k,identifier,False) for k in ['reward_id','claim_id','claim_ip']]+[('sort',enum('amount_desc','time_desc'),False),('time_field',enum('unlocked_at','claimed_at'),False),('business_day',flow_day,False),('period',enum('yesterday'),False)]
 for path in ['/v1/affiliate/rewards','/v1/me/affiliate/records']:
     endpoint(path,'get',query=record_query);actual_response(path,'get',200,flow_envelope(record_page))
 endpoint('/v1/affiliate/rewards/{id}','get');actual_response('/v1/affiliate/rewards/{id}','get',200,response_obj({'reward':flow_reward_ref,'configuration':affiliate_version,'daily_calculation':nullable(flow_calculation)}))
@@ -670,11 +673,15 @@ else:write('openapi.json',api)
 # 团队报表快照绑定原站点和查询主体；历史贡献与当前成员统计分列展示。
 report_money_names=['direct_deposit_minor','team_deposit_minor','direct_withdrawal_minor','team_withdrawal_minor','net_deposit_minor','direct_valid_bet_minor','team_valid_bet_minor','calculated_commission_minor','claimed_referral_minor','claimed_commission_minor','provisional_commission_minor']
 report_member=obj({'historical_relation':boolean,'user_id':identifier,'depth':{'type':'integer','minimum':1,'maximum':3},'registered_at':time,'qualified_at':nullable(time),**{name:minor for name in ['deposit_minor','withdrawal_minor','valid_bet_minor','contribution_minor','provisional_contribution_minor']}})
+report_member['properties'].update({'effective_member':boolean,'member_type':flow_text,'profile':member_profile,'bet_minor':affiliate_minor,'settlements':arr(obj({'business_day':flow_day,'rate_ppm':{'type':'integer','minimum':0,'maximum':1000000},'commission_minor':affiliate_minor}))})
 report_row=obj({'user_id':identifier,'agent_id':identifier,'registered_at':time,'became_agent_at':time,'enabled':boolean,'gate_revision':revision,**{name:{'type':'integer','minimum':0} for name in ['direct_members','team_members','effective_direct','effective_team']},**{name:minor for name in report_money_names},'members':arr(report_member)})
+report_row['properties'].update({'profile':member_profile,'direct_bet_minor':affiliate_minor,'team_bet_minor':affiliate_minor})
 report_filters=obj({'from':time,'to':time,'user_id':flow_text,'sort':enum('became_agent_at','team_valid_bet_minor','direct_members','effective_direct','claimed_commission_minor'),'descending':boolean})
+report_filters['properties'].update({'search':flow_text,'state':flow_text,'login_ip':flow_text})
 report_summary=obj({**{name:{'type':'integer','minimum':0} for name in ['agents','direct_members','team_members']},**{name:minor for name in report_money_names if name not in ['direct_withdrawal_minor','direct_valid_bet_minor']}})
 report_page=obj({'snapshot_id':{'type':'string','pattern':'^[a-f0-9]{64}$'},'filters':report_filters,'as_of':time,'currency':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'provisional':boolean,'rows':arr(report_row),'summary':report_summary,'page_summary':report_summary,'next_offset':nullable({'type':'integer','minimum':0})})
 report_query=[('snapshot_id',{'type':'string','pattern':'^[a-f0-9]{64}$'},False),('from',flow_day,False),('to',flow_day,False),('user_id',identifier,False),('sort',report_filters['properties']['sort'],False),('descending',boolean,False),('offset',{'type':'integer','minimum':0},False),('limit',{'type':'integer','minimum':1,'maximum':100},False)]
+report_query += [('search',flow_text,False),('state',enum('enabled','disabled'),False),('login_ip',flow_text,False),('period',enum('yesterday'),False)]
 for path in ['/v1/affiliate/agent-report','/v1/me/affiliate/team-report']:
     endpoint(path,'get',query=report_query);actual_response(path,'get',200,flow_envelope(report_page))
 endpoint('/v1/affiliate/agent-report/export','get',query=[('snapshot_id',{'type':'string','pattern':'^[a-f0-9]{64}$'},True)])
@@ -691,11 +698,12 @@ write('openapi.json',api)
 
 # 原型展示与跨站配置为独立扩展端口，沿用原会员及配置权限，不扩大公共代理逻辑。
 feed_row=obj({'member':flow_text,'kind':enum('REFERRAL','INVITEE','COMMISSION'),'amount_minor':affiliate_minor,'currency':currency,'claimed_at':time})
+feed_row['properties']['avatar_url']=flow_text
 feed=obj({'totals':{'type':'object','additionalProperties':affiliate_minor},'rows':arr(feed_row)})
 venue_row=obj({'venue_type_id':identifier,'name':identifier,'icon_url':{'type':'string'}})
 site_configuration=obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)})
 endpoint('/v1/me/affiliate/presentation','get')
-actual_response('/v1/me/affiliate/presentation','get',200,response_obj({'configured':boolean,'configuration':nullable(affiliate_version),'venues':arr(venue_row),'entry_visible':boolean,'site_enabled':boolean,'feed':feed}))
+actual_response('/v1/me/affiliate/presentation','get',200,response_obj({'configured':boolean,'configuration':nullable(affiliate_version),'venues':arr(venue_row),'entry_visible':boolean,'site_enabled':boolean,'feed':feed,'profile':member_profile}))
 endpoint('/v1/affiliate/sites/{tenant}/{app}/config','get')
 actual_response('/v1/affiliate/sites/{tenant}/{app}/config','get',200,response_obj({'configuration':site_configuration,'venues':arr(venue_row),'currencies':arr(obj({'code':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'catalog_version':identifier})),'tenant_id':identifier,'app_id':identifier}))
 endpoint('/v1/affiliate/sites/{tenant}/{app}/config-requests','post',obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier}),202)

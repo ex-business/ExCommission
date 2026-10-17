@@ -12,6 +12,7 @@ import (
 )
 
 type Repository interface {
+	RawFacts(context.Context, db.Executor, foundation.Scope, time.Time) ([]affiliate.Fact, error)
 	Lock(context.Context, db.Executor, foundation.Scope) error
 	SaveFact(context.Context, db.Executor, foundation.Scope, model.Event, string, time.Time, bool, bool) (bool, error)
 	Facts(context.Context, db.Executor, foundation.Scope, time.Time) ([]affiliate.Fact, error)

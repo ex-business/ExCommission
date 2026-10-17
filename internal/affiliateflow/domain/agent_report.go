@@ -8,7 +8,15 @@ import (
 	"time"
 )
 
+type MemberSettlement struct {
+	Day    string `json:"business_day"`
+	Rate   int    `json:"rate_ppm"`
+	Amount string `json:"commission_minor"`
+}
 type AgentReportFilter struct {
+	Search     string    `json:"search"`
+	State      string    `json:"state"`
+	LoginIP    string    `json:"login_ip"`
 	From       time.Time `json:"from"`
 	To         time.Time `json:"to"`
 	User       string    `json:"user_id"`
@@ -17,6 +25,10 @@ type AgentReportFilter struct {
 }
 
 func (f AgentReportFilter) Validate() error {
+	if len(f.Search) > 128 || len(f.LoginIP) > 64 || (f.State != "" && f.State != "enabled" && f.State != "disabled") {
+		return foundation.ErrValidation
+	}
+
 	if f.From.IsZero() || !f.From.Before(f.To) || f.To.After(f.From.AddDate(1, 0, 0)) {
 		return foundation.ErrValidation
 	}
@@ -29,40 +41,48 @@ func (f AgentReportFilter) Validate() error {
 }
 
 type TeamMember struct {
-	Historical   bool       `json:"historical_relation"`
-	Estimate     string     `json:"provisional_contribution_minor"`
-	UserID       string     `json:"user_id"`
-	Depth        int        `json:"depth"`
-	RegisteredAt time.Time  `json:"registered_at"`
-	QualifiedAt  *time.Time `json:"qualified_at"`
-	Deposit      string     `json:"deposit_minor"`
-	Withdrawal   string     `json:"withdrawal_minor"`
-	ValidBet     string     `json:"valid_bet_minor"`
-	Contribution string     `json:"contribution_minor"`
+	Effective    bool               `json:"effective_member"`
+	Type         string             `json:"member_type"`
+	Profile      MemberProfile      `json:"profile"`
+	Bet          string             `json:"bet_minor,omitempty"`
+	Settlements  []MemberSettlement `json:"settlements,omitempty"`
+	Historical   bool               `json:"historical_relation"`
+	Estimate     string             `json:"provisional_contribution_minor"`
+	UserID       string             `json:"user_id"`
+	Depth        int                `json:"depth"`
+	RegisteredAt time.Time          `json:"registered_at"`
+	QualifiedAt  *time.Time         `json:"qualified_at"`
+	Deposit      string             `json:"deposit_minor"`
+	Withdrawal   string             `json:"withdrawal_minor"`
+	ValidBet     string             `json:"valid_bet_minor"`
+	Contribution string             `json:"contribution_minor"`
 }
 type AgentReportRow struct {
-	Estimate             string       `json:"provisional_commission_minor"`
-	UserID               string       `json:"user_id"`
-	AgentID              string       `json:"agent_id"`
-	RegisteredAt         time.Time    `json:"registered_at"`
-	BecameAgentAt        time.Time    `json:"became_agent_at"`
-	Enabled              bool         `json:"enabled"`
-	GateRevision         uint64       `json:"gate_revision"`
-	Direct               int          `json:"direct_members"`
-	Team                 int          `json:"team_members"`
-	EffectiveDirect      int          `json:"effective_direct"`
-	EffectiveTeam        int          `json:"effective_team"`
-	DirectDeposit        string       `json:"direct_deposit_minor"`
-	TeamDeposit          string       `json:"team_deposit_minor"`
-	DirectWithdrawal     string       `json:"direct_withdrawal_minor"`
-	TeamWithdrawal       string       `json:"team_withdrawal_minor"`
-	NetDeposit           string       `json:"net_deposit_minor"`
-	DirectValidBet       string       `json:"direct_valid_bet_minor"`
-	TeamValidBet         string       `json:"team_valid_bet_minor"`
-	CalculatedCommission string       `json:"calculated_commission_minor"`
-	ClaimedReferral      string       `json:"claimed_referral_minor"`
-	ClaimedCommission    string       `json:"claimed_commission_minor"`
-	Members              []TeamMember `json:"members"`
+	DirectBet            string        `json:"direct_bet_minor,omitempty"`
+	TeamBet              string        `json:"team_bet_minor,omitempty"`
+	Profile              MemberProfile `json:"profile"`
+	Estimate             string        `json:"provisional_commission_minor"`
+	UserID               string        `json:"user_id"`
+	AgentID              string        `json:"agent_id"`
+	RegisteredAt         time.Time     `json:"registered_at"`
+	BecameAgentAt        time.Time     `json:"became_agent_at"`
+	Enabled              bool          `json:"enabled"`
+	GateRevision         uint64        `json:"gate_revision"`
+	Direct               int           `json:"direct_members"`
+	Team                 int           `json:"team_members"`
+	EffectiveDirect      int           `json:"effective_direct"`
+	EffectiveTeam        int           `json:"effective_team"`
+	DirectDeposit        string        `json:"direct_deposit_minor"`
+	TeamDeposit          string        `json:"team_deposit_minor"`
+	DirectWithdrawal     string        `json:"direct_withdrawal_minor"`
+	TeamWithdrawal       string        `json:"team_withdrawal_minor"`
+	NetDeposit           string        `json:"net_deposit_minor"`
+	DirectValidBet       string        `json:"direct_valid_bet_minor"`
+	TeamValidBet         string        `json:"team_valid_bet_minor"`
+	CalculatedCommission string        `json:"calculated_commission_minor"`
+	ClaimedReferral      string        `json:"claimed_referral_minor"`
+	ClaimedCommission    string        `json:"claimed_commission_minor"`
+	Members              []TeamMember  `json:"members"`
 }
 type AgentReport struct {
 	Filter      AgentReportFilter `json:"filters"`
@@ -130,12 +150,13 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 			}
 		}
 		g := gates[m.UserID]
-		row := AgentReportRow{UserID: m.UserID, AgentID: m.AgentID, RegisteredAt: m.RegisteredAt, BecameAgentAt: became, Enabled: g.Enabled, GateRevision: g.Revision, DirectDeposit: "0", TeamDeposit: "0", DirectWithdrawal: "0", TeamWithdrawal: "0", NetDeposit: "0", DirectValidBet: "0", TeamValidBet: "0", CalculatedCommission: "0", ClaimedReferral: "0", ClaimedCommission: "0", Estimate: "0", Members: []TeamMember{}}
+		row := AgentReportRow{DirectBet: "0", TeamBet: "0", UserID: m.UserID, AgentID: m.AgentID, RegisteredAt: m.RegisteredAt, BecameAgentAt: became, Enabled: g.Enabled, GateRevision: g.Revision, DirectDeposit: "0", TeamDeposit: "0", DirectWithdrawal: "0", TeamWithdrawal: "0", NetDeposit: "0", DirectValidBet: "0", TeamValidBet: "0", CalculatedCommission: "0", ClaimedReferral: "0", ClaimedCommission: "0", Estimate: "0", Members: []TeamMember{}}
 		type contributionKey struct {
 			user  string
 			depth int
 		}
 		contribution := map[contributionKey]string{}
+		settlements := map[contributionKey][]MemberSettlement{}
 		for _, daily := range dailies {
 			date, e := time.ParseInLocation("2006-01-02", daily.Day, v.Config.Location())
 			if e != nil {
@@ -155,6 +176,7 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 						contribution[key] = "0"
 					}
 					contribution[key] = addMoney(contribution[key], c.Amount)
+					settlements[key] = append(settlements[key], MemberSettlement{Day: daily.Day, Rate: c.Rate, Amount: c.Amount})
 				}
 			}
 		}
@@ -164,7 +186,7 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 			for _, parent := range front {
 				for _, child := range byParent[parent] {
 					next = append(next, child.UserID)
-					member := TeamMember{UserID: child.UserID, Depth: depth, RegisteredAt: child.At, Deposit: "0", Withdrawal: "0", ValidBet: "0", Contribution: "0", Estimate: "0"}
+					member := TeamMember{UserID: child.UserID, Depth: depth, RegisteredAt: child.At, Deposit: "0", Withdrawal: "0", Bet: "0", Settlements: []MemberSettlement{}, ValidBet: "0", Contribution: "0", Estimate: "0"}
 					selected := []affiliate.Fact{}
 					for _, fact := range eligibleByUser[child.UserID] {
 						if !fact.At.Before(g.Since) {
@@ -177,6 +199,11 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 					}
 					member.QualifiedAt = q.At
 					effective := q.At != nil && !q.At.Before(period)
+					member.Effective = effective
+					member.Type = "MEMBER"
+					if len(byParent[child.UserID]) > 0 {
+						member.Type = "AGENT"
+					}
 					row.Team++
 					if effective {
 						row.EffectiveTeam++
@@ -197,15 +224,18 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 						case "WITHDRAWAL_SUCCEEDED":
 							member.Withdrawal = addMoney(member.Withdrawal, fact.Amount)
 						case "BET_SETTLED":
+							member.Bet = addMoney(member.Bet, fact.Amount)
 							if eligibleIDs[fact.ID] {
 								member.ValidBet = addMoney(member.ValidBet, fact.ValidBet)
 							}
 						}
 					}
+					row.TeamBet = addMoney(row.TeamBet, member.Bet)
 					row.TeamDeposit = addMoney(row.TeamDeposit, member.Deposit)
 					row.TeamWithdrawal = addMoney(row.TeamWithdrawal, member.Withdrawal)
 					row.TeamValidBet = addMoney(row.TeamValidBet, member.ValidBet)
 					if depth == 1 {
+						row.DirectBet = addMoney(row.DirectBet, member.Bet)
 						row.DirectDeposit = addMoney(row.DirectDeposit, member.Deposit)
 						row.DirectWithdrawal = addMoney(row.DirectWithdrawal, member.Withdrawal)
 						row.DirectValidBet = addMoney(row.DirectValidBet, member.ValidBet)
@@ -215,6 +245,8 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 						member.Contribution = contribution[key]
 						delete(contribution, key)
 					}
+					// 历史比例来自冻结结果，不读取当前费率。
+					member.Settlements = append([]MemberSettlement{}, settlements[key]...)
 					row.Members = append(row.Members, member)
 				}
 			}
@@ -229,7 +261,7 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 					break
 				}
 			}
-			row.Members = append(row.Members, TeamMember{Historical: true, UserID: key.user, Depth: key.depth, RegisteredAt: registered, Deposit: "0", Withdrawal: "0", ValidBet: "0", Contribution: value, Estimate: "0"})
+			row.Members = append(row.Members, TeamMember{Historical: true, UserID: key.user, Depth: key.depth, RegisteredAt: registered, Deposit: "0", Withdrawal: "0", Bet: "0", Settlements: append([]MemberSettlement{}, settlements[key]...), ValidBet: "0", Contribution: value, Estimate: "0"})
 		}
 		deposit, _ := new(big.Int).SetString(row.TeamDeposit, 10)
 		withdrawal, _ := new(big.Int).SetString(row.TeamWithdrawal, 10)
@@ -359,7 +391,7 @@ func AddProvisionalContribution(row *AgentReportRow, user string, depth int, val
 			return
 		}
 	}
-	row.Members = append(row.Members, TeamMember{Historical: true, UserID: user, Depth: depth, Deposit: "0", Withdrawal: "0", ValidBet: "0", Contribution: "0", Estimate: value})
+	row.Members = append(row.Members, TeamMember{Historical: true, UserID: user, Depth: depth, Deposit: "0", Withdrawal: "0", Bet: "0", Settlements: []MemberSettlement{}, ValidBet: "0", Contribution: "0", Estimate: value})
 	sort.Slice(row.Members, func(i, j int) bool {
 		if row.Members[i].Depth == row.Members[j].Depth {
 			return row.Members[i].UserID < row.Members[j].UserID

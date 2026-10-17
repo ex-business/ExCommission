@@ -3,12 +3,14 @@ package runtime
 import (
 	"bytes"
 	"crypto/rand"
+	"database/sql"
 	"encoding/csv"
 	"encoding/hex"
 	"errors"
 	affiliate "github.com/ex-business/ExCommission/internal/affiliate/adapters"
 	repo "github.com/ex-business/ExCommission/internal/affiliateflow/adapters"
 	model "github.com/ex-business/ExCommission/internal/affiliateflow/domain"
+	identity "github.com/ex-business/ExCommission/internal/identity/adapters"
 	auth "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	"github.com/ex-business/ExCommission/internal/platform/adapters/httpapi"
@@ -64,7 +66,15 @@ func installAffiliateAgentReports(mux *http.ServeMux, require func(string, auth.
 					return
 				}
 				start, end := version.Config.Day(now)
-				filter := model.AgentReportFilter{From: start, To: end, User: q.Get("user_id"), Sort: "became_agent_at", Descending: true}
+				filter := model.AgentReportFilter{Search: q.Get("search"), State: q.Get("state"), LoginIP: q.Get("login_ip"), From: start, To: end, User: q.Get("user_id"), Sort: "became_agent_at", Descending: true}
+				if q.Get("period") == "yesterday" {
+					filter.To = start
+					filter.From = start.In(version.Config.Location()).AddDate(0, 0, -1).UTC()
+				}
+				if filter.LoginIP != "" && (member || identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") != nil) {
+					httpapi.Error(w, rid, principal.ErrPermission)
+					return
+				}
 				if q.Get("sort") != "" {
 					filter.Sort = q.Get("sort")
 				}
@@ -101,6 +111,11 @@ func installAffiliateAgentReports(mux *http.ServeMux, require func(string, auth.
 					return
 				}
 				report, e = repository.Build(r.Context(), sc, filter, now)
+				// 站点首次启用前没有历史配置，历史报表返回空集合，不以当前费率虚构旧日统计。
+				if errors.Is(e, sql.ErrNoRows) {
+					report = model.AgentReport{Filter: filter, Currency: version.Config.Currency, Scale: version.Config.CurrencyScale, Timezone: version.Config.Timezone, AsOf: now, Rows: []model.AgentReportRow{}}
+					e = nil
+				}
 				if e == nil {
 					var random [32]byte
 					if _, e = rand.Read(random[:]); e == nil {
@@ -116,6 +131,23 @@ func installAffiliateAgentReports(mux *http.ServeMux, require func(string, auth.
 			if member && report.Filter.User != p.MemberUserID {
 				httpapi.Error(w, rid, principal.ErrPermission)
 				return
+			}
+			// 登录IP只供有敏感权限的后台读取，会员和普通读取身份不得经快照或导出获得。
+			sensitive := !member && identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") == nil
+			if !sensitive {
+				report.Filter.LoginIP = ""
+				for i := range report.Rows {
+					report.Rows[i].Profile.LastIP = ""
+					if member {
+						report.Rows[i].Profile.LastAt = nil
+					}
+					for n := range report.Rows[i].Members {
+						report.Rows[i].Members[n].Profile.LastIP = ""
+						if member {
+							report.Rows[i].Members[n].Profile.LastAt = nil
+						}
+					}
+				}
 			}
 			page, e := model.AgentReportPage(report, id, offset, limit)
 			if e != nil {
@@ -144,13 +176,26 @@ func installAffiliateAgentReports(mux *http.ServeMux, require func(string, auth.
 		var buffer bytes.Buffer
 		buffer.WriteString("\xef\xbb\xbf")
 		writer := csv.NewWriter(&buffer)
-		headers := []string{"会员编号", "代理编号", "成为代理时间", "直属人数", "团队人数", "有效直属", "有效团队", "直属充值（最小单位）", "团队充值（最小单位）", "团队提现（最小单位）", "存提差（最小单位）", "直属有效业务量（最小单位）", "团队有效业务量（最小单位）", "冻结计算佣金（最小单位）", "已领推荐（最小单位）", "已领佣金（最小单位）", "今日预估佣金（最小单位）", "币种"}
+		headers := []string{"会员编号", "代理编号", "成为代理时间", "直属人数", "团队人数", "有效直属", "有效团队", "直属充值（最小单位）", "团队充值（最小单位）", "团队提现（最小单位）", "存提差（最小单位）", "直属有效业务量（最小单位）", "团队有效业务量（最小单位）", "冻结计算佣金（最小单位）", "已领推荐（最小单位）", "已领佣金（最小单位）", "今日预估佣金（最小单位）", "币种", "账号名", "展示ID", "VIP", "最近登录时间", "最近登录IP", "直属投注（最小单位）", "团队投注（最小单位）"}
 		if e = writer.Write(headers); e != nil {
 			httpapi.Error(w, rid, e)
 			return
 		}
 		for _, row := range data.Rows {
 			cells := []string{row.UserID, row.AgentID, row.BecameAgentAt.UTC().Format(time.RFC3339Nano), strconv.Itoa(row.Direct), strconv.Itoa(row.Team), strconv.Itoa(row.EffectiveDirect), strconv.Itoa(row.EffectiveTeam), row.DirectDeposit, row.TeamDeposit, row.TeamWithdrawal, row.NetDeposit, row.DirectValidBet, row.TeamValidBet, row.CalculatedCommission, row.ClaimedReferral, row.ClaimedCommission, row.Estimate, data.Currency}
+			vip := ""
+			at := ""
+			ip := ""
+			if row.Profile.VIP != nil {
+				vip = strconv.Itoa(*row.Profile.VIP)
+			}
+			if row.Profile.LastAt != nil {
+				at = row.Profile.LastAt.UTC().Format(time.RFC3339Nano)
+			}
+			if identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") == nil {
+				ip = row.Profile.LastIP
+			}
+			cells = append(cells, row.Profile.Name, row.Profile.DisplayID, vip, at, ip, row.DirectBet, row.TeamBet)
 			for n := range cells {
 				cells[n] = csvSafe(cells[n])
 			}

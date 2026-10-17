@@ -24,7 +24,7 @@ import (
 
 func affiliateRecordFilter(r *http.Request, now time.Time) (model.RecordFilter, error) {
 	q := r.URL.Query()
-	f := model.RecordFilter{Kind: q.Get("kind"), Status: q.Get("status"), UserID: q.Get("user_id"), After: q.Get("after_id"), Limit: 25, AsOf: now, From: now.AddDate(0, 0, -7), To: now.Add(time.Microsecond)}
+	f := model.RecordFilter{BusinessDay: q.Get("business_day"), RewardID: q.Get("reward_id"), ClaimID: q.Get("claim_id"), ClaimIP: q.Get("claim_ip"), Sort: q.Get("sort"), TimeField: q.Get("time_field"), Kind: q.Get("kind"), Status: q.Get("status"), UserID: q.Get("user_id"), After: q.Get("after_id"), Limit: 25, AsOf: now, From: now.AddDate(0, 0, -7), To: now.Add(time.Microsecond)}
 	var e error
 	for name, target := range map[string]*time.Time{"from": &f.From, "to": &f.To, "as_of": &f.AsOf} {
 		if q.Get(name) != "" {
@@ -47,6 +47,20 @@ func affiliateRecordFilter(r *http.Request, now time.Time) (model.RecordFilter, 
 		}
 	}
 	return f, f.Validate(now)
+}
+
+// 默认统计日按站点自然日和观察时点计算，翻页/导出跨午夜仍固定同一业务日。
+func affiliateRecordPeriod(r *http.Request, store *mysql.Store, sc foundation.Scope, f *model.RecordFilter) error {
+	if r.URL.Query().Get("period") != "yesterday" || f.Kind != "COMMISSION" || f.BusinessDay != "" {
+		return nil
+	}
+	v, e := (affiliate.Repository{}).At(r.Context(), store.DB, sc, f.AsOf)
+	if e != nil {
+		return e
+	}
+	start, _ := v.Config.Day(f.AsOf)
+	f.BusinessDay = start.In(v.Config.Location()).AddDate(0, 0, -1).Format("2006-01-02")
+	return nil
 }
 
 // csvSafe 防止可维护备注、名称或标识被Excel当成公式执行，不改变页面/数据库原始数据。
@@ -101,6 +115,9 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 		}
 		mux.Handle("GET "+path, require(permission, func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
 			f, e := affiliateRecordFilter(r, clockUTC())
+			if e == nil {
+				e = affiliateRecordPeriod(r, store, foundation.Scope{Tenant: p.Tenant, App: p.App}, &f)
+			}
 			if e != nil {
 				httpapi.Error(w, rid, e)
 				return
@@ -111,6 +128,11 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 					return
 				}
 				f.UserID = p.MemberUserID
+			}
+			// 领取IP筛选同样属于敏感信息，不能借是否命中间接探测其他会员IP。
+			if f.ClaimIP != "" && !member && identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") != nil {
+				httpapi.Error(w, rid, principal.ErrPermission)
+				return
 			}
 			sensitive := member || identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") == nil
 			data, e := (repo.Repository{}).Records(r.Context(), store.DB, foundation.Scope{Tenant: p.Tenant, App: p.App}, f, sensitive)
@@ -155,6 +177,9 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 	}))
 	mux.Handle("GET /v1/affiliate/rewards/export", require("affiliate:export", func(w http.ResponseWriter, r *http.Request, p principal.Principal, rid string) {
 		f, e := affiliateRecordFilter(r, clockUTC())
+		if e == nil {
+			e = affiliateRecordPeriod(r, store, foundation.Scope{Tenant: p.Tenant, App: p.App}, &f)
+		}
 		if e != nil {
 			httpapi.Error(w, rid, e)
 			return
@@ -162,6 +187,10 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 		f.Limit = 100
 		f.After = ""
 		sc := foundation.Scope{Tenant: p.Tenant, App: p.App}
+		if f.ClaimIP != "" && identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") != nil {
+			httpapi.Error(w, rid, principal.ErrPermission)
+			return
+		}
 		sensitive := identity.Authorize(r.Context(), store.DB, p, p.Tenant, p.App, "agents:sensitive:read") == nil
 		page, e := (repo.Repository{}).Records(r.Context(), store.DB, sc, f, sensitive)
 		if e != nil {
@@ -181,7 +210,7 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 		var buffer bytes.Buffer
 		buffer.WriteString("\xef\xbb\xbf")
 		writer := csv.NewWriter(&buffer)
-		if e = writer.Write([]string{"奖励编号", "会员编号", "代理编号", "类型", "阶梯", "业务日", "币种", "金额（最小单位）", "原计算金额（最小单位）", "状态", "解锁时间", "审核人", "审核时间", "领取批次", "领取时间", "领取IP", "备注"}); e != nil {
+		if e = writer.Write([]string{"奖励编号", "会员编号", "代理编号", "类型", "阶梯", "业务日", "币种", "金额（最小单位）", "原计算金额（最小单位）", "状态", "解锁时间", "审核人", "审核时间", "领取批次", "领取时间", "领取IP", "备注", "账号名", "展示ID", "VIP"}); e != nil {
 			httpapi.Error(w, rid, e)
 			return
 		}
@@ -194,6 +223,15 @@ func installAffiliateRecords(mux *http.ServeMux, require func(string, auth.Autho
 		for {
 			for _, row := range page.Rows {
 				values := []string{row.ID, row.UserID, row.AgentID, row.Kind, strconv.Itoa(row.Step), row.Day, row.Currency, row.Amount, row.Original, row.Status, row.UnlockedAt.UTC().Format(time.RFC3339Nano), row.Reviewer, stamp(row.ReviewedAt), row.ClaimID, stamp(row.ClaimedAt), row.ClaimIP, row.Reason}
+				name, display, vip := "", "", ""
+				if row.Profile != nil {
+					name = row.Profile.Name
+					display = row.Profile.DisplayID
+					if row.Profile.VIP != nil {
+						vip = strconv.Itoa(*row.Profile.VIP)
+					}
+				}
+				values = append(values, name, display, vip)
 				for n := range values {
 					values[n] = csvSafe(values[n])
 				}
