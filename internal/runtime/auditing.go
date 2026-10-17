@@ -50,13 +50,18 @@ func (b *bufferedResponse) Write(body []byte) (int, error) {
 func auditHTTP(store *mysql.Store, provider identityports.Provider, scope foundation.Scope, action string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rid := newID()
+		auditScope := scope
 		subject := "anonymous"
 		if provider != nil {
 			if p, err := provider.Authenticate(r.Context(), r.Header.Get("Authorization")); err == nil {
 				subject = p.Subject
+				// 运营账号可能切换到其他已授权站点；使用已认证作用域记录审计，不能写入默认站点。
+				if p.OpsCredential != "" {
+					auditScope = foundation.Scope{Tenant: p.Tenant, App: p.App}
+				}
 			}
 		}
-		ctx := foundation.WithOperation(foundation.WithScope(foundation.WithRequest(r.Context(), rid, subject), scope), action, false)
+		ctx := foundation.WithOperation(foundation.WithScope(foundation.WithRequest(r.Context(), rid, subject), auditScope), action, false)
 		r = r.WithContext(ctx)
 		buffer := &bufferedResponse{header: http.Header{}}
 		next.ServeHTTP(buffer, r)
@@ -69,7 +74,7 @@ func auditHTTP(store *mysql.Store, provider identityports.Provider, scope founda
 		}
 		auditCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
-		err := audit.Append(auditCtx, store.DB, audit.Entry{Tenant: scope.Tenant, App: scope.App, ID: newID(), Subject: subject, RequestID: rid, Type: kind, Action: action, Resource: r.URL.Path, Summary: map[string]string{"result_code": strconv.Itoa(buffer.status)}, At: clockUTC()})
+		err := audit.Append(auditCtx, store.DB, audit.Entry{Tenant: auditScope.Tenant, App: auditScope.App, ID: newID(), Subject: subject, RequestID: rid, Type: kind, Action: action, Resource: r.URL.Path, Summary: map[string]string{"result_code": strconv.Itoa(buffer.status)}, At: clockUTC()})
 		if err != nil {
 			httpapi.Error(w, rid, err)
 			return

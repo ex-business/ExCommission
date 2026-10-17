@@ -74,6 +74,11 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err != nil {
 		return nil, err
 	}
+	// 可选运营接入只扩展独立令牌前缀；旧会员来源和本地身份继续原校验。
+	provider.Legacy, err = identity.LoadOpsProvider(os.Getenv("OPS_IDENTITY_CONFIG_FILE"), provider.Legacy)
+	if err != nil {
+		return nil, err
+	}
 	for _, member := range provider.Members {
 		if err := bootstrapFeature(ctx, store, tenant, app, member.Subject, "member-claims-v1", []string{"member:read", "member:claim"}); err != nil {
 			return nil, err

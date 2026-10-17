@@ -13,6 +13,10 @@ func Authorize(ctx context.Context, tx ports.Executor, p domain.Principal, tenan
 	if p.Subject == "" || p.Tenant != tenant || p.App != app {
 		return domain.ErrPermission
 	}
+	// 运营账号每次认证均向独立身份中心读取有效会话和站点权限；不能复用共享角色授权。
+	if p.OpsCredential != "" {
+		return p.Authorize(tenant, app, permission)
+	}
 	var allowed int
 	err := tx.QueryRowContext(ctx, `SELECT 1 FROM identity_grants WHERE tenant_id=? AND app_id=? AND subject_id=? AND permission=?`, tenant, app, p.Subject, permission).Scan(&allowed)
 	if errors.Is(err, sql.ErrNoRows) {
