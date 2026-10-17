@@ -4,6 +4,18 @@
 
 Go 模块化佣金分润系统，业务标准 V1。按顺序实施，未完成的能力不得宣称可用。
 
+## 工程图解
+
+ExCommission 是代理与佣金业务后端：负责条件配置、试算发布、代理关系、奖励、结算、独立审批和报表。管理页面在独立工程 ExCommission-Web；运营账号与普通会员分别由各自身份系统管理。
+
+![ExCommission 系统关系与业务流程](docs/images/architecture.svg)
+
+### 配套后台如何配置条件
+
+下面是 ExCommission-Web 调用本工程接口的真实页面。等级条件和业务规则由本工程校验、保存并按审批版本生效；本工程自身不提供管理网页。
+
+![代理方案条件配置页面](docs/images/conditions.jpg)
+
 ## 本地环境
 
 使用 Docker Compose 和 MySQL 8.4。复制环境配置后填写本地专用密码：
