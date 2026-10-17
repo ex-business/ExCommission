@@ -490,3 +490,23 @@ endpoint('/v1/me/referral-link','get');actual_response('/v1/me/referral-link','g
 endpoint('/v1/me/referral-links','post',obj({}),201);actual_response('/v1/me/referral-links','post',201,response_obj(member_link['properties']))
 endpoint('/v1/me/referral-binding','post',obj({'code':identifier}));actual_response('/v1/me/referral-binding','post',200,response_obj({'status':enum('BOUND')}))
 write('openapi.json',api)
+
+# 原型推荐返佣完整配置，独立于通用实时计算方案。
+affiliate_minor={'type':'string','pattern':r'^(0|[1-9][0-9]{0,37})$'}
+affiliate_threshold=obj({'deposit_minor':affiliate_minor,'valid_bet_minor':affiliate_minor})
+affiliate_level=obj({'level':{'type':'integer','minimum':0,'maximum':99},'qualified_members':{'type':'integer','minimum':0,'maximum':1000000000},'daily_valid_bet_minor':affiliate_minor,'rates_ppm':{'type':'array','minItems':3,'maxItems':3,'items':{'type':'integer','minimum':0,'maximum':1000000}}})
+affiliate_step=obj({'step':{'type':'integer','minimum':1,'maximum':100},'additional_members':{'type':'integer','minimum':1,'maximum':1000000000},'reward_minor':affiliate_minor})
+affiliate_config=obj({'enabled':boolean,'currency':{'type':'string','minLength':1,'maxLength':16},'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'grade_period':enum('DAY','WEEK','MONTH','LIFETIME'),'grade_condition':affiliate_threshold,'referral_condition':affiliate_threshold,'invitee_condition':affiliate_threshold,'invitee_reward_minor':affiliate_minor,'levels':{**arr(affiliate_level,1),'maxItems':100},'steps':{**arr(affiliate_step,1),'maxItems':100},'venue_type_ids':{**arr(identifier,1),'maxItems':100,'uniqueItems':True}})
+affiliate_version=obj({'revision':revision,'config':affiliate_config,'effective_from':time,'approval_id':identifier})
+components['AffiliateConfig']=affiliate_config
+endpoint('/v1/affiliate/config','get');actual_response('/v1/affiliate/config','get',200,response_obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)}))
+endpoint('/v1/affiliate/venue-types','get');actual_response('/v1/affiliate/venue-types','get',200,response_obj({'rows':arr(obj({'venue_type_id':identifier,'name':identifier,'icon_url':{'type':'string','maxLength':1024}}))}))
+endpoint('/v1/affiliate/config-requests','post',obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier}),202)
+actual_response('/v1/affiliate/config-requests','post',202,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision}))
+errors+=['IMMUTABLE_AFFILIATE_CONFIG','IMMUTABLE_REWARD_STEPS','SCHEDULED_CONFIG_EXISTS','UNKNOWN_VENUE_TYPE']
+write('errors.json',{'standard_version':'1','codes':list(dict.fromkeys(errors))})
+write('openapi.json',api)
+
+endpoint('/v1/affiliate/config-requests/{id}','get')
+actual_response('/v1/affiliate/config-requests/{id}','get',200,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision,'approval_status':identifier,'execution_status':identifier,'applicant_id':identifier,'change':obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier})}))
+write('openapi.json',api)
