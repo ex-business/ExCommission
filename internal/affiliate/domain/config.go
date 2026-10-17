@@ -32,18 +32,19 @@ type Venue struct {
 	IconURL string `json:"icon_url"`
 }
 type Config struct {
-	Enabled           bool      `json:"enabled"`
-	Currency          string    `json:"currency"`
-	CurrencyScale     int       `json:"currency_scale"`
-	Timezone          string    `json:"timezone"`
-	GradePeriod       string    `json:"grade_period"`
-	GradeCondition    Threshold `json:"grade_condition"`
-	ReferralCondition Threshold `json:"referral_condition"`
-	InviteeCondition  Threshold `json:"invitee_condition"`
-	InviteeReward     string    `json:"invitee_reward_minor"`
-	Levels            []Level   `json:"levels"`
-	Steps             []Step    `json:"steps"`
-	VenueIDs          []string  `json:"venue_type_ids"`
+	RiskRules         []RiskRule `json:"risk_rules,omitempty"`
+	Enabled           bool       `json:"enabled"`
+	Currency          string     `json:"currency"`
+	CurrencyScale     int        `json:"currency_scale"`
+	Timezone          string     `json:"timezone"`
+	GradePeriod       string     `json:"grade_period"`
+	GradeCondition    Threshold  `json:"grade_condition"`
+	ReferralCondition Threshold  `json:"referral_condition"`
+	InviteeCondition  Threshold  `json:"invitee_condition"`
+	InviteeReward     string     `json:"invitee_reward_minor"`
+	Levels            []Level    `json:"levels"`
+	Steps             []Step     `json:"steps"`
+	VenueIDs          []string   `json:"venue_type_ids"`
 }
 
 func Money(v string, positive bool) (*big.Int, error) {
@@ -69,6 +70,17 @@ func (t Threshold) Validate() error {
 	return e
 }
 func (c *Config) Normalize() error {
+	if len(c.RiskRules) > 30 {
+		return ErrValidation
+	}
+	rules := map[string]bool{}
+	for _, r := range c.RiskRules {
+		if r.Validate() != nil || rules[r.ID] {
+			return ErrValidation
+		}
+		rules[r.ID] = true
+	}
+
 	if !foundation.ValidID(c.Currency) || len(c.Currency) > 16 || c.CurrencyScale < 0 || c.CurrencyScale > 8 {
 		return ErrValidation
 	}

@@ -2,6 +2,8 @@
 import json
 from pathlib import Path
 OUT=Path('contracts/v1')
+# 保留已有V1路径/组件顺序，追加扩展不重排既有契约。
+_previous_api=json.loads((OUT/'openapi.json').read_text()) if (OUT/'openapi.json').exists() else None
 def obj(props,required=None):
     return {'type':'object','properties':props,'required':list(props) if required is None else required,'additionalProperties':False}
 def enum(*values): return {'type':'string','enum':list(values)}
@@ -578,6 +580,8 @@ affiliate_threshold=obj({'deposit_minor':affiliate_minor,'valid_bet_minor':affil
 affiliate_level=obj({'level':{'type':'integer','minimum':0,'maximum':99},'qualified_members':{'type':'integer','minimum':0,'maximum':1000000000},'daily_valid_bet_minor':affiliate_minor,'rates_ppm':{'type':'array','minItems':3,'maxItems':3,'items':{'type':'integer','minimum':0,'maximum':1000000}}})
 affiliate_step=obj({'step':{'type':'integer','minimum':1,'maximum':100},'additional_members':{'type':'integer','minimum':1,'maximum':1000000000},'reward_minor':affiliate_minor})
 affiliate_config=obj({'enabled':boolean,'currency':{'type':'string','minLength':1,'maxLength':16},'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'grade_period':enum('DAY','WEEK','MONTH','LIFETIME'),'grade_condition':affiliate_threshold,'referral_condition':affiliate_threshold,'invitee_condition':affiliate_threshold,'invitee_reward_minor':affiliate_minor,'levels':{**arr(affiliate_level,1),'maxItems':100},'steps':{**arr(affiliate_step,1),'maxItems':100},'venue_type_ids':{**arr(identifier,1),'maxItems':100,'uniqueItems':True}})
+risk_rule=obj({'rule_id':{'type':'string','minLength':1,'maxLength':64},'enabled':boolean,'dimension':enum('IP','DEVICE','ACCOUNT'),'period':enum('DAY','WEEK','MONTH','LIFETIME','CUSTOM_DAYS'),'window_days':{'type':'integer','minimum':0,'maximum':36600},'scope':enum('SITE','BENEFICIARY'),'missing_identity':enum('ALLOW','DENY'),'effective_from':time,'effective_until':time},['rule_id','enabled','dimension','period','window_days','scope','missing_identity','effective_from'])
+affiliate_config['properties']['risk_rules']={'type':'array','maxItems':30,'items':risk_rule}
 affiliate_version=obj({'revision':revision,'config':affiliate_config,'effective_from':time,'approval_id':identifier})
 components['AffiliateConfig']=affiliate_config
 endpoint('/v1/affiliate/config','get');actual_response('/v1/affiliate/config','get',200,response_obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)}))
@@ -590,4 +594,95 @@ write('openapi.json',api)
 
 endpoint('/v1/affiliate/config-requests/{id}','get')
 actual_response('/v1/affiliate/config-requests/{id}','get',200,response_obj({'approval_id':identifier,'object_hash':identifier,'revision':revision,'approval_status':identifier,'execution_status':identifier,'applicant_id':identifier,'change':obj({'config':affiliate_config,'expected_revision':revision,'reason':identifier})}))
+write('openapi.json',api)
+
+# 独立代理业务闭环；旧事件、规则与会员接口保持原契约。
+flow_text={'type':'string'}
+flow_day={'type':'string','pattern':r'^\d{4}-\d{2}-\d{2}$'}
+flow_event=obj({'source_id':identifier,'event_id':identifier,'business_id':identifier,'external_user_id':identifier,'kind':enum('DEPOSIT_SUCCEEDED','WITHDRAWAL_SUCCEEDED','BET_SETTLED'),'currency':currency,'amount_minor':affiliate_minor,'valid_bet_minor':affiliate_minor,'venue_type_id':flow_text,'business_time':time})
+risk_identity=obj({name:{'type':'string','pattern':'^[a-fA-F0-9]{64}$'} for name in ['ip_hash','device_hash','account_hash']},[])
+flow_event['properties']['risk_identity']=risk_identity
+flow_gate=obj({'enabled':boolean,'enabled_since':time,'revision':revision,'reason':flow_text,'actor_id':flow_text,'updated_at':time})
+flow_qualification=obj({'deposit_minor':affiliate_minor,'valid_bet_minor':affiliate_minor,'qualified_at':nullable(time)})
+flow_qualified=obj({'user_id':identifier,'grade':flow_qualification,'referral':flow_qualification,'invitee':flow_qualification})
+flow_reward=obj({'reward_id':identifier,'user_id':identifier,'agent_id':identifier,'kind':enum('REFERRAL','INVITEE','COMMISSION'),'step':{'type':'integer','minimum':0},'business_day':flow_text,'currency':currency,'amount_minor':affiliate_minor,'calculated_minor':affiliate_minor,'config_revision':revision,'status':enum('PENDING_REVIEW','CLAIMABLE','CLAIMED','CANCELLED'),'unlocked_at':time,'qualified_user_ids':arr(identifier),'entitlement_id':flow_text,'reviewer_id':flow_text,'reviewed_at':nullable(time),'reason':flow_text,'claimed_at':nullable(time),'claim_id':flow_text,'claim_ip':{'type':'string','maxLength':64},'revision':revision})
+flow_reward['required'].remove('claim_ip')
+flow_step=obj({**affiliate_step['properties'],'completed_members':{'type':'integer','minimum':0},'cumulative_required':{'type':'integer','minimum':1},'unlocked':boolean,'qualified_at':nullable(time),'qualified_user_ids':arr(identifier)})
+flow_reward_ref={'$ref':'#/components/schemas/AffiliateReward'}
+flow_progress_ref={'$ref':'#/components/schemas/AffiliateProgress'}
+def flow_envelope(value):return obj({'data':value,'request_id':identifier})
+flow_progress=obj({'blocked_reason':flow_text,'config_revision':revision,'enabled':boolean,'gate':flow_gate,'is_invited':boolean,'qualification':flow_qualified,'steps':arr(flow_step),'rewards':arr(flow_reward_ref)})
+flow_calculation=obj({'user_id':identifier,'day':time,'level':{'type':'integer','minimum':0},'qualified_members':{'type':'integer','minimum':0},'valid_bet_minor':affiliate_minor,'commission_minor':affiliate_minor,'layer_valid_bet_minor':{'type':'array','items':affiliate_minor,'minItems':3,'maxItems':3},'layer_commission_minor':{'type':'array','items':affiliate_minor,'minItems':3,'maxItems':3},'rates_ppm':{'type':'array','items':{'type':'integer','minimum':0,'maximum':1000000},'minItems':3,'maxItems':3},'contributions':arr(obj({'user_id':identifier,'depth':{'type':'integer','minimum':1,'maximum':3},'valid_bet_minor':affiliate_minor,'rate_ppm':{'type':'integer','minimum':0,'maximum':1000000},'commission_minor':affiliate_minor}))})
+flow_calculation['properties']['risk_decisions']=arr(obj({'fact_id':identifier,'user_id':identifier,'rule_id':identifier,'reason':identifier,'winner_user_id':identifier},['fact_id','user_id','rule_id','reason']))
+flow_watermark=obj({'source_id':identifier,'business_day':flow_day,'fact_count':{'type':'integer','minimum':0},'facts_digest':{'type':'string','pattern':'^[a-f0-9]{64}$'}})
+components['AffiliateBusinessEvent']=flow_event;components['AffiliateReward']=flow_reward;components['AffiliateProgress']=flow_progress
+endpoint('/v1/affiliate/business-facts','post',flow_event)
+api['paths']['/v1/affiliate/business-facts']['post']['parameters'].append({'name':'X-Affiliate-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-f0-9]{64}$'}})
+actual_response('/v1/affiliate/business-facts','post',200,response_obj({'event_id':identifier,'business_id':identifier,'accepted':boolean,'late_adjustment':boolean,'user_id':identifier}))
+endpoint('/v1/affiliate/source-watermarks','post',flow_watermark)
+api['paths']['/v1/affiliate/source-watermarks']['post']['parameters'].append({'name':'X-Affiliate-Signature','in':'header','required':True,'schema':{'type':'string','pattern':'^[a-f0-9]{64}$'}})
+actual_response('/v1/affiliate/source-watermarks','post',200,response_obj({'watermark':flow_watermark,'status':enum('SOURCE_CLOSED')}))
+endpoint('/v1/me/affiliate/overview','get');actual_response('/v1/me/affiliate/overview','get',200,response_obj({'claim_context_available':boolean,'configured':boolean,'configuration':nullable(affiliate_version),'progress':nullable(flow_progress_ref),'current_grade':nullable(flow_calculation),'provisional':boolean,'observed_at':time}))
+endpoint('/v1/me/affiliate/progress','get');actual_response('/v1/me/affiliate/progress','get',200,flow_envelope(flow_progress_ref))
+endpoint('/v1/me/affiliate/refresh','post',obj({}));actual_response('/v1/me/affiliate/refresh','post',200,flow_envelope(flow_progress_ref))
+endpoint('/v1/me/affiliate/claims','post',obj({'kind':enum('REFERRAL','COMMISSION','INVITEE','ALL')}));actual_response('/v1/me/affiliate/claims','post',200,response_obj({'claim_id':identifier,'rewards':arr(flow_reward_ref,1)}))
+for name,definition in [('X-Affiliate-Client-IP',{'type':'string'}),('X-Affiliate-Client-Time',{'type':'string','pattern':'^[0-9]+$'}),('X-Affiliate-Body-SHA256',{'type':'string','pattern':'^[a-f0-9]{64}$'}),('X-Affiliate-Client-Signature',{'type':'string','pattern':'^[a-f0-9]{64}$'})]:
+    api['paths']['/v1/me/affiliate/claims']['post']['parameters'].append({'name':name,'in':'header','required':True,'schema':definition,'description':'仅由受控BFF生成，浏览器不能自填'})
+endpoint('/v1/affiliate/agents/{user_id}/reward-switch','post',obj({'enabled':boolean,'expected_revision':revision,'reason':identifier,'confirmed':{'const':True}}));actual_response('/v1/affiliate/agents/{user_id}/reward-switch','post',200,response_obj(flow_gate['properties']))
+api['paths']['/v1/affiliate/agents/{user_id}/reward-switch']['post']['parameters'].append(totp_header)
+endpoint('/v1/affiliate/commissions/{id}/review','post',obj({'decision':enum('APPROVE','CANCEL'),'expected_revision':revision,'amount_minor':affiliate_minor,'reason':identifier},['decision','expected_revision','reason']));actual_response('/v1/affiliate/commissions/{id}/review','post',200,flow_envelope(flow_reward_ref))
+write('openapi.json',api)
+
+if _previous_api:
+    _previous_api['paths'].update(api['paths'])
+    _previous_api['components']['schemas'].update(api['components']['schemas'])
+    for name,value in api['components'].items():
+        if name!='schemas':_previous_api['components'][name]=value
+    write('openapi.json',_previous_api)
+
+# 奖励状态快照分页、专用记录及导出。
+flow_reward['properties'].update({'created_at':time,'updated_at':time,'accumulation_since':time,'member_qualifications':arr(flow_qualified)})
+flow_reward['required']+=['created_at','updated_at','accumulation_since','member_qualifications']
+record_summary=obj({'currency':currency,'count':{'type':'integer','minimum':0},'total_minor':minor,'claimable_minor':minor,'claimed_minor':minor,'pending_review_minor':minor,'cancelled_minor':minor})
+record_page=obj({'rows':arr(flow_reward_ref),'summary':arr(record_summary),'page_summary':arr(record_summary),'next_after_id':nullable(identifier),'as_of':time,'snapshot_revision':{'type':'string','pattern':'^[0-9]+$'}})
+record_query=[('kind',enum('REFERRAL','INVITEE','COMMISSION'),False),('status',enum('PENDING_REVIEW','CLAIMABLE','CLAIMED','CANCELLED'),False),('user_id',identifier,False),('from',time,False),('to',time,False),('as_of',time,False),('snapshot_revision',{'type':'string','pattern':'^[0-9]+$'},False),('after_id',identifier,False),('limit',{'type':'integer','minimum':1,'maximum':100},False)]
+for path in ['/v1/affiliate/rewards','/v1/me/affiliate/records']:
+    endpoint(path,'get',query=record_query);actual_response(path,'get',200,flow_envelope(record_page))
+endpoint('/v1/affiliate/rewards/{id}','get');actual_response('/v1/affiliate/rewards/{id}','get',200,response_obj({'reward':flow_reward_ref,'configuration':affiliate_version,'daily_calculation':nullable(flow_calculation)}))
+endpoint('/v1/affiliate/rewards/export','get',query=record_query)
+api['paths']['/v1/affiliate/rewards/export']['get']['responses']['200']={'description':'同一快照的CSV导出，最多10000条；IP按敏感信息权限输出','content':{'text/csv':{'schema':{'type':'string'}}}}
+flow_frozen=obj({'agent_id':identifier,'accumulation_since':time,'eligible':boolean,'calculation':flow_calculation})
+flow_daily=obj({'business_day':flow_day,'status':enum('CALCULATED','SETTLED'),'configuration':affiliate_version,'watermarks':arr(flow_watermark),'results':arr(flow_frozen),'frozen_at':time,'settled_at':nullable(time)})
+endpoint('/v1/affiliate/daily/{day}','get');actual_response('/v1/affiliate/daily/{day}','get',200,flow_envelope(flow_daily))
+endpoint('/v1/affiliate/agents/{user_id}/reward-switch','get');actual_response('/v1/affiliate/agents/{user_id}/reward-switch','get',200,flow_envelope(flow_gate))
+if _previous_api:
+    _previous_api['paths'].update(api['paths']);_previous_api['components']['schemas'].update(api['components']['schemas'])
+    write('openapi.json',_previous_api)
+else:write('openapi.json',api)
+
+endpoint('/v1/affiliate/currencies','get');actual_response('/v1/affiliate/currencies','get',200,response_obj({'rows':arr(obj({'code':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'catalog_version':identifier}))}))
+if _previous_api:
+    _previous_api['paths'].update(api['paths']);_previous_api['components']['schemas'].update(api['components']['schemas']);write('openapi.json',_previous_api)
+else:write('openapi.json',api)
+
+# 团队报表快照绑定原站点和查询主体；历史贡献与当前成员统计分列展示。
+report_money_names=['direct_deposit_minor','team_deposit_minor','direct_withdrawal_minor','team_withdrawal_minor','net_deposit_minor','direct_valid_bet_minor','team_valid_bet_minor','calculated_commission_minor','claimed_referral_minor','claimed_commission_minor','provisional_commission_minor']
+report_member=obj({'historical_relation':boolean,'user_id':identifier,'depth':{'type':'integer','minimum':1,'maximum':3},'registered_at':time,'qualified_at':nullable(time),**{name:minor for name in ['deposit_minor','withdrawal_minor','valid_bet_minor','contribution_minor','provisional_contribution_minor']}})
+report_row=obj({'user_id':identifier,'agent_id':identifier,'registered_at':time,'became_agent_at':time,'enabled':boolean,'gate_revision':revision,**{name:{'type':'integer','minimum':0} for name in ['direct_members','team_members','effective_direct','effective_team']},**{name:minor for name in report_money_names},'members':arr(report_member)})
+report_filters=obj({'from':time,'to':time,'user_id':flow_text,'sort':enum('became_agent_at','team_valid_bet_minor','direct_members','effective_direct','claimed_commission_minor'),'descending':boolean})
+report_summary=obj({**{name:{'type':'integer','minimum':0} for name in ['agents','direct_members','team_members']},**{name:minor for name in report_money_names if name not in ['direct_withdrawal_minor','direct_valid_bet_minor']}})
+report_page=obj({'snapshot_id':{'type':'string','pattern':'^[a-f0-9]{64}$'},'filters':report_filters,'as_of':time,'currency':currency,'currency_scale':{'type':'integer','minimum':0,'maximum':8},'timezone':identifier,'provisional':boolean,'rows':arr(report_row),'summary':report_summary,'page_summary':report_summary,'next_offset':nullable({'type':'integer','minimum':0})})
+report_query=[('snapshot_id',{'type':'string','pattern':'^[a-f0-9]{64}$'},False),('from',flow_day,False),('to',flow_day,False),('user_id',identifier,False),('sort',report_filters['properties']['sort'],False),('descending',boolean,False),('offset',{'type':'integer','minimum':0},False),('limit',{'type':'integer','minimum':1,'maximum':100},False)]
+for path in ['/v1/affiliate/agent-report','/v1/me/affiliate/team-report']:
+    endpoint(path,'get',query=report_query);actual_response(path,'get',200,flow_envelope(report_page))
+endpoint('/v1/affiliate/agent-report/export','get',query=[('snapshot_id',{'type':'string','pattern':'^[a-f0-9]{64}$'},True)])
+api['paths']['/v1/affiliate/agent-report/export']['get']['responses']['200']={'description':'同一主体和站点的报表快照CSV导出','content':{'text/csv':{'schema':{'type':'string'}}}}
+endpoint('/v1/affiliate/sites','get');actual_response('/v1/affiliate/sites','get',200,response_obj({'rows':arr(obj({'tenant_id':identifier,'app_id':identifier,'configuration':obj({'configured':boolean,'revision':revision,'current':nullable(affiliate_version),'scheduled':nullable(affiliate_version)})})), 'read_only':boolean}))
+if _previous_api:
+    _previous_api['paths'].update(api['paths']);_previous_api['components']['schemas'].update(api['components']['schemas']);write('openapi.json',_previous_api)
+else:write('openapi.json',api)
+
+# 只读佣金计算器：与日结共用领域定级及逐层取整。
+endpoint('/v1/me/affiliate/calculator','get',query=[('qualified_members',{'type':'integer','minimum':0,'maximum':1000000000},True)]+[(key,affiliate_minor,True) for key in ['level1_minor','level2_minor','level3_minor']])
+actual_response('/v1/me/affiliate/calculator','get',200,response_obj({'estimate':obj({'level':{'type':'integer'},'currency':currency,'currency_scale':{'type':'integer'},'rates_ppm':{'type':'array','items':{'type':'integer'},'minItems':3,'maxItems':3},'layer_commission_minor':{'type':'array','items':affiliate_minor,'minItems':3,'maxItems':3},'commission_minor':affiliate_minor}),'config_revision':revision,'provisional':boolean}))
 write('openapi.json',api)

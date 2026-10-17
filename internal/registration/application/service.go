@@ -16,7 +16,6 @@ import (
 	"github.com/ex-business/ExCommission/internal/registration/ports"
 	user "github.com/ex-business/ExCommission/internal/users/domain"
 	"log/slog"
-	"net/url"
 	"time"
 )
 
@@ -45,25 +44,21 @@ func (s Service) Invite(ctx context.Context, p principal.Principal, input model.
 		if err := s.Agents.Active(ctx, tx, scope, input.AgentID, at); err != nil {
 			return foundation.CommandResult{}, err
 		}
-		i := model.Invitation{Code: s.ID(), SourceID: input.SourceID, AgentID: input.AgentID, CreatedAt: at}
-		if registrationURL := s.RegistrationURLs[input.SourceID]; registrationURL != "" {
-			u, err := url.Parse(registrationURL)
-			if err != nil || u.Host == "" || u.User != nil || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") {
-				return foundation.CommandResult{}, foundation.ErrValidation
-			}
-			q := u.Query()
-			q.Set("ic", i.Code)
-			u.RawQuery = q.Encode()
-			v := u.String()
-			i.RegistrationURL = &v
-		}
-		if err := s.Repo.SaveInvitation(ctx, tx, scope, i, at); err != nil {
+		i, err := s.Repo.StableInvitation(ctx, tx, scope, input.SourceID, input.AgentID, at)
+		if err != nil {
 			return foundation.CommandResult{}, err
+		}
+		if registrationURL := s.RegistrationURLs[input.SourceID]; registrationURL != "" {
+			v, err := model.InvitationURL(registrationURL, i.Code)
+			if err != nil {
+				return foundation.CommandResult{}, err
+			}
+			i.RegistrationURL = &v
 		}
 		return response.Result(200, i.Code, request, i)
 	})
 	if err == nil && result.Status == 200 && !result.Replayed {
-		slog.Info("邀请凭证已生成", "request_id", request, "source_id", input.SourceID, "agent_id", input.AgentID, "result", "SUCCEEDED")
+		slog.Info("邀请凭证已确认", "request_id", request, "source_id", input.SourceID, "agent_id", input.AgentID, "result", "SUCCEEDED")
 	}
 	return result, err
 }

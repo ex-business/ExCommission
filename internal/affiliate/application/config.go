@@ -16,16 +16,22 @@ import (
 )
 
 type ConfigurationService struct {
-	Commands db.Commands
-	Query    db.Executor
-	Repo     ports.Configurations
-	Workflow workflow.Repository
-	Now      func() time.Time
-	ID       func() string
-	Hash     func([]byte) string
+	ValidateBusiness func(context.Context, db.Executor, foundation.Scope, model.Config, time.Time) error
+	Commands         db.Commands
+	Query            db.Executor
+	Repo             ports.Configurations
+	Workflow         workflow.Repository
+	Now              func() time.Time
+	ID               func() string
+	Hash             func([]byte) string
 }
 
 func (s ConfigurationService) validate(ctx context.Context, tx db.Executor, scope foundation.Scope, in model.Change, at time.Time, lock bool) error {
+	if s.ValidateBusiness != nil {
+		if e := s.ValidateBusiness(ctx, tx, scope, in.Config, at); e != nil {
+			return e
+		}
+	}
 	old, e := s.Repo.Configuration(ctx, tx, scope, at, lock)
 	if e != nil {
 		return e
@@ -81,6 +87,11 @@ func (s ConfigurationService) Execute(ctx context.Context, tx db.Executor, scope
 	var in model.Change
 	if e := json.Unmarshal(a.Payload, &in); e != nil {
 		return e
+	}
+	if s.ValidateBusiness != nil {
+		if e := s.ValidateBusiness(ctx, tx, scope, in.Config, at); e != nil {
+			return e
+		}
 	}
 	return s.Repo.Apply(ctx, tx, scope, in, a.ID, at)
 }

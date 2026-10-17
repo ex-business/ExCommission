@@ -22,6 +22,7 @@ type Service struct {
 	Now       func() time.Time
 	ID        func() string
 	PublicURL string
+	ShareURL  func(string, string) (string, error)
 }
 
 func (s Service) Read(ctx context.Context, p identity.Principal) (model.Link, error) {
@@ -37,7 +38,7 @@ func (s Service) Read(ctx context.Context, p identity.Principal) (model.Link, er
 	if err != nil {
 		return link, err
 	}
-	link.URL, err = model.ShareURL(s.PublicURL, link.Code)
+	link.URL, err = s.shareURL(s.PublicURL, link.Code)
 	return link, err
 }
 func (s Service) Create(ctx context.Context, p identity.Principal, key, rid string) (foundation.CommandResult, error) {
@@ -47,7 +48,7 @@ func (s Service) Create(ctx context.Context, p identity.Principal, key, rid stri
 	if err := s.Authorize(ctx, s.Query, p); err != nil {
 		return foundation.CommandResult{}, err
 	}
-	if _, err := model.ShareURL(s.PublicURL, "probe"); err != nil {
+	if _, err := s.shareURL(s.PublicURL, "probe"); err != nil {
 		return foundation.CommandResult{}, err
 	}
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
@@ -67,7 +68,7 @@ func (s Service) Create(ctx context.Context, p identity.Principal, key, rid stri
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
-		link.URL, err = model.ShareURL(s.PublicURL, link.Code)
+		link.URL, err = s.shareURL(s.PublicURL, link.Code)
 		if err != nil {
 			return foundation.CommandResult{}, err
 		}
@@ -109,4 +110,12 @@ func (s Service) Bind(ctx context.Context, p identity.Principal, code, key, rid 
 		}
 		return response.Result(200, p.MemberUserID, rid, map[string]string{"status": "BOUND"})
 	})
+}
+
+// shareURL 保留旧会员模块的链接约定；接入注册来源时由装配层注入统一注册链接。
+func (s Service) shareURL(base, code string) (string, error) {
+	if s.ShareURL != nil {
+		return s.ShareURL(base, code)
+	}
+	return model.ShareURL(base, code)
 }

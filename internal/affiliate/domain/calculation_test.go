@@ -19,7 +19,7 @@ func at(v string) time.Time {
 	return t
 }
 func fact(id, user, kind, amount, valid, venue, when string) Fact {
-	return Fact{id, user, kind, "MXN", amount, valid, venue, at(when)}
+	return Fact{ID: id, UserID: user, Kind: kind, Currency: "MXN", Amount: amount, ValidBet: valid, VenueID: venue, At: at(when)}
 }
 func TestConfigurationRejectsInvalidBusinessBounds(t *testing.T) {
 	cases := []struct {
@@ -275,5 +275,26 @@ func TestRejectMalformedFactsAndRelationships(t *testing.T) {
 				t.Fatal("accepted invalid evidence")
 			}
 		})
+	}
+}
+
+func TestAttributedDayKeepsBusinessTimeOwnershipAcrossApprovedMove(t *testing.T) {
+	day := time.Date(2026, 10, 18, 0, 0, 0, 0, time.UTC)
+	c := Config{Enabled: true, Currency: "USD", CurrencyScale: 2, Timezone: "UTC", GradePeriod: "DAY", GradeCondition: Threshold{Deposit: "1", Turnover: "1"}, ReferralCondition: Threshold{Deposit: "1", Turnover: "1"}, InviteeCondition: Threshold{Deposit: "1", Turnover: "1"}, InviteeReward: "1", Steps: []Step{{Number: 1, Members: 1, Amount: "1"}}, VenueIDs: []string{"SPORTS"}, Levels: []Level{{Number: 0, Turnover: "0", Rates: [3]int{100000, 50000, 10000}}}}
+	// 关账时会员已迁入新代理；迁移前订单仍属于旧代理，不能被最终等级快照改写归属。
+	regs := []Registration{{UserID: "old", At: day}, {UserID: "new", At: day}, {UserID: "member", ParentID: "new", At: day}}
+	facts := []Fact{{ID: "before-move", UserID: "member", Kind: "BET_SETTLED", Currency: "USD", Amount: "1000", ValidBet: "1000", VenueID: "SPORTS", At: day.Add(time.Hour)}, {ID: "after-move", UserID: "member", Kind: "BET_SETTLED", Currency: "USD", Amount: "2000", ValidBet: "2000", VenueID: "SPORTS", At: day.Add(15 * time.Hour)}}
+	ownership := []Attribution{{FactID: "before-move", Ancestors: [3]string{"old"}}, {FactID: "after-move", Ancestors: [3]string{"new"}}}
+	old, e := CalculateAttributedDay(c, "old", day, regs, facts, ownership)
+	if e != nil || old.Amount != "100" || old.Turnover != "1000" {
+		t.Fatal(old, e)
+	}
+	current, e := CalculateAttributedDay(c, "new", day, regs, facts, ownership)
+	if e != nil || current.Amount != "200" || current.Turnover != "2000" {
+		t.Fatal(current, e)
+	}
+	ownership[0].Ancestors = [3]string{"old", "", "new"}
+	if _, e = CalculateAttributedDay(c, "new", day, regs, facts, ownership); e == nil {
+		t.Fatal("压缩/断裂的物理祖先链通过")
 	}
 }

@@ -23,6 +23,7 @@ type Agents interface {
 	Active(context.Context, db.Executor, foundation.Scope, string, time.Time) error
 }
 type Repository interface {
+	StableInvitation(context.Context, db.Executor, foundation.Scope, string, string, time.Time) (model.Invitation, error)
 	ClaimEvent(context.Context, db.Executor, foundation.Scope, string, string, string) error
 	Invitation(context.Context, db.Executor, foundation.Scope, string, string) (model.Invitation, error)
 	SaveInvitation(context.Context, db.Executor, foundation.Scope, model.Invitation, time.Time) error

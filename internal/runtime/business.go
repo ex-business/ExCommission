@@ -70,7 +70,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 			return nil, err
 		}
 	}
-	provider, err := loginProvider(identity.NewLocalProvider(map[string]principal.Principal{operator: p1, approver: p2}), p1, p2)
+	provider, err := loginProvider(identity.NewLocalProvider(map[string]principal.Principal{operator: p1, approver: p2}), p1, p2, store)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +189,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	installWallet(mux, require, store)
 	installMemberPortal(mux, require, store)
 	if err := installSites(ctx, mux, require, store, &workflowService, tenant, app); err != nil {
+		return nil, err
+	}
+	if err := installAffiliateFlow(ctx, mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}
 	if err := installAffiliate(ctx, mux, require, store, &workflowService, tenant, app); err != nil {

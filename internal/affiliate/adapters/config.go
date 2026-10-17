@@ -19,8 +19,10 @@ func (Repository) Ensure(ctx context.Context, tx db.Executor, s foundation.Scope
 	if _, e := tx.ExecContext(ctx, `INSERT IGNORE INTO affiliate_spaces VALUES(?,?,0)`, s.Tenant, s.App); e != nil {
 		return e
 	}
-	// These are actual game categories; product/market codes are deliberately not imported.
+	// 场馆使用真实业务分类，图标采用同源分类素材；不把交易产品代码当作游戏类型。
 	for _, v := range []model.Venue{{ID: "SPORTS", Name: "体育"}, {ID: "ESPORTS", Name: "电竞"}, {ID: "LIVE", Name: "真人"}, {ID: "LOTTERY", Name: "彩票"}, {ID: "POKER", Name: "棋牌"}, {ID: "SLOTS", Name: "电子"}, {ID: "FISHING", Name: "捕鱼"}} {
+		icons := map[string]string{"SPORTS": "sports", "ESPORTS": "esports", "LIVE": "live", "LOTTERY": "lottery", "POKER": "poker", "SLOTS": "slots", "FISHING": "fishing"}
+		v.IconURL = "/venue-icons/" + icons[v.ID] + ".svg"
 		if _, e := tx.ExecContext(ctx, `INSERT IGNORE INTO affiliate_venue_types VALUES(?,?,?,?,?)`, s.Tenant, s.App, v.ID, v.Name, v.IconURL); e != nil {
 			return e
 		}
@@ -131,6 +133,17 @@ func (Repository) At(ctx context.Context, tx db.Executor, s foundation.Scope, at
 	var v model.Version
 	var b []byte
 	e := tx.QueryRowContext(ctx, `SELECT revision,effective_from,body,approval_id FROM affiliate_config_versions WHERE tenant_id=? AND app_id=? AND effective_from<=? ORDER BY effective_from DESC,revision DESC LIMIT 1`, s.Tenant, s.App, at).Scan(&v.Revision, &v.Effective, &b, &v.ApprovalID)
+	if e == nil {
+		e = json.Unmarshal(b, &v.Config)
+	}
+	return v, e
+}
+
+// Version 按不可变修订号读取业务依据，用于奖励记录回看，不用当前配置代替历史版本。
+func (Repository) Version(ctx context.Context, tx db.Executor, s foundation.Scope, revision uint64) (model.Version, error) {
+	var v model.Version
+	var b []byte
+	e := tx.QueryRowContext(ctx, `SELECT revision,effective_from,body,approval_id FROM affiliate_config_versions WHERE tenant_id=? AND app_id=? AND revision=?`, s.Tenant, s.App, revision).Scan(&v.Revision, &v.Effective, &b, &v.ApprovalID)
 	if e == nil {
 		e = json.Unmarshal(b, &v.Config)
 	}

@@ -14,6 +14,7 @@ import (
 	response "github.com/ex-business/ExCommission/internal/platform/application"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	registration "github.com/ex-business/ExCommission/internal/registration/domain"
 	sites "github.com/ex-business/ExCommission/internal/sites/adapters"
 	users "github.com/ex-business/ExCommission/internal/users/adapters"
 	"net/http"
@@ -25,7 +26,7 @@ func memberService(store *mysql.Store) app.Service {
 	if public == "" {
 		public = "http://127.0.0.1:18180/"
 	}
-	return app.Service{Commands: store, Query: store.DB, Repo: repo.Repository{}, Bindings: users.Repository{}, Now: clockUTC, ID: newID, PublicURL: public, Authorize: func(ctx context.Context, tx db.Executor, p principal.Principal) error {
+	service := app.Service{Commands: store, Query: store.DB, Repo: repo.Repository{}, Bindings: users.Repository{}, Now: clockUTC, ID: newID, PublicURL: public, Authorize: func(ctx context.Context, tx db.Executor, p principal.Principal) error {
 		if err := identity.Authorize(ctx, tx, p, p.Tenant, p.App, "member:refer"); err != nil {
 			return err
 		}
@@ -33,6 +34,13 @@ func memberService(store *mysql.Store) app.Service {
 	}, CanRefer: func(ctx context.Context, tx db.Executor, scope foundation.Scope, agent string) error {
 		return (agents.Repository{}).PaymentAllowed(ctx, tx, scope, agent)
 	}}
+	// 本地注册来源显式启用时共享邀请码；其他站点继续使用原会员邀请适配器。
+	if os.Getenv("LOCAL_REGISTRATION_ENABLED") == "true" && os.Getenv("MEMBER_INVITATION_SOURCE") == "sandbox" {
+		service.Repo = repo.RegistrationLinks{Source: "sandbox"}
+		service.PublicURL = os.Getenv("LOCAL_REGISTRATION_URL")
+		service.ShareURL = registration.InvitationURL
+	}
+	return service
 }
 func installMemberPortal(mux *http.ServeMux, require func(string, auth.AuthorizedHandler) http.Handler, store *mysql.Store) {
 	service := memberService(store)

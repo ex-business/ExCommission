@@ -14,17 +14,22 @@ type Registration struct {
 	At       time.Time `json:"registered_at"`
 }
 type Fact struct {
-	ID       string    `json:"event_id"`
-	UserID   string    `json:"user_id"`
-	Kind     string    `json:"kind"`
-	Currency string    `json:"currency"`
-	Amount   string    `json:"amount_minor"`
-	ValidBet string    `json:"valid_bet_minor"`
-	VenueID  string    `json:"venue_type_id"`
-	At       time.Time `json:"business_time"`
+	Identity *RiskIdentity `json:"risk_identity,omitempty"`
+	ID       string        `json:"event_id"`
+	UserID   string        `json:"user_id"`
+	Kind     string        `json:"kind"`
+	Currency string        `json:"currency"`
+	Amount   string        `json:"amount_minor"`
+	ValidBet string        `json:"valid_bet_minor"`
+	VenueID  string        `json:"venue_type_id"`
+	At       time.Time     `json:"business_time"`
 }
 
 func (f Fact) Validate(c Config, now time.Time) error {
+	if e := f.Identity.Validate(); e != nil {
+		return e
+	}
+
 	if !foundation.ValidID(f.ID) || !foundation.ValidID(f.UserID) || f.Currency != c.Currency || f.At.IsZero() || f.At.After(now) || !f.At.Equal(f.At.Truncate(time.Microsecond)) {
 		return ErrValidation
 	}
@@ -158,6 +163,7 @@ type Contribution struct {
 	Amount   string `json:"commission_minor"`
 }
 type DailyCommission struct {
+	RiskDecisions    []RiskDecision `json:"risk_decisions,omitempty"`
 	UserID           string         `json:"user_id"`
 	Day              time.Time      `json:"day"`
 	Level            int            `json:"level"`
@@ -170,8 +176,30 @@ type DailyCommission struct {
 	Contributions    []Contribution `json:"contributions"`
 }
 
-// CalculateDay uses one final grade for the entire day and never compresses physical referral levels.
+// 日终使用最终等级处理整日业务，物理邀请层级不压缩。
+// Attribution 冻结单笔业务发生时的三层物理祖先；空位后不得再出现代理，不压缩停用或旧模块节点。
+type Attribution struct {
+	FactID    string    `json:"fact_id"`
+	Ancestors [3]string `json:"ancestors"`
+}
+
 func CalculateDay(c Config, user string, day time.Time, regs []Registration, facts []Fact) (DailyCommission, error) {
+	return calculateDay(c, user, day, regs, facts, nil, facts)
+}
+
+// CalculateAttributedDay 保留既有审批迁移的历史归属，日终最终等级不会把迁移前订单归给新上级。
+func CalculateAttributedDay(c Config, user string, day time.Time, regs []Registration, facts []Fact, ownership []Attribution) (DailyCommission, error) {
+	return calculateDay(c, user, day, regs, facts, &ownership, facts)
+}
+
+// CalculateRiskDay 在代理奖励开关筛选之外保留全站风控竞争事实，避免代理重开后各自选出不同赢家。
+func CalculateRiskDay(c Config, user string, day time.Time, regs []Registration, facts []Fact, ownership []Attribution, riskFacts []Fact) (DailyCommission, error) {
+	if ownership == nil {
+		return calculateDay(c, user, day, regs, facts, nil, riskFacts)
+	}
+	return calculateDay(c, user, day, regs, facts, &ownership, riskFacts)
+}
+func calculateDay(c Config, user string, day time.Time, regs []Registration, facts []Fact, ownership *[]Attribution, riskFacts []Fact) (DailyCommission, error) {
 	if e := c.Normalize(); e != nil {
 		return DailyCommission{}, e
 	}
@@ -250,40 +278,97 @@ func CalculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		}
 		front = next
 	}
+	// 物理归属决定受益人范围；全站策略使用全站来源事实，不能按代理分别选出不同赢家。
+	relevant := map[string]bool{}
+	if ownership == nil {
+		for _, f := range facts {
+			_, ok := depths[f.UserID]
+			relevant[f.ID] = ok
+		}
+	} else {
+		for _, o := range *ownership {
+			for _, a := range o.Ancestors {
+				if a == user {
+					relevant[o.FactID] = true
+				}
+			}
+		}
+	}
+	excluded, decisions := CommissionRisk(c, riskFacts, relevant)
+	out.RiskDecisions = decisions
 	layers := [3]*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0)}
 	total := big.NewInt(0)
-	perUser := map[string]*big.Int{}
+	perLayer := [3]map[string]*big.Int{{}, {}, {}}
 	for id, depth := range depths {
 		v := big.NewInt(0)
 		for _, f := range grouped[id] {
-			if f.Kind == "BET_SETTLED" && !f.At.Before(start) && f.At.Before(end) && c.AllowsVenue(f.VenueID) {
+			if !excluded[f.ID] && f.Kind == "BET_SETTLED" && !f.At.Before(start) && f.At.Before(end) && c.AllowsVenue(f.VenueID) {
 				n, _ := Money(f.ValidBet, false)
 				v.Add(v, n)
 			}
 		}
-		perUser[id] = v
+		perLayer[depth-1][id] = v
 		layers[depth-1].Add(layers[depth-1], v)
 		total.Add(total, v)
+	}
+	if ownership != nil {
+		byFact := map[string][3]string{}
+		for _, o := range *ownership {
+			if _, ok := byFact[o.FactID]; ok {
+				return out, ErrValidation
+			}
+			byFact[o.FactID] = o.Ancestors
+		}
+		layers = [3]*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0)}
+		total = big.NewInt(0)
+		perLayer = [3]map[string]*big.Int{{}, {}, {}}
+		for _, f := range facts {
+			if excluded[f.ID] || f.Kind != "BET_SETTLED" || f.At.Before(start) || !f.At.Before(end) || !c.AllowsVenue(f.VenueID) {
+				continue
+			}
+			ancestors, ok := byFact[f.ID]
+			if !ok {
+				return out, errors.New("RELATION_HISTORY_MISSING")
+			}
+			seen := map[string]bool{f.UserID: true}
+			ended := false
+			for n, ancestor := range ancestors {
+				if ancestor == "" {
+					ended = true
+					continue
+				}
+				if ended || seen[ancestor] {
+					return out, errors.New("RELATION_CYCLE")
+				}
+				seen[ancestor] = true
+				if _, ok := byID[ancestor]; !ok {
+					return out, errors.New("RELATION_HISTORY_MISSING")
+				}
+				if ancestor != user {
+					continue
+				}
+				value, _ := Money(f.ValidBet, false)
+				layers[n].Add(layers[n], value)
+				total.Add(total, value)
+				if perLayer[n][f.UserID] == nil {
+					perLayer[n][f.UserID] = big.NewInt(0)
+				}
+				perLayer[n][f.UserID].Add(perLayer[n][f.UserID], value)
+			}
+		}
 	}
 	if len(total.String()) > 38 {
 		return out, errors.New("AMOUNT_OUT_OF_RANGE")
 	}
 	out.Turnover = total.String()
-	grade := c.Levels[0]
-	for _, v := range c.Levels {
-		threshold, _ := Money(v.Turnover, false)
-		if out.QualifiedMembers >= v.Members && total.Cmp(threshold) >= 0 {
-			grade = v
-		}
-	}
+	grade := CommissionGrade(c, out.QualifiedMembers, total)
 	out.Level = grade.Number
 	out.Rates = grade.Rates
 	amount := big.NewInt(0)
 	divisor := big.NewInt(1000000)
 	for i, v := range layers {
 		out.LayerTurnover[i] = v.String()
-		n := new(big.Int).Mul(v, big.NewInt(int64(grade.Rates[i])))
-		n.Quo(n, divisor)
+		n := CommissionAmount(v, grade.Rates[i])
 		out.LayerAmounts[i] = n.String()
 		amount.Add(amount, n)
 	}
@@ -291,8 +376,7 @@ func CalculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		return out, errors.New("AMOUNT_OUT_OF_RANGE")
 	}
 	out.Amount = amount.String()
-	// Allocate each rounded layer total by largest remainder, deterministic tie by user ID.
-	// This preserves exact agreement between member contribution rows and payable commission.
+	// 每层汇总后取整，再按最大余数分配给会员；同余数按会员ID排序，保证明细与应付佣金严格守恒。
 	for depth := 1; depth <= 3; depth++ {
 		type share struct {
 			id     string
@@ -300,11 +384,8 @@ func CalculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		}
 		parts := []share{}
 		floorTotal := big.NewInt(0)
-		for id, d := range depths {
-			if d != depth {
-				continue
-			}
-			num := new(big.Int).Mul(perUser[id], big.NewInt(int64(grade.Rates[depth-1])))
+		for id, value := range perLayer[depth-1] {
+			num := new(big.Int).Mul(value, big.NewInt(int64(grade.Rates[depth-1])))
 			n, rem := new(big.Int), new(big.Int)
 			n.QuoRem(num, divisor, rem)
 			floorTotal.Add(floorTotal, n)
@@ -323,7 +404,7 @@ func CalculateDay(c Config, user string, day time.Time, regs []Registration, fac
 			if int64(i) < extra {
 				p.n.Add(p.n, big.NewInt(1))
 			}
-			out.Contributions = append(out.Contributions, Contribution{p.id, depth, perUser[p.id].String(), grade.Rates[depth-1], p.n.String()})
+			out.Contributions = append(out.Contributions, Contribution{p.id, depth, perLayer[depth-1][p.id].String(), grade.Rates[depth-1], p.n.String()})
 		}
 	}
 	sort.Slice(out.Contributions, func(i, j int) bool {
@@ -331,6 +412,9 @@ func CalculateDay(c Config, user string, day time.Time, regs []Registration, fac
 		b, _ := Money(out.Contributions[j].Amount, false)
 		cmp := a.Cmp(b)
 		if cmp == 0 {
+			if out.Contributions[i].UserID == out.Contributions[j].UserID {
+				return out.Contributions[i].Depth < out.Contributions[j].Depth
+			}
 			return out.Contributions[i].UserID < out.Contributions[j].UserID
 		}
 		return cmp > 0

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -70,10 +71,17 @@ func (v *Change) Normalize() error {
 	return v.Config.Normalize()
 }
 
-// completeJSON rejects omitted/null nested values, including meaningful zero-valued ranks/rates.
+// completeJSON 保留旧规则的必填校验；新增可选配置按omitempty兼容旧请求，时间按JSON字符串验证。
 func completeJSON(raw json.RawMessage, typ reflect.Type) bool {
 	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return false
+	}
+	if typ == reflect.TypeOf(time.Time{}) {
+		var v time.Time
+		return json.Unmarshal(raw, &v) == nil && !v.IsZero()
+	}
+	if typ.Kind() == reflect.Pointer {
+		return completeJSON(raw, typ.Elem())
 	}
 	switch typ.Kind() {
 	case reflect.Struct:
@@ -83,8 +91,12 @@ func completeJSON(raw json.RawMessage, typ reflect.Type) bool {
 		}
 		for i := 0; i < typ.NumField(); i++ {
 			f := typ.Field(i)
-			key := f.Tag.Get("json")
+			tag := strings.Split(f.Tag.Get("json"), ",")
+			key := tag[0]
 			v, ok := fields[key]
+			if !ok && len(tag) > 1 && tag[1] == "omitempty" {
+				continue
+			}
 			if !ok || !completeJSON(v, f.Type) {
 				return false
 			}

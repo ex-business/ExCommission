@@ -18,7 +18,7 @@ import (
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 )
 
-func loginProvider(legacy ports.Provider, p1, p2 principal.Principal) (*identity.Sessions, error) {
+func loginProvider(legacy ports.Provider, p1, p2 principal.Principal, stores ...*mysql.Store) (*identity.Sessions, error) {
 	var accounts []identity.LoginAccount
 	members := map[string]principal.Principal{}
 	if path := os.Getenv("AUTH_LOCAL_ACCOUNTS_FILE"); path != "" {
@@ -80,6 +80,15 @@ func loginProvider(legacy ports.Provider, p1, p2 principal.Principal) (*identity
 				return nil, err
 			}
 		}
+	}
+	// 可选会员来源通过独立适配器装配，原静态外部身份提供方继续作为回退。
+	var store *mysql.Store
+	if len(stores) > 0 {
+		store = stores[0]
+	}
+	external, err := memberSourceProvider(store, foundation.Scope{Tenant: p1.Tenant, App: p1.App}, external)
+	if err != nil {
+		return nil, err
 	}
 	sessions, err := identity.NewSessions(accounts, legacy, external)
 	if err != nil {

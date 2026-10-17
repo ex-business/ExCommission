@@ -19,7 +19,11 @@ import (
 )
 
 func affiliateConfiguration(store *mysql.Store) app.ConfigurationService {
-	return app.ConfigurationService{Commands: store, Query: store.DB, Repo: repo.Repository{}, Workflow: approvalrepo.Repository{}, Now: clockUTC, ID: newID, Hash: approvalrepo.Hash}
+	service := app.ConfigurationService{Commands: store, Query: store.DB, Repo: repo.Repository{}, Workflow: approvalrepo.Repository{}, Now: clockUTC, ID: newID, Hash: approvalrepo.Hash}
+	if affiliateFlowEnabled() {
+		service.ValidateBusiness = validateAffiliateCurrency
+	}
+	return service
 }
 func installAffiliate(ctx context.Context, mux *http.ServeMux, require func(string, auth.AuthorizedHandler) http.Handler, store *mysql.Store, approvals *workflow.Service, tenant, application string) error {
 	if e := (repo.Repository{}).Ensure(ctx, store.DB, foundation.Scope{Tenant: tenant, App: application}); e != nil {
