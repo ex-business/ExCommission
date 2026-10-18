@@ -10,6 +10,7 @@ import (
 )
 
 type Version struct {
+	ProgramID  string    `json:"program_id,omitempty"`
 	Revision   uint64    `json:"revision"`
 	Config     Config    `json:"config"`
 	Effective  time.Time `json:"effective_from"`

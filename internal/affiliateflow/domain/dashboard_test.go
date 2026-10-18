@@ -29,3 +29,15 @@ func TestDashboardNewMembersPeriodAndRawDeposits(t *testing.T) {
 		t.Fatal(stats)
 	}
 }
+
+func TestDashboardDoesNotMixProgramCurrencies(t *testing.T) {
+	now := time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC)
+	config := a.Config{Currency: "USD", Timezone: "UTC", GradePeriod: "DAY", GradeCondition: a.Threshold{Deposit: "100", Turnover: "100"}}
+	regs := []a.Registration{{UserID: "child", ParentID: "root", At: now.Add(-time.Hour)}}
+	raw := []a.Fact{{UserID: "child", Kind: "DEPOSIT_SUCCEEDED", Currency: "USD", Amount: "100", At: now}, {UserID: "child", Kind: "DEPOSIT_SUCCEEDED", Currency: "BTC", Amount: "100000000", At: now}}
+	rewards := []Reward{{UserID: "root", Currency: "USD", Amount: "50", Status: "CLAIMED"}, {ProgramID: "new-program", UserID: "root", Currency: "BTC", Amount: "100000000", Status: "CLAIMED"}}
+	result, e := TeamDashboardFor(config, "root", now, regs, raw, nil, rewards)
+	if e != nil || result.TotalDeposit != "100" || result.Earned != "50" {
+		t.Fatal("并行方案混入兼容方案统计", result, e)
+	}
+}

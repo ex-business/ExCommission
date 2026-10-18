@@ -40,6 +40,17 @@ func (w *failAffiliateWallet) Credit(ctx context.Context, tx db.Executor, s foun
 	return (wallet.Repository{}).Credit(ctx, tx, s, c, at)
 }
 func TestAffiliateFlowQualificationUnlockAtomicClaimsAndGate(t *testing.T) {
+	affiliateFlowFixture(t, "")
+}
+func TestAffiliateTaskRuns(t *testing.T)                       { affiliateFlowFixture(t, "tasks") }
+func TestAffiliateProgramsLifecycle(t *testing.T)              { affiliateFlowFixture(t, "programs") }
+func TestAffiliateReversalUnclaimed(t *testing.T)              { affiliateFlowFixture(t, "unclaimed") }
+func TestAffiliateReversalClaimed(t *testing.T)                { affiliateFlowFixture(t, "claimed") }
+func TestAffiliateReversalUnknown(t *testing.T)                { affiliateFlowFixture(t, "unknown") }
+func TestAffiliateReversalDailyClaimed(t *testing.T)           { affiliateFlowFixture(t, "daily-claimed") }
+func TestAffiliateReversalFrozenBeforeSettlement(t *testing.T) { affiliateFlowFixture(t, "frozen") }
+func TestAffiliateReversalDaily(t *testing.T)                  { affiliateFlowFixture(t, "daily") }
+func affiliateFlowFixture(t *testing.T, reversalMode string) {
 	if os.Getenv("TEST_MYSQL_ADDRESS") == "" {
 		t.Skip("需要本地 MySQL")
 	}
@@ -163,6 +174,14 @@ func TestAffiliateFlowQualificationUnlockAtomicClaimsAndGate(t *testing.T) {
 		mac.Write(raw)
 		return call("/v1/affiliate/business-facts", op, in, want, "", map[string]string{"X-Affiliate-Signature": hex.EncodeToString(mac.Sum(nil))})
 	}
+	if reversalMode == "tasks" {
+		affiliateTasksAcceptance(t, ctx, store, sc, base, &clock, op, checker, call)
+		return
+	}
+	if reversalMode == "programs" {
+		affiliateProgramsAcceptance(t, ctx, store, sc, base, &clock, root, members, cfg, op, checker, key, call, send, event)
+		return
+	}
 	call("/v1/affiliate/business-facts", op, event("child1", "forged", "DEPOSIT_SUCCEEDED", "100", "0"), 403, "", nil)
 	for _, id := range []string{"child1", "child2", "child3", "child4"} {
 		send(event(id, id+"-deposit", "DEPOSIT_SUCCEEDED", "100", "0"), 200)
@@ -215,6 +234,128 @@ func TestAffiliateFlowQualificationUnlockAtomicClaimsAndGate(t *testing.T) {
 	}
 	rootP := makePrincipal(rootUser, "member-flow-root")
 	childP := makePrincipal(childUser, "member-flow-child")
+	reversal := func(business, original, kind, amount, valid string, want int, keyOverride string) map[string]any {
+		in := map[string]any{"source_id": "sandbox", "event_id": "rev-event-" + business, "business_id": business, "original_event_id": "event-" + original, "original_business_id": original, "external_user_id": "child1", "kind": kind, "currency": "USD", "amount_minor": amount, "valid_bet_minor": valid, "business_time": clockUTC().Format(time.RFC3339Nano), "reason": "模拟退款撤单"}
+		raw, _ := json.Marshal(in)
+		mac := hmac.New(sha256.New, []byte(key))
+		mac.Write([]byte("affiliate-reversal-v1\n" + tenant + "\n" + sc.App + "\nsandbox\n"))
+		mac.Write(raw)
+		return call("/v1/affiliate/reversals", op, in, want, keyOverride, map[string]string{"X-Affiliate-Signature": hex.EncodeToString(mac.Sum(nil))})
+	}
+	referralChecks := func(paid bool) {
+		// 篡改原会员、错误签名、审核角色及跨站身份都不能创建冲正事实。
+		forged := map[string]any{"source_id": "sandbox", "event_id": "forged-refund", "business_id": "forged-refund", "original_event_id": "event-child1-deposit", "original_business_id": "child1-deposit", "external_user_id": "child2", "kind": "DEPOSIT_REFUNDED", "currency": "USD", "amount_minor": "100", "valid_bet_minor": "0", "business_time": clockUTC().Format(time.RFC3339Nano), "reason": "验证归属"}
+		raw, _ := json.Marshal(forged)
+		mac := hmac.New(sha256.New, []byte(key))
+		mac.Write([]byte("affiliate-reversal-v1\n" + tenant + "\n" + sc.App + "\nsandbox\n"))
+		mac.Write(raw)
+		signature := hex.EncodeToString(mac.Sum(nil))
+		call("/v1/affiliate/reversals", op, forged, 403, "", nil)
+		call("/v1/affiliate/reversals", op, forged, 409, "", map[string]string{"X-Affiliate-Signature": signature})
+		call("/v1/affiliate/reversals", checker, forged, 403, "", map[string]string{"X-Affiliate-Signature": signature})
+		if _, e := service.ReceiveReversal(ctx, principal.Principal{Tenant: "other", App: sc.App, Subject: "local-operator"}, raw, signature, "cross-site", "cross-site"); e == nil {
+			t.Fatal("跨站冲正未拒绝")
+		}
+
+		// 原事件后到不能永久污染冲正幂等键；补齐原事实后，同一原始冲正即可继续处理。
+		waiting := map[string]any{"source_id": "sandbox", "event_id": "waiting-original", "business_id": "waiting-original", "original_event_id": "event-future-original", "original_business_id": "future-original", "external_user_id": "root", "kind": "DEPOSIT_REFUNDED", "currency": "USD", "amount_minor": "1", "valid_bet_minor": "0", "business_time": clockUTC().Format(time.RFC3339Nano), "reason": "验证乱序原事件"}
+		waitingRaw, _ := json.Marshal(waiting)
+		waitingMac := hmac.New(sha256.New, []byte(key))
+		waitingMac.Write([]byte("affiliate-reversal-v1\n" + tenant + "\n" + sc.App + "\nsandbox\n"))
+		waitingMac.Write(waitingRaw)
+		waitingHeaders := map[string]string{"X-Affiliate-Signature": hex.EncodeToString(waitingMac.Sum(nil))}
+		call("/v1/affiliate/reversals", op, waiting, 503, "same-waiting-original", waitingHeaders)
+		send(event("root", "future-original", "DEPOSIT_SUCCEEDED", "1", "0"), 200)
+		call("/v1/affiliate/reversals", op, waiting, 200, "same-waiting-original", waitingHeaders)
+		beforeWallet, e := (wallet.Repository{}).Accounts(ctx, store.DB, sc, childUser)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if reversalMode == "unknown" {
+			reward, e := service.Repo.Reward(ctx, store.DB, sc, childRewards[0].ID)
+			if e != nil {
+				t.Fatal(e)
+			}
+			e = store.Within(ctx, func(tx db.Executor) error {
+				repo := ledger.Repository{}
+				if e := repo.CloseHold(ctx, tx, sc, reward.EntitlementID, flowmodel.ID("affiliate-claim-owner", reward.ID), clockUTC()); e != nil {
+					return e
+				}
+				if e := repo.Transfer(ctx, tx, sc, reward.EntitlementID, "pending", "available", "50", "reserve-step1", clockUTC()); e != nil {
+					return e
+				}
+				return repo.Transfer(ctx, tx, sc, reward.EntitlementID, "available", "reserved", "50", "reserve-step2", clockUTC())
+			})
+			if e != nil {
+				t.Fatal(e)
+			}
+			reversal("refund", "child1-deposit", "DEPOSIT_REFUNDED", "100", "0", 503, "same-reversal-retry")
+			var n int
+			if e = store.DB.QueryRow(`SELECT count(*) FROM affiliate_reversal_events WHERE tenant_id=? AND business_id='refund'`, tenant).Scan(&n); e != nil || n != 0 {
+				t.Fatal("在途付款时冲正未回滚", n, e)
+			}
+			if e = store.Within(ctx, func(tx db.Executor) error {
+				return (ledger.Repository{}).Transfer(ctx, tx, sc, reward.EntitlementID, "reserved", "paid", "50", "confirm-original-payment", clockUTC())
+			}); e != nil {
+				t.Fatal(e)
+			}
+		}
+		reversal("over", "child1-deposit", "DEPOSIT_REFUNDED", "101", "0", 422, "")
+		reversal("refund", "child1-deposit", "DEPOSIT_REFUNDED", "100", "0", 200, "same-reversal-retry")
+		reversal("refund", "child1-deposit", "DEPOSIT_REFUNDED", "100", "0", 200, "fresh-command-same-reversal")
+		reversal("double", "child1-deposit", "DEPOSIT_REFUNDED", "1", "0", 422, "")
+		after, e := service.Repo.Reward(ctx, store.DB, sc, childRewards[0].ID)
+		if e != nil {
+			t.Fatal(e)
+		}
+		ent, e := (ledger.Repository{}).Get(ctx, store.DB, sc, after.EntitlementID, false)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if reversalMode == "unknown" {
+			if ent.Paid != "50" || ent.Debt != "50" {
+				t.Fatal("在途确认后未形成追偿", ent)
+			}
+		} else if paid {
+			if after.Status != "CLAIMED" || ent.Paid != "50" || ent.Debt != "50" || ent.Target != "0" {
+				t.Fatal("已领冲正未保留领取并追偿", after, ent)
+			}
+		} else {
+			if after.Status != "CANCELLED" || ent.Target != "0" || ent.Pending != "0" || ent.Debt != "0" {
+				t.Fatal("未领冲正错误", after, ent)
+			}
+			if out, e := service.Claim(ctx, childP, flow.Claim{Kind: "INVITEE"}, "203.0.113.11", "cannot-claim-reversed", "test"); e == nil && out.Status < 400 {
+				t.Fatal("冲正后仍可领取")
+			}
+		}
+		afterWallet, e := (wallet.Repository{}).Accounts(ctx, store.DB, sc, childUser)
+		if e != nil {
+			t.Fatal(e)
+		}
+		a, _ := json.Marshal(beforeWallet)
+		b, _ := json.Marshal(afterWallet)
+		if string(a) != string(b) {
+			t.Fatal("冲正直接改写钱包", string(a), string(b))
+		}
+		if _, e := service.RefreshOwn(ctx, childP, "refund-refresh", "test"); e != nil {
+			t.Fatal(e)
+		}
+		progress, e := service.Read(ctx, childP)
+		if e != nil || progress.Qualification.Invitee.Deposit != "0" {
+			t.Fatal("资格未扣除退款", progress, e)
+		}
+		reversal("cancel-bet", "child1-bet", "BET_CANCELLED", "200", "200", 200, "")
+		var facts int
+		if e = store.DB.QueryRow(`SELECT count(*) FROM affiliate_business_facts WHERE tenant_id=? AND business_id IN ('child1-deposit','child1-bet')`, tenant).Scan(&facts); e != nil || facts != 2 {
+			t.Fatal("原事件被删除", facts, e)
+		}
+		t.Log("退款撤单、原事件保留、未领阻止领取/已领追偿、重复与超额拒绝通过")
+	}
+	if reversalMode == "unclaimed" || reversalMode == "unknown" {
+		referralChecks(false)
+		return
+	}
+
 	failing := service
 	failing.Funds = flowrepo.Funds{Wallet: &failAffiliateWallet{}}
 	if _, e = failing.Claim(ctx, rootP, flow.Claim{Kind: "ALL"}, "203.0.113.10", "rollback-batch", "rollback-request"); e == nil {
@@ -300,6 +441,10 @@ func TestAffiliateFlowQualificationUnlockAtomicClaimsAndGate(t *testing.T) {
 	if e != nil || len(accounts) != 1 || accounts[0].Balance != "50" {
 		t.Fatal(accounts, e)
 	}
+	if reversalMode == "claimed" {
+		referralChecks(true)
+		return
+	}
 	// 按业务来源水位冻结最终等级，00点仅计算，次日01点才进入待审核。
 	clock.Store(base.Add(11*time.Hour + 50*time.Minute).UnixNano())
 	high := event("child2", "dayend-final-grade", "BET_SETTLED", "60000", "60000")
@@ -350,6 +495,36 @@ func TestAffiliateFlowQualificationUnlockAtomicClaimsAndGate(t *testing.T) {
 	if !found {
 		t.Fatal("日终缺少根代理")
 	}
+	if reversalMode == "frozen" {
+		in := map[string]any{"source_id": "sandbox", "event_id": "reverse-before-settle", "business_id": "reverse-before-settle", "original_event_id": "event-dayend-final-grade", "original_business_id": "dayend-final-grade", "external_user_id": "child2", "kind": "BET_CANCELLED", "currency": "USD", "amount_minor": "60000", "valid_bet_minor": "60000", "business_time": clockUTC().Format(time.RFC3339Nano), "reason": "冻结后结算前撤单"}
+		raw, _ := json.Marshal(in)
+		mac := hmac.New(sha256.New, []byte(key))
+		mac.Write([]byte("affiliate-reversal-v1\n" + tenant + "\n" + sc.App + "\nsandbox\n"))
+		mac.Write(raw)
+		call("/v1/affiliate/reversals", op, in, 200, "reverse-before-settle", map[string]string{"X-Affiliate-Signature": hex.EncodeToString(mac.Sum(nil))})
+		clock.Store(time.Date(2026, 10, 19, 1, 0, 0, 0, time.UTC).UnixNano())
+		if e = service.RunOnce(ctx, sc); e != nil {
+			t.Fatal(e)
+		}
+		rewards, e := service.Repo.Rewards(ctx, store.DB, sc, rootUser)
+		if e != nil {
+			t.Fatal(e)
+		}
+		found := false
+		for _, r := range rewards {
+			if r.Kind == "COMMISSION" {
+				found = true
+				if r.Amount != "2" {
+					t.Fatal("冻结后撤销仍使用旧金额结算", r)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("未生成净额结算单")
+		}
+		t.Log("冻结后结算前冲正按净额进入待审核，原快照保留通过")
+		return
+	}
 	clock.Store(time.Date(2026, 10, 19, 1, 0, 0, 0, time.UTC).UnixNano())
 	if e = service.RunOnce(ctx, sc); e != nil {
 		t.Fatal(e)
@@ -372,6 +547,45 @@ func TestAffiliateFlowQualificationUnlockAtomicClaimsAndGate(t *testing.T) {
 	}
 	if commissionID == "" || len(all) != 3 {
 		t.Fatal("重复结算或漏单", all)
+	}
+	if reversalMode == "daily" || reversalMode == "daily-claimed" {
+		original, e := service.Repo.Reward(ctx, store.DB, sc, commissionID)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if reversalMode == "daily-claimed" {
+			call("/v1/affiliate/commissions/"+commissionID+"/review", checker, map[string]any{"decision": "APPROVE", "expected_revision": original.Revision, "reason": "领取前独立审核"}, 200, "", nil)
+			if out, e := service.Claim(ctx, rootP, flow.Claim{Kind: "COMMISSION"}, "203.0.113.10", "claim-before-reversal", "test"); e != nil || out.Status != 200 {
+				t.Fatal(out, e)
+			}
+		}
+		// 全额撤销关账前的大额投注，仍使用该日冻结方案计算；冻结原始结果必须保留。
+		in := map[string]any{"source_id": "sandbox", "event_id": "reverse-high", "business_id": "reverse-high", "original_event_id": "event-dayend-final-grade", "original_business_id": "dayend-final-grade", "external_user_id": "child2", "kind": "BET_CANCELLED", "currency": "USD", "amount_minor": "60000", "valid_bet_minor": "60000", "business_time": clockUTC().Format(time.RFC3339Nano), "reason": "投注撤单"}
+		raw, _ := json.Marshal(in)
+		mac := hmac.New(sha256.New, []byte(key))
+		mac.Write([]byte("affiliate-reversal-v1\n" + tenant + "\n" + sc.App + "\nsandbox\n"))
+		mac.Write(raw)
+		call("/v1/affiliate/reversals", op, in, 200, "reverse-high", map[string]string{"X-Affiliate-Signature": hex.EncodeToString(mac.Sum(nil))})
+		after, e := service.Repo.Reward(ctx, store.DB, sc, commissionID)
+		if reversalMode == "daily-claimed" {
+			ent, e := (ledger.Repository{}).Get(ctx, store.DB, sc, after.EntitlementID, false)
+			if e != nil || after.Status != "CLAIMED" || ent.Paid != "243" || ent.Target != "2" || ent.Debt != "241" {
+				t.Fatal("已领日结佣金未形成差额追偿", after, ent, e)
+			}
+		} else if e != nil || after.Amount == original.Amount || after.Amount != "2" {
+			t.Fatal("关账佣金未按净业务量重算", original, after, e)
+		}
+		daily, e := service.DailyRepo.Daily(ctx, store.DB, sc, "2026-10-18")
+		if e != nil || daily.Results[0].Result.Amount == "" || len(daily.RestatedResults) == 0 {
+			t.Fatal("缺少原快照与冲正快照", daily, e)
+		}
+		for _, row := range daily.Results {
+			if row.Result.UserID == rootUser && row.Result.Amount != "243" {
+				t.Fatal("原冻结结果被覆盖", row)
+			}
+		}
+		t.Log("关账后按原方案重算、冻结快照保留通过")
+		return
 	}
 	late := event("child2", "late-old-day", "BET_SETTLED", "99999", "99999")
 	late["venue_type_id"] = "SPORTS"

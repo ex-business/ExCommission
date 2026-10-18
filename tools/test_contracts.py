@@ -93,7 +93,8 @@ class PlanContracts(unittest.TestCase):
             for method,operation in operations.items():
                 count+=1
                 self.assertIn('409',operation['responses'])
-                if method!='get' and not path.startswith(('/v1/payment-callbacks/', '/v1/auth/')):
+                # 方案变更预检是只读POST，不产生业务命令；真实写入接口仍必须声明幂等键。
+                if method!='get' and path not in {'/v1/affiliate/config-preview','/v1/affiliate/programs/preview','/v1/affiliate/programs/simulate'} and not path.startswith(('/v1/payment-callbacks/', '/v1/auth/')):
                     self.assertTrue(any(p['name']=='Idempotency-Key' and p['required'] for p in operation['parameters']))
                 if method=='get':
                     self.assertFalse(any(p['name']=='Idempotency-Key' for p in operation['parameters']))

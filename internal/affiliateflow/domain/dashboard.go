@@ -57,7 +57,8 @@ func TeamDashboardFor(c affiliate.Config, user string, now time.Time, regs []aff
 	}
 	for _, f := range raw {
 		at, ok := members[f.UserID]
-		if !ok || f.Kind != "DEPOSIT_SUCCEEDED" || f.At.After(now) {
+		// 兼容面板使用原方案主币，不能把并行方案的其他币种充值或收益混加。
+		if !ok || (f.Currency != "" && f.Currency != c.Currency) || f.Kind != "DEPOSIT_SUCCEEDED" || f.At.After(now) {
 			continue
 		}
 		out.TotalDeposit = addMoney(out.TotalDeposit, f.Amount)
@@ -66,7 +67,7 @@ func TeamDashboardFor(c affiliate.Config, user string, now time.Time, regs []aff
 		}
 	}
 	for _, r := range rewards {
-		if r.UserID == user && r.Status == "CLAIMED" {
+		if r.ProgramID == "" && (r.Currency == "" || r.Currency == c.Currency) && r.UserID == user && r.Status == "CLAIMED" {
 			out.Earned = addMoney(out.Earned, r.Amount)
 		}
 	}

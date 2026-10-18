@@ -151,7 +151,8 @@ func ApprovalPermission(kind string) string {
 		return "milestones:approve"
 	case "INGESTION_CONFIG":
 		return "ingestion:approve"
-	case "AFFILIATE_CONFIG":
+	// 独立方案与任务告警沿用代理配置审批权，不能落入关系审批默认分支。
+	case "AFFILIATE_CONFIG", "AFFILIATE_PROGRAM", "AFFILIATE_TASK_ALERT":
 		return "affiliate:approve"
 	case "SITE_AGENT_CONFIG":
 		return "site:approve"

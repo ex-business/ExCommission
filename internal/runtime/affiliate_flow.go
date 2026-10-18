@@ -31,7 +31,7 @@ import (
 func affiliateFlowEnabled() bool { return os.Getenv("LOCAL_AFFILIATE_FLOW_ENABLED") == "true" }
 func affiliateFlowService(store *mysql.Store) app.Service {
 	scope := localScope()
-	return configureIngestion(store, app.Service{ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
+	return configurePrograms(store, configureIngestion(store, app.Service{ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
 		config, e := (sitesrepo.Repository{}).At(ctx, tx, sc, at)
 		if e != nil {
 			return e
@@ -51,7 +51,7 @@ func affiliateFlowService(store *mysql.Store) app.Service {
 		return nil
 	}, StepUp: func(ctx context.Context, p principal.Principal, action, key string, payload any) error {
 		return verifyStepUp(store, ctx, p, action, key, payload)
-	}})
+	}}))
 }
 func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(string, auth.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, application string) error {
 	if !affiliateFlowEnabled() {
@@ -68,6 +68,7 @@ func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(
 			return e
 		}
 	}
+	installAffiliateReversals(mux, require, store)
 	service := affiliateFlowService(store)
 	// 后台与会员试算读取同一发布版本；会员身份仍由原权限与本人绑定双重校验。
 	calculator := func(member bool) auth.AuthorizedHandler {

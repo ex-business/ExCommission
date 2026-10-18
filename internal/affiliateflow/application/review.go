@@ -76,11 +76,21 @@ func (s Service) Review(ctx context.Context, p principal.Principal, id string, i
 				if e != nil {
 					return foundation.CommandResult{}, e
 				}
-				d, e := s.DailyRepo.Daily(ctx, tx, sc, r.Day)
-				if e != nil {
-					return foundation.CommandResult{}, e
+				scale := 0
+				if r.ProgramID != "" {
+					// 独立方案审核使用原权益快照，不能按兼容方案的当日币种精度改金额。
+					if r.ProgramConfig == nil {
+						return foundation.CommandResult{}, foundation.ErrConflict
+					}
+					scale = r.ProgramConfig.Config.CurrencyScale
+				} else {
+					d, err := s.DailyRepo.Daily(ctx, tx, sc, r.Day)
+					if err != nil {
+						return foundation.CommandResult{}, err
+					}
+					scale = d.Config.Config.CurrencyScale
 				}
-				minimum := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(d.Config.Config.CurrencyScale)), nil)
+				minimum := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(scale)), nil)
 				if n.Cmp(minimum) < 0 {
 					return foundation.CommandResult{}, foundation.ErrValidation
 				}

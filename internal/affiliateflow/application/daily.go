@@ -8,6 +8,7 @@ import (
 	affiliate "github.com/ex-business/ExCommission/internal/affiliate/domain"
 	model "github.com/ex-business/ExCommission/internal/affiliateflow/domain"
 	"github.com/ex-business/ExCommission/internal/affiliateflow/ports"
+	tasks "github.com/ex-business/ExCommission/internal/affiliatetasks"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	response "github.com/ex-business/ExCommission/internal/platform/application"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
@@ -104,6 +105,15 @@ func (s Service) freeze(ctx context.Context, sc foundation.Scope, day string) er
 		if e := s.Repo.Lock(ctx, tx, sc); e != nil {
 			return foundation.CommandResult{}, e
 		}
+		if s.TaskRun != nil {
+			k, e := s.LegacyTaskKey(ctx, tx, sc, day)
+			if e != nil {
+				return foundation.CommandResult{}, e
+			}
+			if e = s.LegacyTaskAllowed(ctx, tx, sc, k); e != nil {
+				return foundation.CommandResult{}, e
+			}
+		}
 		existing, e := s.DailyRepo.Daily(ctx, tx, sc, day)
 		if e == nil {
 			return response.Result(200, day, "affiliate-day-freeze", existing)
@@ -179,7 +189,10 @@ func (s Service) freeze(ctx context.Context, sc foundation.Scope, day string) er
 		}
 		sort.Slice(regs, func(i, j int) bool { return regs[i].AgentID < regs[j].AgentID })
 		daily := model.Daily{Day: day, Status: "CALCULATED", Config: version, Watermarks: marks, Results: []model.FrozenCommission{}, FrozenAt: now}
-		for _, m := range regs {
+		for index, m := range regs {
+			if index%50 == 0 {
+				tasks.Progress(ctx, "CALCULATING", index, len(regs))
+			}
 			g, e := s.Repo.Gate(ctx, tx, sc, m.UserID, m.RegisteredAt)
 			if e != nil {
 				return foundation.CommandResult{}, e
@@ -268,6 +281,15 @@ func (s Service) settleDay(ctx context.Context, sc foundation.Scope, day string)
 		if d.Status == "SETTLED" {
 			return response.Result(200, day, "affiliate-day-settle", d)
 		}
+		if s.TaskRun != nil {
+			k, e := s.LegacyTaskKey(ctx, tx, sc, day)
+			if e != nil {
+				return foundation.CommandResult{}, e
+			}
+			if e = s.LegacyTaskAllowed(ctx, tx, sc, k); e != nil {
+				return foundation.CommandResult{}, e
+			}
+		}
 		now := s.Now().UTC().Truncate(time.Microsecond)
 		siteEnabled := true
 		if s.CanReward != nil {
@@ -278,7 +300,11 @@ func (s Service) settleDay(ctx context.Context, sc foundation.Scope, day string)
 				siteEnabled = false
 			}
 		}
-		for _, frozen := range d.Results {
+		results := d.Results
+		if d.RestatedResults != nil {
+			results = d.RestatedResults
+		}
+		for _, frozen := range results {
 			if !siteEnabled || !frozen.Eligible || frozen.Result.Amount == "0" {
 				continue
 			}
@@ -324,6 +350,14 @@ func (s Service) settleDay(ctx context.Context, sc foundation.Scope, day string)
 
 // RunOnce 可由独立worker重入；业务日期与命令幂等记录保证宕机恢复、夏令时重复01点都不重复结算。
 func (s Service) RunOnce(ctx context.Context, sc foundation.Scope) error {
+	if s.ProgramRun != nil {
+		if e := s.ProgramRun(ctx, sc); e != nil {
+			return e
+		}
+	}
+	if s.TaskRun != nil {
+		return s.runLegacyTasks(ctx, sc)
+	}
 	days, e := s.DailyRepo.PendingDays(ctx, s.Query, sc)
 	if e != nil {
 		return e

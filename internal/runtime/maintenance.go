@@ -37,11 +37,7 @@ func maintenanceJobs(store *mysql.Store) []maintenanceJob {
 	}
 	if affiliateFlowEnabled() {
 		jobs = append(jobs, maintenanceJob{"affiliate.business.daily", func(ctx context.Context) error {
-			service := affiliateFlowService(store)
-			if e := service.RefreshAll(ctx, localScope()); e != nil {
-				return e
-			}
-			return service.RunOnce(ctx, localScope())
+			return runAffiliateTaskMaintenance(ctx, store)
 		}})
 	}
 	jobs = append(jobs, maintenanceJob{"payout.instructions", func(ctx context.Context) error { return disbursementService(store).Recover(ctx, localScope()) }})

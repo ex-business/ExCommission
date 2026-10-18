@@ -9,6 +9,7 @@ import (
 	model "github.com/ex-business/ExCommission/internal/affiliateflow/domain"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
 	db "github.com/ex-business/ExCommission/internal/platform/ports"
+	"math/big"
 	"time"
 )
 
@@ -63,7 +64,7 @@ func (Repository) SaveFact(ctx context.Context, tx db.Executor, s foundation.Sco
 	return e == nil, e
 }
 func (Repository) Facts(ctx context.Context, tx db.Executor, s foundation.Scope, before time.Time) ([]affiliate.Fact, error) {
-	rows, e := tx.QueryContext(ctx, `SELECT user_id,body FROM affiliate_business_facts WHERE tenant_id=? AND app_id=? AND reward_eligible=TRUE AND business_time<? ORDER BY business_time,source_id,event_id`, s.Tenant, s.App, before.UTC())
+	rows, e := tx.QueryContext(ctx, `SELECT f.user_id,f.body,CAST(COALESCE(t.amount,0) AS CHAR),CAST(COALESCE(t.valid_bet,0) AS CHAR) FROM affiliate_business_facts f LEFT JOIN affiliate_reversal_totals t ON t.tenant_id=f.tenant_id AND t.app_id=f.app_id AND t.source_id=f.source_id AND t.kind=f.kind AND t.business_id=f.business_id WHERE f.tenant_id=? AND f.app_id=? AND f.reward_eligible=TRUE AND f.business_time<? ORDER BY f.business_time,f.source_id,f.event_id`, s.Tenant, s.App, before.UTC())
 	if e != nil {
 		return nil, e
 	}
@@ -72,13 +73,29 @@ func (Repository) Facts(ctx context.Context, tx db.Executor, s foundation.Scope,
 	for rows.Next() {
 		var user string
 		var b []byte
-		if e = rows.Scan(&user, &b); e != nil {
+		var reversedAmount, reversedBet string
+		if e = rows.Scan(&user, &b, &reversedAmount, &reversedBet); e != nil {
 			return nil, e
 		}
 		var event model.Event
 		if e = json.Unmarshal(b, &event); e != nil {
 			return nil, e
 		}
+		// 原始事实不变，计奖读取扣除已验签冲正后的净额；全额撤销不再参与资格或业务量。
+		amount, _ := new(big.Int).SetString(event.Amount, 10)
+		valid, _ := new(big.Int).SetString(event.ValidBet, 10)
+		ra, _ := new(big.Int).SetString(reversedAmount, 10)
+		rv, _ := new(big.Int).SetString(reversedBet, 10)
+		amount.Sub(amount, ra)
+		valid.Sub(valid, rv)
+		if amount.Sign() < 0 || valid.Sign() < 0 {
+			return nil, foundation.ErrConflict
+		}
+		if amount.Sign() == 0 {
+			continue
+		}
+		event.Amount = amount.String()
+		event.ValidBet = valid.String()
 		out = append(out, event.Fact(user))
 	}
 	return out, rows.Err()

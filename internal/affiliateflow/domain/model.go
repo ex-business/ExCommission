@@ -72,32 +72,34 @@ type Qualified struct {
 	Invitee  affiliate.Qualification `json:"invitee"`
 }
 type Reward struct {
-	Profile        *MemberProfile `json:"profile,omitempty"`
-	Since          time.Time      `json:"accumulation_since"`
-	Qualifications []Qualified    `json:"member_qualifications"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
-	ID             string         `json:"reward_id"`
-	UserID         string         `json:"user_id"`
-	AgentID        string         `json:"agent_id"`
-	Kind           string         `json:"kind"`
-	Step           int            `json:"step"`
-	Day            string         `json:"business_day"`
-	Currency       string         `json:"currency"`
-	Amount         string         `json:"amount_minor"`
-	Original       string         `json:"calculated_minor"`
-	ConfigRevision uint64         `json:"config_revision"`
-	Status         string         `json:"status"`
-	UnlockedAt     time.Time      `json:"unlocked_at"`
-	Members        []string       `json:"qualified_user_ids"`
-	EntitlementID  string         `json:"entitlement_id"`
-	Reviewer       string         `json:"reviewer_id"`
-	ReviewedAt     *time.Time     `json:"reviewed_at"`
-	Reason         string         `json:"reason"`
-	ClaimedAt      *time.Time     `json:"claimed_at"`
-	ClaimID        string         `json:"claim_id"`
-	ClaimIP        string         `json:"claim_ip,omitempty"`
-	Revision       uint64         `json:"revision"`
+	ProgramID      string             `json:"program_id,omitempty"`
+	ProgramConfig  *affiliate.Version `json:"program_configuration,omitempty"`
+	Profile        *MemberProfile     `json:"profile,omitempty"`
+	Since          time.Time          `json:"accumulation_since"`
+	Qualifications []Qualified        `json:"member_qualifications"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+	ID             string             `json:"reward_id"`
+	UserID         string             `json:"user_id"`
+	AgentID        string             `json:"agent_id"`
+	Kind           string             `json:"kind"`
+	Step           int                `json:"step"`
+	Day            string             `json:"business_day"`
+	Currency       string             `json:"currency"`
+	Amount         string             `json:"amount_minor"`
+	Original       string             `json:"calculated_minor"`
+	ConfigRevision uint64             `json:"config_revision"`
+	Status         string             `json:"status"`
+	UnlockedAt     time.Time          `json:"unlocked_at"`
+	Members        []string           `json:"qualified_user_ids"`
+	EntitlementID  string             `json:"entitlement_id"`
+	Reviewer       string             `json:"reviewer_id"`
+	ReviewedAt     *time.Time         `json:"reviewed_at"`
+	Reason         string             `json:"reason"`
+	ClaimedAt      *time.Time         `json:"claimed_at"`
+	ClaimID        string             `json:"claim_id"`
+	ClaimIP        string             `json:"claim_ip,omitempty"`
+	Revision       uint64             `json:"revision"`
 }
 type Progress struct {
 	BlockedReason  string                   `json:"blocked_reason"`
@@ -130,6 +132,14 @@ func Evaluate(v affiliate.Version, m Member, regs []Member, facts []affiliate.Fa
 	if e != nil {
 		return out, nil, e
 	}
+	filtered := []Reward{}
+	for _, r := range prior {
+		if r.ProgramID == v.ProgramID {
+			filtered = append(filtered, r)
+		}
+	}
+	prior = filtered
+	out.Rewards = filtered
 	existing := map[string]Reward{}
 	qualified := map[string]time.Time{}
 	for _, r := range prior {
@@ -159,7 +169,7 @@ func Evaluate(v affiliate.Version, m Member, regs []Member, facts []affiliate.Fa
 	assigned := map[string]bool{}
 	cumulative := 0
 	for _, step := range c.Steps {
-		old, ok := existing[ID(Referral, m.UserID, stringStep(step.Number))]
+		old, ok := existing[versionRewardID(v, Referral, m.UserID, step.Number)]
 		if !ok {
 			break
 		}
@@ -191,7 +201,7 @@ func Evaluate(v affiliate.Version, m Member, regs []Member, facts []affiliate.Fa
 	out.Steps = append(out.Steps, next...)
 	candidates := []Reward{}
 	add := func(kind string, step int, amount string, at time.Time, members []string) error {
-		id := ID(kind, m.UserID, stringStep(step))
+		id := versionRewardID(v, kind, m.UserID, step)
 		if _, ok := existing[id]; ok {
 			return nil
 		}
@@ -254,13 +264,15 @@ type FrozenCommission struct {
 	Result   affiliate.DailyCommission `json:"calculation"`
 }
 type Daily struct {
-	Day        string             `json:"business_day"`
-	Status     string             `json:"status"`
-	Config     affiliate.Version  `json:"configuration"`
-	Watermarks []Watermark        `json:"watermarks"`
-	Results    []FrozenCommission `json:"results"`
-	FrozenAt   time.Time          `json:"frozen_at"`
-	SettledAt  *time.Time         `json:"settled_at"`
+	// 冻结结果永不覆盖，冲正后的结算依据独立保存，便于核对原始计算与调整差额。
+	RestatedResults []FrozenCommission `json:"restated_results,omitempty"`
+	Day             string             `json:"business_day"`
+	Status          string             `json:"status"`
+	Config          affiliate.Version  `json:"configuration"`
+	Watermarks      []Watermark        `json:"watermarks"`
+	Results         []FrozenCommission `json:"results"`
+	FrozenAt        time.Time          `json:"frozen_at"`
+	SettledAt       *time.Time         `json:"settled_at"`
 }
 
 // SnapshotQualification 保存解锁时的三套事实累计与首次达标时间，后续事实不会重写奖励弹窗的审核依据。
@@ -277,4 +289,12 @@ func SnapshotQualification(c affiliate.Config, user string, facts []affiliate.Fa
 	}
 	q.Invitee, e = affiliate.Qualify(c.InviteeCondition, facts, c, cutoff)
 	return q, e
+}
+
+// 独立方案共享真实会员与账簿，但奖励业务键包含方案，避免叠加方案互相覆盖；旧键保持不变。
+func versionRewardID(v affiliate.Version, kind, user string, step int) string {
+	if v.ProgramID == "" {
+		return ID(kind, user, stringStep(step))
+	}
+	return ID("program", v.ProgramID, kind, user, "", stringStep(step))
 }

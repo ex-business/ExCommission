@@ -124,6 +124,10 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 	}
 	rawByUser := map[string][]affiliate.Fact{}
 	for _, fact := range raw {
+		// 旧总表按原方案币种展示，新方案明细在独立方案记录中查看，避免混币金额失真。
+		if fact.Currency != "" && fact.Currency != v.Config.Currency {
+			continue
+		}
 		rawByUser[fact.UserID] = append(rawByUser[fact.UserID], fact)
 	}
 	eligibleByUser := map[string][]affiliate.Fact{}
@@ -267,7 +271,7 @@ func BuildAgentReport(v affiliate.Version, f AgentReportFilter, asOf time.Time, 
 		withdrawal, _ := new(big.Int).SetString(row.TeamWithdrawal, 10)
 		row.NetDeposit = deposit.Sub(deposit, withdrawal).String()
 		for _, r := range rewards {
-			if r.UserID != m.UserID || r.Status != "CLAIMED" || r.ClaimedAt == nil || r.ClaimedAt.Before(f.From) || !r.ClaimedAt.Before(cutoff) {
+			if r.ProgramID != v.ProgramID || (r.Currency != "" && r.Currency != v.Config.Currency) || r.UserID != m.UserID || r.Status != "CLAIMED" || r.ClaimedAt == nil || r.ClaimedAt.Before(f.From) || !r.ClaimedAt.Before(cutoff) {
 				continue
 			}
 			switch r.Kind {

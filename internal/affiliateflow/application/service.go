@@ -11,6 +11,7 @@ import (
 	affiliate "github.com/ex-business/ExCommission/internal/affiliate/domain"
 	model "github.com/ex-business/ExCommission/internal/affiliateflow/domain"
 	"github.com/ex-business/ExCommission/internal/affiliateflow/ports"
+	tasks "github.com/ex-business/ExCommission/internal/affiliatetasks"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	response "github.com/ex-business/ExCommission/internal/platform/application"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
@@ -21,6 +22,12 @@ import (
 )
 
 type Service struct {
+	TaskRun         tasks.Run
+	ProgramAccept   func(context.Context, db.Executor, foundation.Scope, model.Event, string, time.Time) error
+	ProgramValidate func(context.Context, db.Executor, foundation.Scope, model.Event, time.Time) error
+	ProgramRun      func(context.Context, foundation.Scope) error
+	ProgramReversal func(context.Context, db.Executor, foundation.Scope, model.Reversal, time.Time) error
+
 	// 可配置来源仅扩展独立适配器，旧sandbox仍按原签名和幂等结构处理。
 	WatermarkGuard  func(context.Context, db.Executor, principal.Principal, []byte, string, model.Watermark) error
 	ResolveSource   func(context.Context, principal.Principal, string) (ports.Source, error)
@@ -152,8 +159,14 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 		if e != nil {
 			return foundation.CommandResult{}, e
 		}
-		if e = event.Validate(business.Config, now); e != nil {
-			return foundation.CommandResult{}, e
+		legacyValid := event.Validate(business.Config, now) == nil
+		if !legacyValid {
+			if s.ProgramValidate == nil {
+				return foundation.CommandResult{}, foundation.ErrValidation
+			}
+			if e = s.ProgramValidate(ctx, tx, sc, event, now); e != nil {
+				return foundation.CommandResult{}, e
+			}
 		}
 		member, e := s.Members.Resolve(ctx, tx, sc, event.Source, event.ExternalUser)
 		if e != nil {
@@ -169,7 +182,7 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 				return foundation.CommandResult{}, e
 			}
 		}
-		eligible := business.Config.Enabled
+		eligible := legacyValid && business.Config.Enabled
 		if event.Kind == "BET_SETTLED" && !business.Config.AllowsVenue(event.Venue) {
 			eligible = false
 		}
@@ -185,7 +198,13 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 		if e != nil {
 			return foundation.CommandResult{}, e
 		}
-		if accepted && !late {
+		if accepted && !late && s.ProgramAccept != nil {
+			// 新方案只处理已验签且首次接收的事实；同事务失败会回滚旧方案和全部新方案。
+			if e = s.ProgramAccept(ctx, tx, sc, event, member.UserID, now); e != nil {
+				return foundation.CommandResult{}, e
+			}
+		}
+		if accepted && !late && legacyValid {
 			current, e := s.Configs.At(ctx, tx, sc, now)
 			if e != nil {
 				return foundation.CommandResult{}, e
@@ -272,7 +291,8 @@ func (s Service) Read(ctx context.Context, p principal.Principal) (model.Progres
 }
 
 type Claim struct {
-	Kind string `json:"kind"`
+	Kind      string `json:"kind"`
+	ProgramID string `json:"program_id,omitempty"`
 }
 
 func (s Service) Claim(ctx context.Context, p principal.Principal, in Claim, ip, key, rid string) (foundation.CommandResult, error) {
@@ -299,9 +319,8 @@ func (s Service) Claim(ctx context.Context, p principal.Principal, in Claim, ip,
 		if e != nil {
 			return foundation.CommandResult{}, e
 		}
-		if !v.Config.Enabled {
-			return foundation.CommandResult{}, errors.New("STATE_CONFLICT:AGENT_REWARDS_DISABLED")
-		}
+		// 停止新增计奖不冻结历史已产生权益；本站开关和会员风控仍由原授权与Gate校验。
+		_ = v
 		m, e := s.Members.Own(ctx, tx, sc, p.MemberUserID)
 		if e != nil {
 			return foundation.CommandResult{}, e
@@ -324,6 +343,9 @@ func (s Service) Claim(ctx context.Context, p principal.Principal, in Claim, ip,
 		batch := model.ID("claim", p.Subject, key)
 		claimed := []model.Reward{}
 		for _, r := range rewards {
+			if r.ProgramID != in.ProgramID {
+				continue
+			}
 			if (r.Kind != in.Kind && (in.Kind != "ALL" || r.Kind == model.Invitee)) || r.Status != "CLAIMABLE" {
 				continue
 			}

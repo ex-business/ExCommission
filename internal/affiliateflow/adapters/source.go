@@ -69,3 +69,25 @@ func (s HMACSource) VerifyWatermark(ctx context.Context, scope foundation.Scope,
 	}
 	return out, nil
 }
+
+// VerifyReversal 使用独立签名前缀，原成功事件签名不能复用为撤销指令。
+func (s HMACSource) VerifyReversal(ctx context.Context, scope foundation.Scope, raw []byte, signature string) (model.Reversal, error) {
+	var out model.Reversal
+	if scope != s.Scope || len(s.Key) < 32 {
+		return out, errors.New("PERMISSION_DENIED")
+	}
+	mac := hmac.New(sha256.New, s.Key)
+	mac.Write([]byte("affiliate-reversal-v1\n" + scope.Tenant + "\n" + scope.App + "\n" + s.Source + "\n"))
+	mac.Write(raw)
+	sig, e := hex.DecodeString(signature)
+	if e != nil || !hmac.Equal(sig, mac.Sum(nil)) {
+		return out, errors.New("SOURCE_SIGNATURE_INVALID")
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if d.Decode(&out) != nil || d.Decode(new(any)) != io.EOF || out.Source != s.Source {
+		return out, foundation.ErrValidation
+	}
+	out.At = out.At.UTC()
+	return out, nil
+}
