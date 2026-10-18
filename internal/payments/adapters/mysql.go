@@ -37,6 +37,15 @@ func (Repository) Get(ctx context.Context, tx db.Executor, s foundation.Scope, i
 	if err != nil {
 		return p, err
 	}
+	// 仅新钱包渠道需要真实会员映射；原渠道无需新增依赖，保持历史付款可读。
+	if p.ChannelID == "wallet-sandbox" {
+		p.WalletTenant = s.Tenant
+		p.WalletApp = s.App
+		err = tx.QueryRowContext(ctx, `SELECT a.user_id FROM settlement_statements st JOIN agent_accounts a ON a.tenant_id=st.tenant_id AND a.app_id=st.app_id AND a.agent_id=st.beneficiary_id WHERE st.tenant_id=? AND st.app_id=? AND st.statement_id=?`, s.Tenant, s.App, p.StatementID).Scan(&p.WalletAccount)
+		if err != nil {
+			return p, err
+		}
+	}
 	rows, err := tx.QueryContext(ctx, `SELECT entitlement_id,CAST(amount AS CHAR) FROM payment_allocations WHERE tenant_id=? AND app_id=? AND payment_id=? ORDER BY entitlement_id`, s.Tenant, s.App, id)
 	if err != nil {
 		return p, err

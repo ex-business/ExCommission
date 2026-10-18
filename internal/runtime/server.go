@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,7 +39,10 @@ func handler(service string, ready func(context.Context) error) http.Handler {
 	return mux
 }
 
-func Run(service string) error {
+func Run(service string) error { return RunWithLifecycle(service, nil) }
+
+// RunWithLifecycle仅在本进程绑定成功后接入可选注册，不改变业务路由或任务规则。
+func RunWithLifecycle(service string, onReady func(context.Context) func()) error {
 	initCtx, cancelInit := context.WithTimeout(context.Background(), 45*time.Second)
 	store, err := mysql.Open(initCtx, os.Getenv("DB_ADDRESS"), os.Getenv("DB_USER"), os.Getenv("MYSQL_PASSWORD"), "excommission")
 	if err != nil {
@@ -94,8 +98,18 @@ func Run(service string) error {
 			}
 		}()
 	}
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return err
+	}
+	defer listener.Close()
+	if onReady != nil {
+		if closeRegistration := onReady(ctx); closeRegistration != nil {
+			defer closeRegistration()
+		}
+	}
 	failure := make(chan error, 1)
-	go func() { failure <- server.ListenAndServe() }()
+	go func() { failure <- server.Serve(listener) }()
 	slog.Info("服务启动", "service", service, "address", address)
 	select {
 	case err := <-failure:

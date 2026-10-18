@@ -10,7 +10,10 @@ import (
 	calculation "github.com/ex-business/ExCommission/internal/affiliate/domain"
 	repo "github.com/ex-business/ExCommission/internal/affiliateflow/adapters"
 	app "github.com/ex-business/ExCommission/internal/affiliateflow/application"
+	flowmodel "github.com/ex-business/ExCommission/internal/affiliateflow/domain"
 	ports "github.com/ex-business/ExCommission/internal/affiliateflow/ports"
+	executionrepo "github.com/ex-business/ExCommission/internal/executionrouting/adapters"
+	execution "github.com/ex-business/ExCommission/internal/executionrouting/domain"
 	identity "github.com/ex-business/ExCommission/internal/identity/adapters"
 	auth "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
@@ -31,7 +34,9 @@ import (
 func affiliateFlowEnabled() bool { return os.Getenv("LOCAL_AFFILIATE_FLOW_ENABLED") == "true" }
 func affiliateFlowService(store *mysql.Store) app.Service {
 	scope := localScope()
-	return configurePrograms(store, configureIngestion(store, app.Service{ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
+	return configurePrograms(store, configureIngestion(store, app.Service{ExecutionGuard: func(ctx context.Context, tx db.Executor, sc foundation.Scope, e flowmodel.Event) error {
+		return (executionrepo.Repository{}).Acquire(ctx, tx, sc, execution.Claim{Source: e.Source, EventID: e.EventID, BusinessID: e.BusinessID, Kind: e.Kind, Engine: execution.Affiliate, At: e.At}, clockUTC())
+	}, ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
 		config, e := (sitesrepo.Repository{}).At(ctx, tx, sc, at)
 		if e != nil {
 			return e

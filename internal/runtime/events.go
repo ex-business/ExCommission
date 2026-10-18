@@ -7,10 +7,13 @@ import (
 	tasks "github.com/ex-business/ExCommission/internal/calculation/adapters"
 	calculation "github.com/ex-business/ExCommission/internal/calculation/application"
 	model "github.com/ex-business/ExCommission/internal/calculation/domain"
+	executionrepo "github.com/ex-business/ExCommission/internal/executionrouting/adapters"
+	execution "github.com/ex-business/ExCommission/internal/executionrouting/domain"
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
 	source "github.com/ex-business/ExCommission/internal/integration/adapters"
 	integration "github.com/ex-business/ExCommission/internal/integration/application"
+	eventmodel "github.com/ex-business/ExCommission/internal/integration/domain"
 	ledger "github.com/ex-business/ExCommission/internal/ledger/adapters"
 
 	catalog "github.com/ex-business/ExCommission/internal/platform/adapters/catalog"
@@ -74,7 +77,9 @@ func installEvents(mux *http.ServeMux, require func(string, authhttp.AuthorizedH
 		return err
 	}
 	repository := taskRepository(store)
-	service := integration.Service{AllowNew: func(ctx context.Context, tx db.Executor, s foundation.Scope, source string) error {
+	service := integration.Service{ExecutionGuard: func(ctx context.Context, tx db.Executor, sc foundation.Scope, e eventmodel.Event) error {
+		return (executionrepo.Repository{}).Acquire(ctx, tx, sc, execution.Claim{Source: e.Source, EventID: e.ID, BusinessID: e.BusinessID, Kind: e.Type, Engine: execution.General, At: e.Time}, clockUTC())
+	}, AllowNew: func(ctx context.Context, tx db.Executor, s foundation.Scope, source string) error {
 		if err := siteAllow(ctx, tx, s); err != nil {
 			return err
 		}

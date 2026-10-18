@@ -133,7 +133,8 @@ func (s Service) Get(ctx context.Context, p identity.Principal, id string) (doma
 
 func ApprovalPermission(kind string) string {
 	switch kind {
-	case "PLAN_PUBLISH", "PLAN_ROLLBACK":
+	// 执行路由决定计佣引擎，必须由方案审批权限独立批准，不能落入关系审批。
+	case "PLAN_PUBLISH", "PLAN_ROLLBACK", "EXECUTION_ROUTING":
 		return "plans:approve"
 	case "STATEMENT":
 		return "statements:approve"

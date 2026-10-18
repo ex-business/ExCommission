@@ -22,6 +22,8 @@ import (
 )
 
 type Service struct {
+	// 归属登记与事实接收共用事务，失败时一并回滚，避免重复计奖。
+	ExecutionGuard  func(context.Context, db.Executor, foundation.Scope, model.Event) error
 	TaskRun         tasks.Run
 	ProgramAccept   func(context.Context, db.Executor, foundation.Scope, model.Event, string, time.Time) error
 	ProgramValidate func(context.Context, db.Executor, foundation.Scope, model.Event, time.Time) error
@@ -145,6 +147,11 @@ func (s Service) Receive(ctx context.Context, p principal.Principal, raw []byte,
 		}
 		if custom && s.SourceGuard != nil {
 			if e := s.SourceGuard(ctx, tx, p, raw, signature, event); e != nil {
+				return foundation.CommandResult{}, e
+			}
+		}
+		if s.ExecutionGuard != nil {
+			if e := s.ExecutionGuard(ctx, tx, sc, event); e != nil {
 				return foundation.CommandResult{}, e
 			}
 		}

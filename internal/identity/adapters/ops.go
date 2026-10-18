@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	routersdk "github.com/ex-business/ex-service-router/sdk"
 	"io"
 	"net"
 	"net/http"
@@ -112,7 +113,7 @@ func (p *OpsProvider) call(ctx context.Context, endpoint string, body map[string
 	}
 	req.Header.Set("Authorization", "Bearer "+p.Config.Secret)
 	req.Header.Set("Content-Type", "application/json")
-	res, e := p.Client.Do(req)
+	res, e := routersdk.Do(p.Client, req)
 	if e != nil {
 		return nil, errors.New("运营身份服务不可用")
 	}

@@ -14,6 +14,10 @@ type Allocation struct {
 	Amount        string `json:"minor_units"`
 }
 type Payment struct {
+	// 外部钱包路由信息只供服务端使用，不接受浏览器传入或序列化返回。
+	WalletTenant   string       `json:"-"`
+	WalletApp      string       `json:"-"`
+	WalletAccount  string       `json:"-"`
 	ID             string       `json:"payment_id"`
 	StatementID    string       `json:"statement_id"`
 	MerchantID     string       `json:"merchant_payment_id"`

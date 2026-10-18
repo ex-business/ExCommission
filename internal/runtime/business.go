@@ -157,6 +157,9 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	if err := installWorkflowRecovery(mux, require, store, &workflowService, tenant, app); err != nil {
 		return nil, err
 	}
+	if err := installExecutionRouting(ctx, mux, require, store, &workflowService); err != nil {
+		return nil, err
+	}
 	if err := installEvents(mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}

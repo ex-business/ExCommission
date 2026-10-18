@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	routersdk "github.com/ex-business/ex-service-router/sdk"
 	"io"
 	"net/http"
 	"net/url"
@@ -52,7 +53,7 @@ func (p *Introspection) Authenticate(ctx context.Context, header string) (domain
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(p.Config.ClientID, p.Config.ClientSecret)
-	res, err := p.Client.Do(req)
+	res, err := routersdk.Do(p.Client, req)
 	if err != nil {
 		return domain.Principal{}, errors.New("identity provider unavailable")
 	}

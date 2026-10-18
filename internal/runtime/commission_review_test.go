@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	calcmodel "github.com/ex-business/ExCommission/internal/calculation/domain"
+	walletsandbox "github.com/ex-business/ExCommission/internal/payments/adapters/walletsandbox"
 	paymentmodel "github.com/ex-business/ExCommission/internal/payments/domain"
 	mysql "github.com/ex-business/ExCommission/internal/platform/adapters/mysql"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
@@ -44,7 +45,20 @@ func (f payoutLinkFailure) Within(ctx context.Context, fn func(ports.Executor) e
 func TestCommissionReviewAndBatchPayout(t *testing.T) { commissionReviewFixture(t, false, false) }
 func TestMemberCommissionClaims(t *testing.T)         { commissionReviewFixture(t, true, false) }
 func TestWalletClaimAtomicCredit(t *testing.T)        { commissionReviewFixture(t, true, true) }
-func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
+func TestExternalWalletSandboxMemberClaim(t *testing.T) {
+	if os.Getenv("TEST_WALLET_BINARY") == "" {
+		t.Skip("需要独立钱包沙箱")
+	}
+	commissionReviewFixture(t, true, false, true)
+}
+func TestExternalWalletSandboxPayout(t *testing.T) {
+	if os.Getenv("TEST_WALLET_BINARY") == "" {
+		t.Skip("需要独立钱包沙箱")
+	}
+	commissionReviewFixture(t, false, false, true)
+}
+func commissionReviewFixture(t *testing.T, memberMode, walletMode bool, external ...bool) {
+	externalWallet := len(external) > 0 && external[0]
 	if os.Getenv("TEST_MYSQL_ADDRESS") == "" {
 		t.Skip("Docker MySQL required")
 	}
@@ -107,6 +121,13 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 	for key, value := range map[string]string{"APP_MODE": "local", "LOCAL_OPERATOR_TOKEN": token, "LOCAL_APPROVER_TOKEN": checker, "LOCAL_CURSOR_KEY": strings.Repeat("c", 32), "LOCAL_SOURCE_KEY": sourceKey, "LOCAL_PAYMENT_KEY": paymentKey, "LOCAL_TENANT": scope.Tenant, "LOCAL_APP": scope.App, "LOCAL_USERS_FILE": usersFile, "LOCAL_GRADE_STATISTICS_FILE": statsFile, "LOCAL_PAYMENT_RESULTS_FILE": resultsFile, "LOCAL_RECOVERY_EVIDENCE_FILE": evidenceFile} {
 		t.Setenv(key, value)
 	}
+	var startExternal func(string)
+	if externalWallet {
+		file, start := prepareWalletProcess(t, scope, directory)
+		startExternal = start
+		t.Setenv("WALLET_SANDBOX_CONFIG_FILE", file)
+	}
+
 	memberToken, otherToken := "", ""
 	if memberMode {
 		var accounts []map[string]string
@@ -140,7 +161,26 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var callbackAttempts, callbackDelivered atomic.Int64
+	if externalWallet {
+		original := handler
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/v1/wallet-sandbox-callbacks/") {
+				if callbackAttempts.Add(1) == 1 {
+					w.WriteHeader(503)
+					return
+				}
+				original.ServeHTTP(w, r)
+				callbackDelivered.Add(1)
+				return
+			}
+			original.ServeHTTP(w, r)
+		})
+	}
 	server := httptest.NewServer(handler)
+	if externalWallet {
+		startExternal(server.URL)
+	}
 	defer server.Close()
 	client := server.Client()
 	client.Timeout = 15 * time.Second
@@ -476,6 +516,9 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 			mode = "MEMBER_CLAIM"
 		}
 		channel := "sandbox"
+		if externalWallet {
+			channel = "wallet-sandbox"
+		}
 		if walletMode {
 			channel = "wallet"
 		}
@@ -611,6 +654,60 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool) {
 		t.Fatal(e)
 	}
 	payment := call("GET", "/v1/payments/{id}", "/v1/payments/"+linked["payment_id"].(string), "operator", nil, 200)
+	if externalWallet {
+		// 本测试使用独立钱包进程真实HTTP入账；原单重复查询、回执重放与对账不得重复转移佣金。
+		if payment["status"] != "SUCCEEDED" {
+			t.Fatal(payment)
+		}
+		deadline := time.Now().Add(8 * time.Second)
+		for callbackDelivered.Load() == 0 && time.Now().Before(deadline) {
+			time.Sleep(20 * time.Millisecond)
+		}
+		if callbackDelivered.Load() == 0 || callbackAttempts.Load() < 2 {
+			t.Fatal("独立钱包未自动重试投递回执", callbackAttempts.Load())
+		}
+		pid := linked["payment_id"].(string)
+		for range 3 {
+			if e := paymentService(store).Verify(ctx, scope, pid); e != nil {
+				t.Fatal(e)
+			}
+		}
+		provider := paymentService(store).Providers["wallet-sandbox"].(walletsandbox.Provider).ForScope(scope)
+		bound := provider.Config.Sites[0]
+		callback, _ := json.Marshal(map[string]any{"callback_id": "external-replay", "site_id": bound.Site, "merchant_payment_id": payment["merchant_payment_id"], "currency": "USD", "minor_units": "5000", "status": "SUCCEEDED", "receipt_ref": "external-receipt"})
+		for range 2 {
+			callRaw("POST", "/v1/wallet-sandbox-callbacks/{client_id}", "/v1/wallet-sandbox-callbacks/"+bound.Client, "none", "", callback, map[string]string{"X-Payment-Signature": sign(callback, bound.CallbackKey)}, 204)
+		}
+		wrong := append([]byte{}, callback...)
+		wrong = bytes.ReplaceAll(wrong, []byte(`"site_id":"`+bound.Site+`"`), []byte(`"site_id":"other-site"`))
+		callRaw("POST", "/v1/wallet-sandbox-callbacks/{client_id}", "/v1/wallet-sandbox-callbacks/"+bound.Client, "none", "", wrong, map[string]string{"X-Payment-Signature": sign(wrong, bound.CallbackKey)}, 400)
+		outcomes, e := provider.Reconcile(ctx, time.Now().UTC().Format("2006-01-02"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		found := false
+		for _, o := range outcomes {
+			if o.MerchantID == payment["merchant_payment_id"] {
+				found = true
+				if e = paymentService(store).Apply(ctx, scope, "wallet-sandbox", o); e != nil {
+					t.Fatal(e)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("对账中缺少原付款单")
+		}
+		var internal int
+		if e = store.DB.QueryRow(`SELECT count(*) FROM wallet_transactions WHERE tenant_id=?`, scope.Tenant).Scan(&internal); e != nil || internal != 0 {
+			t.Fatal("外部入账重复写入内部钱包", internal, e)
+		}
+		final := call("GET", "/v1/payments/{id}", "/v1/payments/"+pid, "operator", nil, 200)
+		if final["status"] != "SUCCEEDED" {
+			t.Fatal(final)
+		}
+		t.Log("外部钱包实际派发、原单查询、回执重放、错站拒绝及对账验证通过")
+		return
+	}
 	expectedPayment := "UNKNOWN"
 	if walletMode {
 		expectedPayment = "SUCCEEDED"

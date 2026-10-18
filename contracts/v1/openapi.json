@@ -38886,6 +38886,755 @@
         },
         "summary": "申请修改任务告警与重试策略，独立审批后生效"
       }
+    },
+    "/v1/execution-routing/config": {
+      "get": {
+        "operationId": "readExecutionRouting",
+        "summary": "读取执行路由",
+        "description": "按已认证站点隔离；执行路由配置独立审批，历史归属不可改写。",
+        "x-permission": "plans:read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "config": {
+                          "type": "object",
+                          "properties": {
+                            "rules": {
+                              "type": "array",
+                              "maxItems": 1024,
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "source_id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "event_kind": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "engine": {
+                                    "type": "string",
+                                    "enum": [
+                                      "GENERAL",
+                                      "AFFILIATE"
+                                    ]
+                                  },
+                                  "effective_from": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "source_id",
+                                  "event_kind",
+                                  "engine",
+                                  "effective_from"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "rules"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "revision",
+                        "config"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足或本人审批"
+          },
+          "409": {
+            "description": "修订或执行归属冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        }
+      }
+    },
+    "/v1/execution-routing/config-requests": {
+      "post": {
+        "operationId": "requestExecutionRouting",
+        "summary": "申请执行路由配置",
+        "description": "按已认证站点隔离；执行路由配置独立审批，历史归属不可改写。",
+        "x-permission": "plans:write",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "approval_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "object_hash": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "approval_id",
+                        "object_hash",
+                        "revision"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足或本人审批"
+          },
+          "409": {
+            "description": "修订或执行归属冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "rules": {
+                        "type": "array",
+                        "maxItems": 1024,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "event_kind": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "engine": {
+                              "type": "string",
+                              "enum": [
+                                "GENERAL",
+                                "AFFILIATE"
+                              ]
+                            },
+                            "effective_from": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "source_id",
+                            "event_kind",
+                            "engine",
+                            "effective_from"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "rules"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "expected_revision",
+                  "config",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/execution-routing/config-requests/{id}": {
+      "get": {
+        "operationId": "readExecutionRoutingRequest",
+        "summary": "读取执行路由申请",
+        "description": "按已认证站点隔离；执行路由配置独立审批，历史归属不可改写。",
+        "x-permission": "plans:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "approval": {
+                          "type": "object"
+                        },
+                        "change": {
+                          "type": "object",
+                          "properties": {
+                            "expected_revision": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "config": {
+                              "type": "object",
+                              "properties": {
+                                "rules": {
+                                  "type": "array",
+                                  "maxItems": 1024,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      },
+                                      "source_id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      },
+                                      "event_kind": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      },
+                                      "engine": {
+                                        "type": "string",
+                                        "enum": [
+                                          "GENERAL",
+                                          "AFFILIATE"
+                                        ]
+                                      },
+                                      "effective_from": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "source_id",
+                                      "event_kind",
+                                      "engine",
+                                      "effective_from"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "rules"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "reason": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1000
+                            }
+                          },
+                          "required": [
+                            "expected_revision",
+                            "config",
+                            "reason"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "approval",
+                        "change"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足或本人审批"
+          },
+          "409": {
+            "description": "修订或执行归属冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        }
+      }
+    },
+    "/v1/execution-routing/preview": {
+      "post": {
+        "operationId": "previewExecutionRouting",
+        "summary": "预览业务执行引擎",
+        "description": "按已认证站点隔离；执行路由配置独立审批，历史归属不可改写。",
+        "x-permission": "plans:read",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "preview_only": {
+                          "const": true
+                        },
+                        "matched": {
+                          "type": "boolean"
+                        },
+                        "rule": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                },
+                                "source_id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                },
+                                "event_kind": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                },
+                                "engine": {
+                                  "type": "string",
+                                  "enum": [
+                                    "GENERAL",
+                                    "AFFILIATE"
+                                  ]
+                                },
+                                "effective_from": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "source_id",
+                                "event_kind",
+                                "engine",
+                                "effective_from"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "preview_only",
+                        "matched",
+                        "rule"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足或本人审批"
+          },
+          "409": {
+            "description": "修订或执行归属冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "rules": {
+                        "type": "array",
+                        "maxItems": 1024,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "source_id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "event_kind": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "engine": {
+                              "type": "string",
+                              "enum": [
+                                "GENERAL",
+                                "AFFILIATE"
+                              ]
+                            },
+                            "effective_from": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "source_id",
+                            "event_kind",
+                            "engine",
+                            "effective_from"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "rules"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "event_kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "business_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "config",
+                  "source_id",
+                  "event_kind",
+                  "business_time"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/execution-routing/records": {
+      "get": {
+        "operationId": "readExecutionRoutingRecords",
+        "summary": "执行归属记录",
+        "description": "按已认证站点隔离；执行路由配置独立审批，历史归属不可改写。",
+        "x-permission": "plans:read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "source_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "event_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "business_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "event_kind": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "engine": {
+                                "type": "string",
+                                "enum": [
+                                  "GENERAL",
+                                  "AFFILIATE"
+                                ]
+                              },
+                              "route_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "config_revision": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "business_time": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "received_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "source_id",
+                              "event_id",
+                              "business_id",
+                              "event_kind",
+                              "engine",
+                              "route_id",
+                              "config_revision",
+                              "business_time",
+                              "received_at"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "rows"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足或本人审批"
+          },
+          "409": {
+            "description": "修订或执行归属冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        }
+      }
     }
   },
   "components": {

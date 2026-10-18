@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	routersdk "github.com/ex-business/ex-service-router/sdk"
 	"io"
 	"net"
 	"net/http"
@@ -66,7 +67,7 @@ func (p *Provider) Authenticate(ctx context.Context, header string) (principal.P
 	}
 	req.SetBasicAuth(p.Config.ClientID, p.Config.Secret)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	res, e := p.Client.Do(req)
+	res, e := routersdk.Do(p.Client, req)
 	if e != nil {
 		return principal.Principal{}, errors.New("会员身份来源不可用")
 	}

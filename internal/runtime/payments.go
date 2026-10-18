@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	walletsandbox "github.com/ex-business/ExCommission/internal/payments/adapters/walletsandbox"
 
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
 	principal "github.com/ex-business/ExCommission/internal/identity/domain"
@@ -21,19 +22,26 @@ import (
 	wallet "github.com/ex-business/ExCommission/internal/wallet/application"
 	walletmodel "github.com/ex-business/ExCommission/internal/wallet/domain"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 )
 
 func paymentService(store *mysql.Store) payments.Service {
-	return payments.Service{BeforeSubmit: siteAllow, Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: sitePaymentAccounts{}, Statements: statements.Repository{}, Credit: func(ctx context.Context, tx db.Executor, scope foundation.Scope, p paymentmodel.Payment) error {
+	service := payments.Service{BeforeSubmit: siteAllow, Commands: store, UOW: store, Query: store.DB, Repo: adapter.Repository{}, Ledger: ledger.Repository{}, Accounts: sitePaymentAccounts{}, Statements: statements.Repository{}, Credit: func(ctx context.Context, tx db.Executor, scope foundation.Scope, p paymentmodel.Payment) error {
 		var user string
 		if err := tx.QueryRowContext(ctx, `SELECT a.user_id FROM settlement_statements s JOIN agent_accounts a ON a.tenant_id=s.tenant_id AND a.app_id=s.app_id AND a.agent_id=s.beneficiary_id WHERE s.tenant_id=? AND s.app_id=? AND s.statement_id=?`, scope.Tenant, scope.App, p.StatementID).Scan(&user); err != nil {
 			return err
 		}
 		return (wallet.Service{Repo: walletrepo.Repository{}}).Credit(ctx, tx, scope, walletmodel.Credit{UserID: user, Currency: p.Currency, Amount: p.Amount, Reference: "wallet-" + p.MerchantID, PaymentID: p.ID, StatementID: p.StatementID}, clockUTC())
 	}, Providers: map[string]paymentports.Provider{"wallet": walletrepo.Provider{}, "sandbox": configuredPaymentProvider{Provider: adapter.Sandbox{Key: []byte(os.Getenv("LOCAL_PAYMENT_KEY")), ResultsFile: os.Getenv("LOCAL_PAYMENT_RESULTS_FILE")}, Store: store, Scope: localScope()}}, Now: clockUTC, ID: newID}
+	if path := os.Getenv("WALLET_SANDBOX_CONFIG_FILE"); path != "" {
+		if config, err := walletsandbox.Load(path); err == nil {
+			service.Providers["wallet-sandbox"] = walletsandbox.Provider{Config: config}
+		}
+	}
+	return service
 }
 func installPayments(mux *http.ServeMux, require func(string, authhttp.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, app string) error {
 	if len(os.Getenv("LOCAL_PAYMENT_KEY")) < 32 {
@@ -42,7 +50,38 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 	if err := bootstrapFeature(context.Background(), store, tenant, app, "local-operator", "payments-v1", []string{"payments:write", "payments:read", "payments:verify", "payments:reconcile"}); err != nil {
 		return err
 	}
+	if path := os.Getenv("WALLET_SANDBOX_CONFIG_FILE"); path != "" {
+		if _, err := walletsandbox.Load(path); err != nil {
+			return err
+		}
+	}
 	service := paymentService(store)
+	// 专用回执入口通过服务端客户端映射选择站点；原回执入口不承担多站钱包接入。
+	if provider, ok := service.Providers["wallet-sandbox"].(walletsandbox.Provider); ok {
+		mux.HandleFunc("POST /v1/wallet-sandbox-callbacks/{client_id}", func(w http.ResponseWriter, r *http.Request) {
+			requestID := newID()
+			bound, ok := provider.ByClient(r.PathValue("client_id"))
+			if !ok {
+				httpapi.Error(w, requestID, foundation.ErrValidation)
+				return
+			}
+			raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+			if err != nil {
+				httpapi.Error(w, requestID, foundation.ErrValidation)
+				return
+			}
+			outcome, err := bound.VerifyCallback(raw, r.Header.Get("X-Payment-Signature"))
+			if err == nil {
+				err = service.Apply(r.Context(), bound.Scope, "wallet-sandbox", outcome)
+			}
+			if err != nil {
+				httpapi.Error(w, requestID, err)
+				return
+			}
+			slog.Info("独立钱包回执已处理", "request_id", requestID, "tenant_id", bound.Scope.Tenant, "app_id", bound.Scope.App, "callback_id", outcome.CallbackID, "merchant_payment_id", outcome.MerchantID, "status", outcome.Status)
+			w.WriteHeader(http.StatusNoContent)
+		})
+	}
 	mux.Handle("POST /v1/payments", require("payments:write", func(w http.ResponseWriter, r *http.Request, p principal.Principal, id string) {
 		var input payments.CreateInput
 		if err := httpapi.Decode(w, r, &input); err != nil {
@@ -152,7 +191,17 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 			httpapi.Write(w, saved)
 			return
 		}
-		if err = service.Reconcile(r.Context(), scope, input.Channel, input.Ref); err != nil {
+		reconcileService := service
+		if input.Channel == "wallet-sandbox" {
+			if provider, ok := service.Providers[input.Channel].(walletsandbox.Provider); ok {
+				reconcileService.Providers = map[string]paymentports.Provider{}
+				for key, value := range service.Providers {
+					reconcileService.Providers[key] = value
+				}
+				reconcileService.Providers[input.Channel] = provider.ForScope(scope)
+			}
+		}
+		if err = reconcileService.Reconcile(r.Context(), scope, input.Channel, input.Ref); err != nil {
 			httpapi.Error(w, id, err)
 			return
 		}

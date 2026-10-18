@@ -6,6 +6,7 @@ import (
 	calculation "github.com/ex-business/ExCommission/internal/calculation/domain"
 	tasks "github.com/ex-business/ExCommission/internal/calculation/ports"
 	identity "github.com/ex-business/ExCommission/internal/identity/domain"
+	eventmodel "github.com/ex-business/ExCommission/internal/integration/domain"
 	"github.com/ex-business/ExCommission/internal/integration/ports"
 	plan "github.com/ex-business/ExCommission/internal/plans/domain"
 	plans "github.com/ex-business/ExCommission/internal/plans/ports"
@@ -16,15 +17,17 @@ import (
 )
 
 type Service struct {
-	AllowNew func(context.Context, db.Executor, foundation.Scope, string) error
-	Commands db.Commands
-	Query    db.Executor
-	Repo     ports.Repository
-	Tasks    tasks.Tasks
-	Source   ports.Source
-	Plans    plans.Repository
-	Now      func() time.Time
-	ID       func() string
+	// 原事务内先核对跨引擎归属，失败时不保存事件、任务或权益。
+	ExecutionGuard func(context.Context, db.Executor, foundation.Scope, eventmodel.Event) error
+	AllowNew       func(context.Context, db.Executor, foundation.Scope, string) error
+	Commands       db.Commands
+	Query          db.Executor
+	Repo           ports.Repository
+	Tasks          tasks.Tasks
+	Source         ports.Source
+	Plans          plans.Repository
+	Now            func() time.Time
+	ID             func() string
 }
 
 func (s Service) Receive(ctx context.Context, p identity.Principal, raw []byte, signature, key, request string) (foundation.CommandResult, error) {
@@ -35,6 +38,11 @@ func (s Service) Receive(ctx context.Context, p identity.Principal, raw []byte, 
 	ctx = foundation.WithRequest(ctx, request, p.Subject)
 	scope := foundation.Scope{Tenant: p.Tenant, App: p.App}
 	return s.Commands.Execute(ctx, scope, "event-receive", key, event, func(tx db.Executor) (foundation.CommandResult, error) {
+		if s.ExecutionGuard != nil {
+			if err := s.ExecutionGuard(ctx, tx, scope, event); err != nil {
+				return foundation.CommandResult{}, err
+			}
+		}
 		body, err := json.Marshal(event)
 		if err != nil {
 			return foundation.CommandResult{}, err
