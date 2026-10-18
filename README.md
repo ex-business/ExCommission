@@ -8,7 +8,7 @@
 
 ## 系统架构
 
-![系统调用与数据边界](docs/images/architecture.svg)
+![系统调用与数据边界](docs/images/architecture-image2.png)
 
 [查看各系统职责、完整调用图和业务流程](docs/系统架构与调用关系.md)。
 
