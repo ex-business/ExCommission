@@ -1,0 +1,21 @@
+{
+  "monitoring": {
+    "credentials_file": "/etc/ex-monitor/readonly-account.json",
+    "state_file": "/var/lib/ex-monitor/alerts.json",
+    "log_file": "/var/log/ex-monitor/monitoring.jsonl",
+    "interval_ms": 15000,
+    "scopes": [
+      {
+        "site": "1000",
+        "environment": "local",
+        "commission_url": "http://127.0.0.1:19895"
+      }
+    ],
+    "rules": {
+      "min_requests": 20,
+      "error_rate": 0.05,
+      "backlog_seconds": 300,
+      "watermark_seconds": 600
+    }
+  }
+}

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/ex-business/ExCommission/internal/monitoring"
 	security "github.com/ex-business/ExCommission/internal/security/domain"
 	"net/http"
 	"os"
@@ -201,6 +202,7 @@ func businessHandler(ctx context.Context, store *mysql.Store) (http.Handler, err
 	}
 	installAffiliatePrograms(mux, require, store, &workflowService)
 	installAffiliateTaskRuns(mux, require, store, &workflowService)
+	monitoring.Install(mux, require, store)
 	if err := installAffiliateFlow(ctx, mux, require, store, tenant, app); err != nil {
 		return nil, err
 	}
