@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	affiliatewallet "github.com/ex-business/ExCommission/internal/affiliatewallet"
 	walletsandbox "github.com/ex-business/ExCommission/internal/payments/adapters/walletsandbox"
 
 	authhttp "github.com/ex-business/ExCommission/internal/identity/application"
@@ -192,6 +193,7 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 			return
 		}
 		reconcileService := service
+		var affiliateReport *affiliatewallet.ReconciliationReport
 		if input.Channel == "wallet-sandbox" {
 			if provider, ok := service.Providers[input.Channel].(walletsandbox.Provider); ok {
 				reconcileService.Providers = map[string]paymentports.Provider{}
@@ -199,14 +201,31 @@ func installPayments(mux *http.ServeMux, require func(string, authhttp.Authorize
 					reconcileService.Providers[key] = value
 				}
 				reconcileService.Providers[input.Channel] = provider.ForScope(scope)
+				if affiliateFlowEnabled() && os.Getenv("AFFILIATE_CLAIM_WALLET") == "wallet-sandbox" {
+					config, configErr := affiliateWalletConfig()
+					if configErr != nil {
+						httpapi.Error(w, id, configErr)
+						return
+					}
+					affiliateReport = &affiliatewallet.ReconciliationReport{}
+					// 共用账单按已认证站点内的原单归属分流；代理只核对，旧付款仍执行原对账与差异规则。
+					reconcileService.Providers[input.Channel] = affiliatewallet.ReconciliationProvider{Provider: provider.ForScope(scope), Service: affiliateWalletService(store, config), Scope: scope, Report: affiliateReport}
+				}
 			}
 		}
 		if err = reconcileService.Reconcile(r.Context(), scope, input.Channel, input.Ref); err != nil {
 			httpapi.Error(w, id, err)
 			return
 		}
+		if affiliateReport != nil {
+			slog.InfoContext(r.Context(), "代理钱包账单核对完成", "request_id", id, "tenant_id", scope.Tenant, "app_id", scope.App, "statement_ref", input.Ref, "status", affiliateReport.Status, "checked", affiliateReport.Checked, "differences", affiliateReport.Differences, "pending", affiliateReport.Pending)
+		}
 		result, err := store.Execute(r.Context(), scope, "payment-reconcile", r.Header.Get("Idempotency-Key"), input, func(db.Executor) (foundation.CommandResult, error) {
-			return response.Result(200, id, id, map[string]string{"run_id": id, "reconciliation_id": id, "status": "COMPLETED"})
+			data := map[string]any{"run_id": id, "reconciliation_id": id, "status": "COMPLETED"}
+			if affiliateReport != nil {
+				data["affiliate_wallet"] = affiliateReport
+			}
+			return response.Result(200, id, id, data)
 		})
 		if err != nil {
 			httpapi.Error(w, id, err)

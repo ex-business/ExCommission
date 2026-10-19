@@ -716,6 +716,14 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool, external
 		if final["status"] != "SUCCEEDED" {
 			t.Fatal(final)
 		}
+		day := time.Now().UTC().Format("2006-01-02")
+		reconciled := call("POST", "/v1/reconciliation-runs", "/v1/reconciliation-runs", "operator", map[string]any{"channel_id": "wallet-sandbox", "date_range": map[string]string{"from": day + "T00:00:00Z", "to": time.Now().UTC().Add(24*time.Hour).Format("2006-01-02") + "T00:00:00Z"}, "statement_file_ref": day}, 200)
+		if len(external) > 1 && external[1] {
+			report, ok := reconciled["affiliate_wallet"].(map[string]any)
+			if !ok || report["checked_count"] != json.Number("0") || report["status"] != "NO_AFFILIATE_ORDERS" {
+				t.Fatal("旧结算原单被误分流", reconciled)
+			}
+		}
 		t.Log("外部钱包实际派发、原单查询、回执重放、错站拒绝及对账验证通过")
 		return
 	}

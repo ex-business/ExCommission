@@ -6586,6 +6586,9 @@
                           "enum": [
                             "COMPLETED"
                           ]
+                        },
+                        "affiliate_wallet": {
+                          "$ref": "#/components/schemas/AffiliateWalletReconciliation"
                         }
                       },
                       "required": [
@@ -46204,6 +46207,144 @@
             "maxLength": 128
           }
         }
+      },
+      "AffiliateWalletReconciliationRow": {
+        "type": "object",
+        "properties": {
+          "delivery_id": {
+            "type": "string"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "reward_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "string"
+          },
+          "wallet_amount_minor": {
+            "type": "string"
+          },
+          "delivery_status": {
+            "type": "string"
+          },
+          "wallet_status": {
+            "type": "string"
+          },
+          "paid_minor": {
+            "type": "string"
+          },
+          "target_minor": {
+            "type": "string"
+          },
+          "debt_minor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "MATCHED",
+              "MISMATCH",
+              "PENDING_CONFIRMATION"
+            ]
+          },
+          "receipt_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "wallet_receipt_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "delivery_id",
+          "claim_id",
+          "reward_id",
+          "user_id",
+          "currency",
+          "amount_minor",
+          "wallet_amount_minor",
+          "delivery_status",
+          "wallet_status",
+          "paid_minor",
+          "target_minor",
+          "debt_minor",
+          "reason",
+          "result",
+          "receipt_ref",
+          "wallet_receipt_ref"
+        ],
+        "additionalProperties": false
+      },
+      "AffiliateWalletReconciliation": {
+        "type": "object",
+        "properties": {
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statement_ref": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "MATCHED",
+              "MISMATCH",
+              "PENDING_CONFIRMATION",
+              "NO_AFFILIATE_ORDERS"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffiliateWalletReconciliationRow"
+            }
+          },
+          "checked_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "matched_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "difference_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pending_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "observed_at",
+          "statement_ref",
+          "status",
+          "rows",
+          "checked_count",
+          "matched_count",
+          "difference_count",
+          "pending_count"
+        ],
+        "additionalProperties": false,
+        "description": "仅核对指定日钱包账单中有本站代理领取原单归属的记录；不检查其他日期的缺单，不执行派发或改账。"
       }
     }
   },

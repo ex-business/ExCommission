@@ -12,6 +12,7 @@ import (
 	"fmt"
 	model "github.com/ex-business/ExCommission/internal/payments/domain"
 	foundation "github.com/ex-business/ExCommission/internal/platform/domain"
+	routersdk "github.com/ex-business/ex-service-router/sdk"
 	"io"
 	"net/http"
 	"net/url"
@@ -137,7 +138,8 @@ func (p Provider) call(ctx context.Context, b Binding, method, path string, in a
 	req.Header.Set("X-Wallet-Signature", hex.EncodeToString(mac.Sum(nil)))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	resp, e := client.Do(req)
+	// 内部钱包经固定授权的Router发现后直连；SDK保留签名正文且不自动重发资金写请求。
+	resp, e := routersdk.Do(client, req)
 	if e != nil {
 		return errors.New("钱包请求失败，需按原单查询")
 	}
