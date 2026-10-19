@@ -28014,6 +28014,58 @@
                             "$ref": "#/components/schemas/AffiliateReward"
                           },
                           "minItems": 1
+                        },
+                        "delivery_status": {
+                          "type": "string",
+                          "const": "SUCCEEDED"
+                        }
+                      },
+                      "required": [
+                        "claim_id",
+                        "rewards"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "领取已受理，独立钱包尚未确认到账；必须查询奖励或派发状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "claim_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "rewards": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AffiliateReward"
+                          },
+                          "minItems": 1
+                        },
+                        "delivery_status": {
+                          "type": "string",
+                          "const": "PENDING"
                         }
                       },
                       "required": [
@@ -39635,6 +39687,457 @@
           }
         }
       }
+    },
+    "/v1/me/affiliate/claim-deliveries": {
+      "get": {
+        "operationId": "readOwnAffiliateDeliveries",
+        "summary": "查询代理领取独立钱包派发记录",
+        "x-permission": "member:read",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "按已认证站点和本人身份查询，游标分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "delivery_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "reward_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "claim_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "user_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "entitlement_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "request_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "wallet_site_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "wallet_client_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "last_error": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "amount_minor": {
+                                "type": "string",
+                                "pattern": "^[0-9]{1,38}$"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PENDING",
+                                  "UNKNOWN",
+                                  "SUCCEEDED",
+                                  "FAILED_FINAL"
+                                ]
+                              },
+                              "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "receipt_ref": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "callback_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              }
+                            },
+                            "required": [
+                              "delivery_id",
+                              "reward_id",
+                              "claim_id",
+                              "user_id",
+                              "entitlement_id",
+                              "currency",
+                              "amount_minor",
+                              "status",
+                              "request_id",
+                              "updated_at"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "has_more": {
+                          "type": "boolean"
+                        },
+                        "next_after": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "has_more",
+                        "next_after",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足"
+          },
+          "409": {
+            "description": "状态冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        }
+      }
+    },
+    "/v1/affiliate/claim-deliveries": {
+      "get": {
+        "operationId": "readAffiliateDeliveries",
+        "summary": "查询代理领取独立钱包派发记录",
+        "x-permission": "affiliate:read",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "按已认证站点和本人身份查询，游标分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "request_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "delivery_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "reward_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "claim_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "user_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "entitlement_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "request_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "wallet_site_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "wallet_client_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "last_error": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "amount_minor": {
+                                "type": "string",
+                                "pattern": "^[0-9]{1,38}$"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PENDING",
+                                  "UNKNOWN",
+                                  "SUCCEEDED",
+                                  "FAILED_FINAL"
+                                ]
+                              },
+                              "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "receipt_ref": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "callback_id": {
+                                "type": "string",
+                                "maxLength": 128
+                              }
+                            },
+                            "required": [
+                              "delivery_id",
+                              "reward_id",
+                              "claim_id",
+                              "user_id",
+                              "entitlement_id",
+                              "currency",
+                              "amount_minor",
+                              "status",
+                              "request_id",
+                              "updated_at"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "has_more": {
+                          "type": "boolean"
+                        },
+                        "next_after": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "limit": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "has_more",
+                        "next_after",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "request_id",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "权限不足"
+          },
+          "409": {
+            "description": "状态冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        }
+      }
+    },
+    "/v1/payment-callbacks/affiliate-wallet/{client_id}": {
+      "post": {
+        "operationId": "receiveAffiliateWalletCallback",
+        "summary": "独立钱包代理领取验签回执",
+        "x-channel-only": true,
+        "description": "只允许配置中的钱包客户端签名投递，客户端映射决定站点；不允许浏览器代签。",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "X-Payment-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "callback_id": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "site_id": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "merchant_payment_id": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "currency": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "minor_units": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "status": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "receipt_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "callback_id",
+                  "site_id",
+                  "merchant_payment_id",
+                  "currency",
+                  "minor_units",
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "回执已应用或同终态重放"
+          },
+          "400": {
+            "description": "输入或站点非法"
+          },
+          "401": {
+            "description": "未认证"
+          },
+          "403": {
+            "description": "签名错误"
+          },
+          "404": {
+            "description": "原单不存在"
+          },
+          "409": {
+            "description": "金额或终态冲突"
+          },
+          "503": {
+            "description": "依赖不可用"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -44629,7 +45132,8 @@
               "PENDING_REVIEW",
               "CLAIMABLE",
               "CLAIMED",
-              "CANCELLED"
+              "CANCELLED",
+              "CLAIMING"
             ]
           },
           "unlocked_at": {
@@ -44877,6 +45381,21 @@
           "program_configuration": {
             "type": "object",
             "additionalProperties": true
+          },
+          "wallet_delivery_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "wallet_destination": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "wallet_receipt_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 256
           }
         },
         "required": [

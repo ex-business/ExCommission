@@ -34,7 +34,7 @@ import (
 func affiliateFlowEnabled() bool { return os.Getenv("LOCAL_AFFILIATE_FLOW_ENABLED") == "true" }
 func affiliateFlowService(store *mysql.Store) app.Service {
 	scope := localScope()
-	return configurePrograms(store, configureIngestion(store, app.Service{ExecutionGuard: func(ctx context.Context, tx db.Executor, sc foundation.Scope, e flowmodel.Event) error {
+	service := configurePrograms(store, configureIngestion(store, app.Service{ExecutionGuard: func(ctx context.Context, tx db.Executor, sc foundation.Scope, e flowmodel.Event) error {
 		return (executionrepo.Repository{}).Acquire(ctx, tx, sc, execution.Claim{Source: e.Source, EventID: e.EventID, BusinessID: e.BusinessID, Kind: e.Kind, Engine: execution.Affiliate, At: e.At}, clockUTC())
 	}, ClaimContextReady: len(os.Getenv("AFFILIATE_CLIENT_CONTEXT_KEY")) >= 32, Commands: store, Query: store.DB, Repo: repo.Repository{}, DailyRepo: repo.Repository{}, Relations: repo.Relations{}, Members: repo.Members{}, Configs: affiliate.Repository{}, Funds: repo.Funds{Wallet: wallet.Repository{}, Validate: validateAffiliateRewardCurrency}, Now: clockUTC, Sources: map[string]ports.Source{"sandbox": repo.HMACSource{Scope: scope, Source: "sandbox", Key: []byte(os.Getenv("LOCAL_AFFILIATE_FLOW_KEY"))}}, CanReward: siteAllow, CanRewardAt: func(ctx context.Context, tx db.Executor, sc foundation.Scope, at time.Time) error {
 		config, e := (sitesrepo.Repository{}).At(ctx, tx, sc, at)
@@ -57,6 +57,7 @@ func affiliateFlowService(store *mysql.Store) app.Service {
 	}, StepUp: func(ctx context.Context, p principal.Principal, action, key string, payload any) error {
 		return verifyStepUp(store, ctx, p, action, key, payload)
 	}}))
+	return configureAffiliateWalletFunds(service)
 }
 func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(string, auth.AuthorizedHandler) http.Handler, store *mysql.Store, tenant, application string) error {
 	if !affiliateFlowEnabled() {
@@ -72,6 +73,9 @@ func installAffiliateFlow(ctx context.Context, mux *http.ServeMux, require func(
 		if e := bootstrapFeature(ctx, store, tenant, application, item.subject, "affiliate-business-v1", item.permissions); e != nil {
 			return e
 		}
+	}
+	if err := installAffiliateWallet(mux, require, store); err != nil {
+		return err
 	}
 	installAffiliateReversals(mux, require, store)
 	service := affiliateFlowService(store)

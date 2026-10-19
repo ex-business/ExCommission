@@ -50,7 +50,7 @@ func (f RecordFilter) Validate(now time.Time) error {
 		return foundation.ErrValidation
 	}
 	switch f.Status {
-	case "", "PENDING_REVIEW", "CLAIMABLE", "CLAIMED", "CANCELLED":
+	case "", "PENDING_REVIEW", "CLAIMABLE", "CLAIMING", "CLAIMED", "CANCELLED":
 	default:
 		return foundation.ErrValidation
 	}
@@ -101,7 +101,7 @@ func Summarize(rows []Reward) []RewardSummary {
 			v.Claimable = add(v.Claimable, r.Amount)
 		case "CLAIMED":
 			v.Claimed = add(v.Claimed, r.Amount)
-		case "PENDING_REVIEW":
+		case "PENDING_REVIEW", "CLAIMING":
 			v.Pending = add(v.Pending, r.Amount)
 		case "CANCELLED":
 			v.Cancelled = add(v.Cancelled, r.Amount)

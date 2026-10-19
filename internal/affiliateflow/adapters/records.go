@@ -42,7 +42,7 @@ func (Repository) Records(ctx context.Context, tx db.Executor, s foundation.Scop
 	amount := `CAST(JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.amount_minor')) AS DECIMAL(38,0))`
 	status := `JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.status'))`
 	currency := `JSON_UNQUOTE(JSON_EXTRACT(h.body,'$.currency'))`
-	summary, e := tx.QueryContext(ctx, `SELECT `+currency+`,COUNT(*),CAST(SUM(`+amount+`) AS CHAR),CAST(SUM(CASE WHEN `+status+`='CLAIMABLE' THEN `+amount+` ELSE 0 END) AS CHAR),CAST(SUM(CASE WHEN `+status+`='CLAIMED' THEN `+amount+` ELSE 0 END) AS CHAR),CAST(SUM(CASE WHEN `+status+`='PENDING_REVIEW' THEN `+amount+` ELSE 0 END) AS CHAR),CAST(SUM(CASE WHEN `+status+`='CANCELLED' THEN `+amount+` ELSE 0 END) AS CHAR)`+base+` GROUP BY `+currency+` ORDER BY `+currency, args...)
+	summary, e := tx.QueryContext(ctx, `SELECT `+currency+`,COUNT(*),CAST(SUM(`+amount+`) AS CHAR),CAST(SUM(CASE WHEN `+status+`='CLAIMABLE' THEN `+amount+` ELSE 0 END) AS CHAR),CAST(SUM(CASE WHEN `+status+`='CLAIMED' THEN `+amount+` ELSE 0 END) AS CHAR),CAST(SUM(CASE WHEN `+status+` IN ('PENDING_REVIEW','CLAIMING') THEN `+amount+` ELSE 0 END) AS CHAR),CAST(SUM(CASE WHEN `+status+`='CANCELLED' THEN `+amount+` ELSE 0 END) AS CHAR)`+base+` GROUP BY `+currency+` ORDER BY `+currency, args...)
 	if e != nil {
 		return out, e
 	}

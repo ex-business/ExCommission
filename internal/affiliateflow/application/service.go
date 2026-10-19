@@ -306,6 +306,11 @@ func (s Service) Claim(ctx context.Context, p principal.Principal, in Claim, ip,
 	if p.MemberUserID == "" || (in.Kind != model.Referral && in.Kind != model.Invitee && in.Kind != model.Commission && in.Kind != "ALL") {
 		return foundation.CommandResult{}, foundation.ErrValidation
 	}
+	// 独立钱包异步领取必须等确认后才算已领，原同步内部钱包继续原子入账。
+	deferred := false
+	if funds, ok := s.Funds.(interface{ DeferredClaim() bool }); ok {
+		deferred = funds.DeferredClaim()
+	}
 	sc := scope(p)
 	if e := s.Authorize(ctx, s.Query, p, "member:claim"); e != nil {
 		return foundation.CommandResult{}, e
@@ -362,6 +367,12 @@ func (s Service) Claim(ctx context.Context, p principal.Principal, in Claim, ip,
 			r.UpdatedAt = now
 			r.Status = "CLAIMED"
 			r.ClaimedAt = &now
+			if deferred {
+				r.Status = "CLAIMING"
+				r.ClaimedAt = nil
+				r.WalletDestination = "wallet-sandbox"
+				r.WalletDelivery = model.ID("affiliate-wallet", r.ID, batch)
+			}
 			r.ClaimID = batch
 			r.ClaimIP = ip
 			r.Revision++
@@ -373,8 +384,15 @@ func (s Service) Claim(ctx context.Context, p principal.Principal, in Claim, ip,
 		if len(claimed) == 0 {
 			return foundation.CommandResult{}, errors.New("STATE_CONFLICT:NO_CLAIMABLE_REWARD")
 		}
-		return response.Result(200, batch, rid, map[string]any{"claim_id": batch, "rewards": claimed})
+		status, delivery := 200, "SUCCEEDED"
+		if deferred {
+			status, delivery = 202, "PENDING"
+		}
+		return response.Result(status, batch, rid, map[string]any{"claim_id": batch, "rewards": claimed, "delivery_status": delivery})
 	})
+	if e == nil && out.Status == 202 && !out.Replayed {
+		slog.InfoContext(ctx, "会员奖励领取已受理等待独立钱包确认", "request_id", rid, "user_id", p.MemberUserID, "claim_id", out.ResourceID, "result", "PENDING")
+	}
 	if e == nil && out.Status == 200 && !out.Replayed {
 		slog.InfoContext(ctx, "会员奖励领取已原子入账", "request_id", rid, "user_id", p.MemberUserID, "kind", in.Kind, "claim_id", out.ResourceID, "result", "SUCCEEDED")
 	}

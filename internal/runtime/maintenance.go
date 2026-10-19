@@ -9,6 +9,7 @@ import (
 	referral "github.com/ex-business/ExCommission/internal/referral/adapters"
 	model "github.com/ex-business/ExCommission/internal/referral/domain"
 	"log/slog"
+	"os"
 	"time"
 )
 
@@ -34,6 +35,9 @@ func maintenanceJobs(store *mysql.Store) []maintenanceJob {
 			}
 			return service.RefreshAll(job, localScope())
 		}})
+	}
+	if affiliateFlowEnabled() && os.Getenv("AFFILIATE_CLAIM_WALLET") == "wallet-sandbox" {
+		jobs = append(jobs, maintenanceJob{"affiliate.wallet.recovery", func(ctx context.Context) error { return recoverAffiliateWallet(ctx, store) }})
 	}
 	if affiliateFlowEnabled() {
 		jobs = append(jobs, maintenanceJob{"affiliate.business.daily", func(ctx context.Context) error {

@@ -15,7 +15,7 @@ import (
 )
 
 // prepareWalletProcess 启动独立钱包进程和独立账本，验证真正的HTTP调用与持久回执任务。
-func prepareWalletProcess(t *testing.T, scope foundation.Scope, dir string) (string, func(string)) {
+func prepareWalletProcess(t *testing.T, scope foundation.Scope, dir string, prefixes ...string) (string, func(string)) {
 	t.Helper()
 	binary := os.Getenv("TEST_WALLET_BINARY")
 	if binary == "" {
@@ -34,8 +34,12 @@ func prepareWalletProcess(t *testing.T, scope foundation.Scope, dir string) (str
 	if e = os.WriteFile(path, raw, 0600); e != nil {
 		t.Fatal(e)
 	}
+	prefix := "/v1/wallet-sandbox-callbacks/"
+	if len(prefixes) > 0 {
+		prefix = prefixes[0]
+	}
 	return path, func(callbackURL string) {
-		config := map[string]any{"listen": address, "ops_url": "http://127.0.0.1:19587", "ops_secret": newID() + newID(), "sites": []any{map[string]string{"site_id": binding.Site, "client_id": binding.Client, "key": binding.Key, "callback_url": callbackURL + "/v1/wallet-sandbox-callbacks/" + binding.Client, "callback_key": binding.CallbackKey}}}
+		config := map[string]any{"listen": address, "ops_url": "http://127.0.0.1:19587", "ops_secret": newID() + newID(), "sites": []any{map[string]string{"site_id": binding.Site, "client_id": binding.Client, "key": binding.Key, "callback_url": callbackURL + prefix + binding.Client, "callback_key": binding.CallbackKey}}}
 		raw, _ := json.Marshal(config)
 		path := filepath.Join(dir, "wallet-process.json")
 		if e = os.WriteFile(path, raw, 0600); e != nil {

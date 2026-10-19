@@ -57,8 +57,19 @@ func TestExternalWalletSandboxPayout(t *testing.T) {
 	}
 	commissionReviewFixture(t, false, false, true)
 }
+func TestExternalWalletSandboxSharedCallback(t *testing.T) {
+	commissionReviewFixture(t, false, false, true, true)
+}
 func commissionReviewFixture(t *testing.T, memberMode, walletMode bool, external ...bool) {
 	externalWallet := len(external) > 0 && external[0]
+	callbackPrefix := "/v1/wallet-sandbox-callbacks/"
+	if len(external) > 1 && external[1] {
+		callbackPrefix = "/v1/payment-callbacks/affiliate-wallet/"
+		t.Setenv("LOCAL_AFFILIATE_FLOW_ENABLED", "true")
+		t.Setenv("LOCAL_AFFILIATE_FLOW_KEY", strings.Repeat("f", 32))
+		t.Setenv("AFFILIATE_CLIENT_CONTEXT_KEY", strings.Repeat("x", 32))
+		t.Setenv("AFFILIATE_CLAIM_WALLET", "wallet-sandbox")
+	}
 	if os.Getenv("TEST_MYSQL_ADDRESS") == "" {
 		t.Skip("Docker MySQL required")
 	}
@@ -123,7 +134,7 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool, external
 	}
 	var startExternal func(string)
 	if externalWallet {
-		file, start := prepareWalletProcess(t, scope, directory)
+		file, start := prepareWalletProcess(t, scope, directory, callbackPrefix)
 		startExternal = start
 		t.Setenv("WALLET_SANDBOX_CONFIG_FILE", file)
 	}
@@ -165,7 +176,7 @@ func commissionReviewFixture(t *testing.T, memberMode, walletMode bool, external
 	if externalWallet {
 		original := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/v1/wallet-sandbox-callbacks/") {
+			if strings.HasPrefix(r.URL.Path, callbackPrefix) {
 				if callbackAttempts.Add(1) == 1 {
 					w.WriteHeader(503)
 					return
